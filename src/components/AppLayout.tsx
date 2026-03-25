@@ -184,7 +184,7 @@ export default function AppLayout() {
         </main>
 
         <footer className="border-t border-border px-8 py-3">
-          <p className="text-[11px] text-muted-foreground font-medium">Last synced: 2 mins ago · System Status: <span className="text-success">Operational</span></p>
+          <p className="text-[11px] text-muted-foreground font-medium">Last synced: {timeSince} · Auto-refresh: 60s · System Status: <span className="text-success">Operational</span></p>
         </footer>
       </div>
     </div>
