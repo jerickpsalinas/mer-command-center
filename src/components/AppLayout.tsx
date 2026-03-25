@@ -30,8 +30,30 @@ const navItems = [
 export default function AppLayout() {
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [lastSynced, setLastSynced] = useState<Date>(new Date());
   const location = useLocation();
+  const queryClient = useQueryClient();
+  const isFetching = useIsFetching({ queryKey: ["sheet-data"] });
   const currentTitle = navItems.find(n => n.url === location.pathname)?.title || "Dashboard";
+
+  useEffect(() => {
+    if (isFetching === 0) setLastSynced(new Date());
+  }, [isFetching]);
+
+  const handleRefresh = () => {
+    queryClient.invalidateQueries({ queryKey: ["sheet-data"] });
+  };
+
+  const [timeSince, setTimeSince] = useState("just now");
+  useEffect(() => {
+    const interval = setInterval(() => {
+      const secs = Math.floor((Date.now() - lastSynced.getTime()) / 1000);
+      if (secs < 10) setTimeSince("just now");
+      else if (secs < 60) setTimeSince(`${secs}s ago`);
+      else setTimeSince(`${Math.floor(secs / 60)}m ago`);
+    }, 5000);
+    return () => clearInterval(interval);
+  }, [lastSynced]);
 
   return (
     <div className="flex min-h-screen w-full bg-background">
