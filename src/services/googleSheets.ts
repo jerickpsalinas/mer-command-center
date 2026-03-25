@@ -78,7 +78,8 @@ function parseTrend(row: Record<string, unknown>): MonthlyTrend {
 }
 
 export async function fetchSheetData(): Promise<SheetData> {
-  const res = await fetch(SHEET_URL);
+  const url = `${SHEET_URL}?t=${Date.now()}`;
+  const res = await fetch(url);
   if (!res.ok) throw new Error(`Sheet fetch failed: ${res.status}`);
   const raw = await res.json();
 
