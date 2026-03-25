@@ -6,60 +6,59 @@
 
 @layer base {
   :root {
-    --background: 25 15% 8%;
-    --foreground: 35 30% 90%;
+    --background: 20 12% 7%;
+    --foreground: 30 25% 88%;
 
-    --card: 25 12% 12%;
-    --card-foreground: 35 30% 90%;
+    --card: 20 10% 11%;
+    --card-foreground: 30 25% 88%;
 
-    --popover: 25 12% 14%;
-    --popover-foreground: 35 30% 90%;
+    --popover: 20 10% 13%;
+    --popover-foreground: 30 25% 88%;
 
-    --primary: 38 55% 55%;
-    --primary-foreground: 25 15% 8%;
+    --primary: 340 45% 55%;
+    --primary-foreground: 0 0% 100%;
 
-    --secondary: 25 8% 30%;
-    --secondary-foreground: 35 20% 80%;
+    --secondary: 20 8% 28%;
+    --secondary-foreground: 30 18% 78%;
 
-    --muted: 25 10% 16%;
-    --muted-foreground: 30 12% 55%;
+    --muted: 20 8% 15%;
+    --muted-foreground: 25 10% 50%;
 
-    --accent: 25 10% 18%;
-    --accent-foreground: 35 30% 90%;
+    --accent: 20 8% 16%;
+    --accent-foreground: 30 25% 88%;
 
-    --destructive: 0 72% 55%;
+    --destructive: 0 65% 50%;
     --destructive-foreground: 0 0% 100%;
 
-    --success: 160 60% 45%;
+    --success: 160 55% 42%;
     --success-foreground: 0 0% 100%;
 
-    --warning: 38 85% 55%;
-    --warning-foreground: 25 15% 8%;
+    --warning: 38 80% 52%;
+    --warning-foreground: 20 12% 7%;
 
-    --border: 25 10% 18%;
-    --input: 25 10% 18%;
-    --ring: 38 55% 55%;
+    --border: 20 8% 16%;
+    --input: 20 8% 16%;
+    --ring: 340 45% 55%;
 
     --radius: 0.625rem;
 
-    --sidebar-background: 25 15% 6%;
-    --sidebar-foreground: 35 20% 75%;
-    --sidebar-primary: 38 55% 55%;
-    --sidebar-primary-foreground: 25 15% 8%;
-    --sidebar-accent: 25 10% 14%;
-    --sidebar-accent-foreground: 35 30% 90%;
-    --sidebar-border: 25 10% 15%;
-    --sidebar-ring: 38 55% 55%;
+    --sidebar-background: 20 12% 5%;
+    --sidebar-foreground: 30 15% 70%;
+    --sidebar-primary: 340 45% 55%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 20 8% 13%;
+    --sidebar-accent-foreground: 30 25% 88%;
+    --sidebar-border: 20 8% 14%;
+    --sidebar-ring: 340 45% 55%;
 
-    --surface: 25 12% 12%;
-    --surface-alt: 25 10% 16%;
+    --surface: 20 10% 11%;
+    --surface-alt: 20 8% 15%;
 
-    --rose-accent: 350 55% 55%;
+    --rose-accent: 340 45% 55%;
 
-    --shadow-card: 0 2px 8px -2px hsl(25 15% 4% / 0.6), 0 1px 3px -1px hsl(25 15% 4% / 0.4);
-    --shadow-card-hover: 0 8px 24px -4px hsl(25 15% 4% / 0.7), 0 2px 8px -2px hsl(38 55% 55% / 0.08);
-    --shadow-elevated: 0 12px 36px -6px hsl(25 15% 4% / 0.8), 0 4px 12px -2px hsl(38 55% 55% / 0.06);
-    --shadow-glow: 0 0 20px -4px hsl(38 55% 55% / 0.15);
+    --shadow-card: 0 2px 8px -2px hsl(20 12% 3% / 0.5), 0 1px 3px -1px hsl(20 12% 3% / 0.3);
+    --shadow-card-hover: 0 6px 20px -4px hsl(20 12% 3% / 0.6), 0 2px 6px -2px hsl(340 45% 55% / 0.05);
+    --shadow-elevated: 0 12px 36px -6px hsl(20 12% 3% / 0.7), 0 4px 12px -2px hsl(340 45% 55% / 0.04);
   }
 }
 
@@ -104,54 +103,11 @@
     box-shadow: var(--shadow-elevated);
   }
 
-  .shadow-glow {
-    box-shadow: var(--shadow-glow);
-  }
-
-  /* Gold gradient text */
-  .text-gold-gradient {
-    background: linear-gradient(135deg, hsl(38 55% 55%), hsl(42 70% 70%), hsl(38 55% 55%));
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
-  }
-
-  /* Subtle gold border glow on hover */
-  .border-glow {
-    position: relative;
-  }
-  .border-glow::after {
-    content: '';
-    position: absolute;
-    inset: -1px;
-    border-radius: inherit;
-    background: linear-gradient(135deg, hsl(38 55% 55% / 0.15), transparent, hsl(38 55% 55% / 0.08));
-    pointer-events: none;
-    opacity: 0;
-    transition: opacity 0.3s ease;
-    z-index: 0;
-  }
-  .border-glow:hover::after {
-    opacity: 1;
-  }
-
-  /* Shimmer effect */
-  .shimmer {
-    background: linear-gradient(
-      110deg,
-      transparent 25%,
-      hsl(38 55% 55% / 0.04) 37%,
-      transparent 63%
-    );
-    background-size: 200% 100%;
-    animation: shimmer 3s ease-in-out infinite;
-  }
-
   /* Glass panel */
   .glass-panel {
-    background: hsl(25 12% 12% / 0.7);
+    background: hsl(20 10% 11% / 0.75);
     backdrop-filter: blur(16px) saturate(1.2);
-    border: 1px solid hsl(38 55% 55% / 0.08);
+    border: 1px solid hsl(20 8% 18% / 0.6);
   }
 
   /* Warm vignette overlay */
@@ -159,23 +115,8 @@
     content: '';
     position: fixed;
     inset: 0;
-    background: radial-gradient(ellipse at center, transparent 50%, hsl(25 15% 4% / 0.4) 100%);
+    background: radial-gradient(ellipse at center, transparent 50%, hsl(20 12% 3% / 0.4) 100%);
     pointer-events: none;
     z-index: 0;
   }
-}
-
-@keyframes shimmer {
-  0% { background-position: 200% 0; }
-  100% { background-position: -200% 0; }
-}
-
-@keyframes pulse-gold {
-  0%, 100% { box-shadow: 0 0 0 0 hsl(38 55% 55% / 0.15); }
-  50% { box-shadow: 0 0 16px 4px hsl(38 55% 55% / 0.1); }
-}
-
-@keyframes float {
-  0%, 100% { transform: translateY(0); }
-  50% { transform: translateY(-4px); }
 }
