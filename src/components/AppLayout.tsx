@@ -7,6 +7,7 @@ import {
   Search, Bell, Menu, X, ChevronLeft, RefreshCw,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
+import logo from "@/assets/logo.png";
 
 const navItems = [
   { title: "Dashboard", url: "/", icon: LayoutDashboard },
@@ -69,13 +70,14 @@ export default function AppLayout() {
         <div className="flex h-[56px] items-center justify-between px-4 border-b border-border">
           {sidebarOpen && (
             <div className="flex items-center gap-2.5">
-              <div className="h-7 w-7 rounded-lg bg-gradient-to-br from-primary to-primary/70 flex items-center justify-center shadow-[0_0_12px_-2px_hsl(38_55%_55%_/_0.3)]">
-                <span className="text-[11px] font-bold text-primary-foreground">BA</span>
-              </div>
-              <span className="text-sm font-semibold tracking-tight text-gold-gradient">
+              <img src={logo} alt="B&A Logo" className="h-7 w-7 rounded-lg object-contain" />
+              <span className="text-sm font-semibold tracking-tight text-foreground">
                 Brant & Associates
               </span>
             </div>
+          )}
+          {!sidebarOpen && (
+            <img src={logo} alt="B&A" className="h-7 w-7 rounded-lg object-contain mx-auto" />
           )}
           <button
             onClick={() => setSidebarOpen(!sidebarOpen)}
@@ -110,7 +112,7 @@ export default function AppLayout() {
                 {isActive && (
                   <motion.div
                     layoutId="sidebar-active"
-                    className="absolute left-0 top-1.5 bottom-1.5 w-[3px] rounded-full bg-primary shadow-[0_0_8px_hsl(38_55%_55%_/_0.4)]"
+                    className="absolute left-0 top-1.5 bottom-1.5 w-[3px] rounded-full bg-primary"
                     transition={{ type: "spring", stiffness: 500, damping: 30 }}
                   />
                 )}
@@ -161,11 +163,11 @@ export default function AppLayout() {
 
           <button className="relative h-9 w-9 flex items-center justify-center rounded-lg text-muted-foreground hover:bg-accent transition-colors">
             <Bell className="h-[18px] w-[18px]" />
-            <span className="absolute top-1.5 right-1.5 h-2 w-2 rounded-full bg-[hsl(var(--rose-accent))] ring-2 ring-card animate-pulse" />
+            <span className="absolute top-1.5 right-1.5 h-2 w-2 rounded-full bg-primary ring-2 ring-card" />
           </button>
 
-          <div className="h-9 w-9 rounded-full bg-gradient-to-br from-primary to-primary/70 flex items-center justify-center text-primary-foreground text-xs font-semibold ring-2 ring-primary/20 shadow-[0_0_12px_-4px_hsl(38_55%_55%_/_0.3)]">
-            BA
+          <div className="h-9 w-9 rounded-full bg-primary/15 flex items-center justify-center overflow-hidden ring-2 ring-primary/20">
+            <img src={logo} alt="BA" className="h-6 w-6 object-contain" />
           </div>
         </header>
 
