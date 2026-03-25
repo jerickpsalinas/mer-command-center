@@ -160,6 +160,15 @@ export default function AppLayout() {
             <kbd className="ml-auto text-[10px] border border-border rounded px-1.5 py-0.5 font-mono-data">⌘K</kbd>
           </div>
 
+          <button
+            onClick={handleRefresh}
+            disabled={isFetching > 0}
+            className="h-9 w-9 flex items-center justify-center rounded-lg text-muted-foreground hover:bg-accent transition-colors disabled:opacity-50"
+            title="Refresh data"
+          >
+            <RefreshCw className={`h-[18px] w-[18px] ${isFetching > 0 ? "animate-spin" : ""}`} />
+          </button>
+
           <button className="relative h-9 w-9 flex items-center justify-center rounded-lg text-muted-foreground hover:bg-accent transition-colors">
             <Bell className="h-[18px] w-[18px]" />
             <span className="absolute top-1.5 right-1.5 h-2 w-2 rounded-full bg-destructive ring-2 ring-card" />
