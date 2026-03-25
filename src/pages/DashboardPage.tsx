@@ -74,8 +74,43 @@ function NeedsAttentionSection({ clients }: { clients: Client[] }) {
 
 function BookkeepersSection({ clients, bookkeepers }: { clients: Client[]; bookkeepers: string[] }) {
   const bkStats = getBookkeeperStats(clients, bookkeepers);
-  const compliantClients = clients.filter(c => c.complianceStatus === "Compliant").slice(0, 2);
-  const missingClients = clients.filter(c => c.bankTransactions.includes("Missing")).slice(0, 1);
+
+  // Generate real recent activity from actual client data
+  const recentActivity: { id: string; message: React.ReactNode }[] = [];
+
+  // Clients with highest completion (recently compliant)
+  const topCompliant = clients
+    .filter(c => c.complianceStatus === "Compliant")
+    .slice(0, 3);
+  topCompliant.forEach(c => {
+    recentActivity.push({
+      id: `compliant-${c.id}`,
+      message: <><span className="text-foreground font-medium">{c.name}</span> — <span className="text-success font-semibold">Compliant</span> ({c.bookkeeper})</>,
+    });
+  });
+
+  // Clients with missing statements (flagged)
+  const flagged = clients
+    .filter(c => c.bankTransactions.includes("Missing"))
+    .slice(0, 2);
+  flagged.forEach(c => {
+    recentActivity.push({
+      id: `flagged-${c.id}`,
+      message: <><span className="text-foreground font-medium">{c.name}</span> — <span className="text-destructive font-semibold">missing statements</span> ({c.bookkeeper})</>,
+    });
+  });
+
+  // Clients with uncategorized transactions
+  const uncatClients = clients
+    .filter(c => c.uncategorizedTransactions > 0)
+    .sort((a, b) => b.uncategorizedTransactions - a.uncategorizedTransactions)
+    .slice(0, 2);
+  uncatClients.forEach(c => {
+    recentActivity.push({
+      id: `uncat-${c.id}`,
+      message: <><span className="text-foreground font-medium">{c.name}</span> — <span className="text-warning font-semibold">{c.uncategorizedTransactions} uncategorized txns</span> ({c.bookkeeper})</>,
+    });
+  });
 
   return (
     <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4, delay: 0.9 }}
@@ -101,8 +136,12 @@ function BookkeepersSection({ clients, bookkeepers }: { clients: Client[]; bookk
       <div className="border-t border-border px-6 py-4">
         <h3 className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider mb-3 flex items-center gap-1.5"><Clock className="h-3.5 w-3.5" /> Recent Activity</h3>
         <div className="space-y-2.5 text-[12px] text-muted-foreground">
-          {compliantClients.map(c => <p key={c.id}>{c.name} marked <span className="text-success font-semibold">Compliant</span></p>)}
-          {missingClients.map(c => <p key={c.id}>{c.name} flagged — <span className="text-destructive font-semibold">missing statements</span></p>)}
+          {recentActivity.slice(0, 5).map(a => (
+            <p key={a.id}>{a.message}</p>
+          ))}
+          {recentActivity.length === 0 && (
+            <p className="text-muted-foreground">No recent activity</p>
+          )}
         </div>
       </div>
     </motion.div>
