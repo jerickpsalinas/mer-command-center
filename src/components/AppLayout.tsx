@@ -1,5 +1,6 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Outlet, useLocation } from "react-router-dom";
+import { useQueryClient, useIsFetching } from "@tanstack/react-query";
 import { NavLink } from "@/components/NavLink";
 import {
   LayoutDashboard,
@@ -13,6 +14,7 @@ import {
   Menu,
   X,
   ChevronLeft,
+  RefreshCw,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 
@@ -28,8 +30,30 @@ const navItems = [
 export default function AppLayout() {
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [lastSynced, setLastSynced] = useState<Date>(new Date());
   const location = useLocation();
+  const queryClient = useQueryClient();
+  const isFetching = useIsFetching({ queryKey: ["sheet-data"] });
   const currentTitle = navItems.find(n => n.url === location.pathname)?.title || "Dashboard";
+
+  useEffect(() => {
+    if (isFetching === 0) setLastSynced(new Date());
+  }, [isFetching]);
+
+  const handleRefresh = () => {
+    queryClient.invalidateQueries({ queryKey: ["sheet-data"] });
+  };
+
+  const [timeSince, setTimeSince] = useState("just now");
+  useEffect(() => {
+    const interval = setInterval(() => {
+      const secs = Math.floor((Date.now() - lastSynced.getTime()) / 1000);
+      if (secs < 10) setTimeSince("just now");
+      else if (secs < 60) setTimeSince(`${secs}s ago`);
+      else setTimeSince(`${Math.floor(secs / 60)}m ago`);
+    }, 5000);
+    return () => clearInterval(interval);
+  }, [lastSynced]);
 
   return (
     <div className="flex min-h-screen w-full bg-background">
@@ -136,6 +160,15 @@ export default function AppLayout() {
             <kbd className="ml-auto text-[10px] border border-border rounded px-1.5 py-0.5 font-mono-data">⌘K</kbd>
           </div>
 
+          <button
+            onClick={handleRefresh}
+            disabled={isFetching > 0}
+            className="h-9 w-9 flex items-center justify-center rounded-lg text-muted-foreground hover:bg-accent transition-colors disabled:opacity-50"
+            title="Refresh data"
+          >
+            <RefreshCw className={`h-[18px] w-[18px] ${isFetching > 0 ? "animate-spin" : ""}`} />
+          </button>
+
           <button className="relative h-9 w-9 flex items-center justify-center rounded-lg text-muted-foreground hover:bg-accent transition-colors">
             <Bell className="h-[18px] w-[18px]" />
             <span className="absolute top-1.5 right-1.5 h-2 w-2 rounded-full bg-destructive ring-2 ring-card" />
@@ -151,7 +184,7 @@ export default function AppLayout() {
         </main>
 
         <footer className="border-t border-border px-8 py-3">
-          <p className="text-[11px] text-muted-foreground font-medium">Last synced: 2 mins ago · System Status: <span className="text-success">Operational</span></p>
+          <p className="text-[11px] text-muted-foreground font-medium">Last synced: {timeSince} · Auto-refresh: 60s · System Status: <span className="text-success">Operational</span></p>
         </footer>
       </div>
     </div>

@@ -2,12 +2,14 @@ import { useQuery } from "@tanstack/react-query";
 import { fetchSheetData, type SheetData } from "@/services/googleSheets";
 import type { Client, MonthlyTrend } from "@/data/mockData";
 
-export function useSheetData() {
+export function useSheetData(autoRefresh = true) {
   return useQuery<SheetData>({
     queryKey: ["sheet-data"],
     queryFn: fetchSheetData,
-    staleTime: 5 * 60 * 1000, // 5 min cache
-    refetchOnWindowFocus: false,
+    staleTime: 0,
+    gcTime: 0,
+    refetchOnWindowFocus: true,
+    refetchInterval: autoRefresh ? 60_000 : false,
   });
 }
 
