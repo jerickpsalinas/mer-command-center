@@ -59,6 +59,9 @@ export default {
           DEFAULT: "hsl(var(--surface))",
           alt: "hsl(var(--surface-alt))",
         },
+        rose: {
+          DEFAULT: "hsl(var(--rose-accent))",
+        },
         sidebar: {
           DEFAULT: "hsl(var(--sidebar-background))",
           foreground: "hsl(var(--sidebar-foreground))",
