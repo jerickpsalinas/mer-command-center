@@ -3,18 +3,8 @@ import { Outlet, useLocation } from "react-router-dom";
 import { useQueryClient, useIsFetching } from "@tanstack/react-query";
 import { NavLink } from "@/components/NavLink";
 import {
-  LayoutDashboard,
-  CalendarCheck,
-  TrendingUp,
-  Users,
-  FileText,
-  Settings,
-  Search,
-  Bell,
-  Menu,
-  X,
-  ChevronLeft,
-  RefreshCw,
+  LayoutDashboard, CalendarCheck, TrendingUp, Users, FileText, Settings,
+  Search, Bell, Menu, X, ChevronLeft, RefreshCw,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 
@@ -56,7 +46,7 @@ export default function AppLayout() {
   }, [lastSynced]);
 
   return (
-    <div className="flex min-h-screen w-full bg-background">
+    <div className="flex min-h-screen w-full bg-background vignette">
       {/* Mobile overlay */}
       <AnimatePresence>
         {mobileOpen && (
@@ -64,7 +54,7 @@ export default function AppLayout() {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 z-40 bg-foreground/20 backdrop-blur-sm lg:hidden"
+            className="fixed inset-0 z-40 bg-background/60 backdrop-blur-sm lg:hidden"
             onClick={() => setMobileOpen(false)}
           />
         )}
@@ -72,17 +62,17 @@ export default function AppLayout() {
 
       {/* Sidebar */}
       <aside
-        className={`fixed lg:sticky top-0 left-0 z-50 h-screen flex flex-col border-r border-border bg-card transition-all duration-300 ${
+        className={`fixed lg:sticky top-0 left-0 z-50 h-screen flex flex-col border-r border-border bg-sidebar transition-all duration-300 ${
           sidebarOpen ? "w-[240px]" : "w-[60px]"
         } ${mobileOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"}`}
       >
         <div className="flex h-[56px] items-center justify-between px-4 border-b border-border">
           {sidebarOpen && (
             <div className="flex items-center gap-2.5">
-              <div className="h-7 w-7 rounded-lg bg-primary flex items-center justify-center">
+              <div className="h-7 w-7 rounded-lg bg-gradient-to-br from-primary to-primary/70 flex items-center justify-center shadow-[0_0_12px_-2px_hsl(38_55%_55%_/_0.3)]">
                 <span className="text-[11px] font-bold text-primary-foreground">BA</span>
               </div>
-              <span className="text-sm font-semibold tracking-tight text-foreground">
+              <span className="text-sm font-semibold tracking-tight text-gold-gradient">
                 Brant & Associates
               </span>
             </div>
@@ -109,9 +99,9 @@ export default function AppLayout() {
                 key={item.url}
                 to={item.url}
                 end
-                className={`group flex items-center gap-3 rounded-lg px-3 py-2.5 text-[13px] font-medium transition-colors relative ${
+                className={`group flex items-center gap-3 rounded-lg px-3 py-2.5 text-[13px] font-medium transition-all duration-200 relative ${
                   isActive
-                    ? "bg-primary/8 text-primary"
+                    ? "bg-primary/10 text-primary"
                     : "text-muted-foreground hover:bg-accent hover:text-foreground"
                 }`}
                 activeClassName=""
@@ -120,7 +110,7 @@ export default function AppLayout() {
                 {isActive && (
                   <motion.div
                     layoutId="sidebar-active"
-                    className="absolute left-0 top-1.5 bottom-1.5 w-[3px] rounded-full bg-primary"
+                    className="absolute left-0 top-1.5 bottom-1.5 w-[3px] rounded-full bg-primary shadow-[0_0_8px_hsl(38_55%_55%_/_0.4)]"
                     transition={{ type: "spring", stiffness: 500, damping: 30 }}
                   />
                 )}
@@ -141,8 +131,8 @@ export default function AppLayout() {
       </aside>
 
       {/* Main */}
-      <div className="flex-1 flex flex-col min-w-0">
-        <header className="sticky top-0 z-30 flex h-[56px] items-center gap-4 border-b border-border bg-card/80 backdrop-blur-xl px-5 lg:px-8">
+      <div className="flex-1 flex flex-col min-w-0 relative z-10">
+        <header className="sticky top-0 z-30 flex h-[56px] items-center gap-4 border-b border-border glass-panel px-5 lg:px-8">
           <button
             onClick={() => setMobileOpen(true)}
             className="lg:hidden h-8 w-8 flex items-center justify-center rounded-md text-muted-foreground hover:bg-accent"
@@ -154,16 +144,16 @@ export default function AppLayout() {
 
           <div className="flex-1" />
 
-          <div className="hidden sm:flex items-center gap-2 rounded-lg border border-border bg-background px-3 py-1.5 text-sm text-muted-foreground w-64 hover:border-muted-foreground/30 transition-colors">
+          <div className="hidden sm:flex items-center gap-2 rounded-lg border border-border bg-muted/50 px-3 py-1.5 text-sm text-muted-foreground w-64 hover:border-primary/20 transition-colors">
             <Search className="h-3.5 w-3.5" />
             <span className="text-xs">Search clients…</span>
-            <kbd className="ml-auto text-[10px] border border-border rounded px-1.5 py-0.5 font-mono-data">⌘K</kbd>
+            <kbd className="ml-auto text-[10px] border border-border rounded px-1.5 py-0.5 font-mono-data text-muted-foreground">⌘K</kbd>
           </div>
 
           <button
             onClick={handleRefresh}
             disabled={isFetching > 0}
-            className="h-9 w-9 flex items-center justify-center rounded-lg text-muted-foreground hover:bg-accent transition-colors disabled:opacity-50"
+            className="h-9 w-9 flex items-center justify-center rounded-lg text-muted-foreground hover:bg-accent hover:text-primary transition-colors disabled:opacity-50"
             title="Refresh data"
           >
             <RefreshCw className={`h-[18px] w-[18px] ${isFetching > 0 ? "animate-spin" : ""}`} />
@@ -171,10 +161,10 @@ export default function AppLayout() {
 
           <button className="relative h-9 w-9 flex items-center justify-center rounded-lg text-muted-foreground hover:bg-accent transition-colors">
             <Bell className="h-[18px] w-[18px]" />
-            <span className="absolute top-1.5 right-1.5 h-2 w-2 rounded-full bg-destructive ring-2 ring-card" />
+            <span className="absolute top-1.5 right-1.5 h-2 w-2 rounded-full bg-[hsl(var(--rose-accent))] ring-2 ring-card animate-pulse" />
           </button>
 
-          <div className="h-9 w-9 rounded-full bg-primary flex items-center justify-center text-primary-foreground text-xs font-semibold ring-2 ring-primary/10">
+          <div className="h-9 w-9 rounded-full bg-gradient-to-br from-primary to-primary/70 flex items-center justify-center text-primary-foreground text-xs font-semibold ring-2 ring-primary/20 shadow-[0_0_12px_-4px_hsl(38_55%_55%_/_0.3)]">
             BA
           </div>
         </header>
@@ -183,8 +173,10 @@ export default function AppLayout() {
           <Outlet />
         </main>
 
-        <footer className="border-t border-border px-8 py-3">
-          <p className="text-[11px] text-muted-foreground font-medium">Last synced: {timeSince} · Auto-refresh: 60s · System Status: <span className="text-success">Operational</span></p>
+        <footer className="border-t border-border px-8 py-3 glass-panel">
+          <p className="text-[11px] text-muted-foreground font-medium">
+            Last synced: <span className="text-foreground">{timeSince}</span> · Auto-refresh: 60s · System Status: <span className="text-success">● Operational</span>
+          </p>
         </footer>
       </div>
     </div>

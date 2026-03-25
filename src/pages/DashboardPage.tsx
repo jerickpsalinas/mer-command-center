@@ -132,9 +132,10 @@ export default function DashboardPage() {
       </div>
 
       <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4, delay: 0.5 }}
-        className="rounded-xl border border-border bg-card p-6 shadow-card">
-        <h2 className="text-sm font-semibold text-foreground mb-5">Compliance Breakdown</h2>
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+        className="rounded-xl border border-border bg-card p-6 shadow-card shimmer overflow-hidden relative">
+        <div className="absolute inset-0 bg-gradient-to-br from-primary/[0.02] to-transparent pointer-events-none rounded-xl" />
+        <h2 className="text-sm font-semibold text-foreground mb-5 relative z-10">Compliance Breakdown</h2>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-5 relative z-10">
           <ComplianceProgress label="Bank Transactions" value={breakdown.bankPct} index={0} />
           <ComplianceProgress label="Uncategorized Transactions" value={breakdown.uncatPct} index={1} />
           <ComplianceProgress label="Unapplied Payments" value={breakdown.unappliedPct} index={2} />
@@ -144,29 +145,29 @@ export default function DashboardPage() {
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
         <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4, delay: 0.6 }}
-          className="rounded-xl border border-border bg-card p-6 shadow-card">
+          className="rounded-xl border border-border bg-card p-6 shadow-card hover:shadow-card-hover transition-[box-shadow] duration-300">
           <h2 className="text-sm font-semibold text-foreground mb-5">Compliance Trend</h2>
           <ResponsiveContainer width="100%" height={240}>
             <LineChart data={monthlyTrends}>
-              <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-              <XAxis dataKey="month" tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }} />
-              <YAxis tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }} />
-              <Tooltip contentStyle={{ background: "hsl(var(--card))", border: "1px solid hsl(var(--border))", borderRadius: "8px", fontSize: "12px", boxShadow: "var(--shadow-elevated)" }} />
-              <Line type="monotone" dataKey="compliant" stroke="hsl(var(--success))" strokeWidth={2.5} dot={{ r: 3.5, strokeWidth: 2 }} name="Compliant" />
-              <Line type="monotone" dataKey="nonCompliant" stroke="hsl(var(--destructive))" strokeWidth={2.5} dot={{ r: 3.5, strokeWidth: 2 }} name="Non-Compliant" />
+              <CartesianGrid strokeDasharray="3 3" stroke="hsl(25 10% 18%)" />
+              <XAxis dataKey="month" tick={{ fontSize: 11, fill: "hsl(30 12% 55%)" }} />
+              <YAxis tick={{ fontSize: 11, fill: "hsl(30 12% 55%)" }} />
+              <Tooltip contentStyle={{ background: "hsl(25 12% 14%)", border: "1px solid hsl(25 10% 22%)", borderRadius: "8px", fontSize: "12px", boxShadow: "var(--shadow-elevated)", color: "hsl(35 30% 90%)" }} />
+              <Line type="monotone" dataKey="compliant" stroke="hsl(160 60% 45%)" strokeWidth={2.5} dot={{ r: 3.5, strokeWidth: 2, fill: "hsl(25 12% 12%)" }} name="Compliant" />
+              <Line type="monotone" dataKey="nonCompliant" stroke="hsl(0 72% 55%)" strokeWidth={2.5} dot={{ r: 3.5, strokeWidth: 2, fill: "hsl(25 12% 12%)" }} name="Non-Compliant" />
             </LineChart>
           </ResponsiveContainer>
         </motion.div>
         <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4, delay: 0.7 }}
-          className="rounded-xl border border-border bg-card p-6 shadow-card">
+          className="rounded-xl border border-border bg-card p-6 shadow-card hover:shadow-card-hover transition-[box-shadow] duration-300">
           <h2 className="text-sm font-semibold text-foreground mb-5">Completion % by Month</h2>
           <ResponsiveContainer width="100%" height={240}>
             <BarChart data={monthlyTrends}>
-              <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-              <XAxis dataKey="month" tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }} />
-              <YAxis tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }} />
-              <Tooltip contentStyle={{ background: "hsl(var(--card))", border: "1px solid hsl(var(--border))", borderRadius: "8px", fontSize: "12px", boxShadow: "var(--shadow-elevated)" }} />
-              <Bar dataKey="completionPct" fill="hsl(var(--primary))" radius={[6, 6, 0, 0]} name="Completion %" />
+              <CartesianGrid strokeDasharray="3 3" stroke="hsl(25 10% 18%)" />
+              <XAxis dataKey="month" tick={{ fontSize: 11, fill: "hsl(30 12% 55%)" }} />
+              <YAxis tick={{ fontSize: 11, fill: "hsl(30 12% 55%)" }} />
+              <Tooltip contentStyle={{ background: "hsl(25 12% 14%)", border: "1px solid hsl(25 10% 22%)", borderRadius: "8px", fontSize: "12px", boxShadow: "var(--shadow-elevated)", color: "hsl(35 30% 90%)" }} />
+              <Bar dataKey="completionPct" fill="hsl(38 55% 55%)" radius={[6, 6, 0, 0]} name="Completion %" />
             </BarChart>
           </ResponsiveContainer>
         </motion.div>
