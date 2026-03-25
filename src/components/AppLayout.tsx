@@ -2,9 +2,11 @@ import { useState, useEffect } from "react";
 import { Outlet, useLocation } from "react-router-dom";
 import { useQueryClient, useIsFetching } from "@tanstack/react-query";
 import { NavLink } from "@/components/NavLink";
+import { useSheetData } from "@/hooks/useSheetData";
+import NotificationDropdown from "@/components/NotificationDropdown";
 import {
   LayoutDashboard, CalendarCheck, TrendingUp, Users, FileText, Settings,
-  Search, Bell, Menu, X, ChevronLeft, RefreshCw,
+  Menu, X, ChevronLeft, RefreshCw,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import logo from "@/assets/logo.png";
@@ -25,6 +27,7 @@ export default function AppLayout() {
   const location = useLocation();
   const queryClient = useQueryClient();
   const isFetching = useIsFetching({ queryKey: ["sheet-data"] });
+  const { data } = useSheetData();
   const currentTitle = navItems.find(n => n.url === location.pathname)?.title || "Dashboard";
 
   useEffect(() => {
@@ -146,12 +149,6 @@ export default function AppLayout() {
 
           <div className="flex-1" />
 
-          <div className="hidden sm:flex items-center gap-2 rounded-lg border border-border bg-muted/50 px-3 py-1.5 text-sm text-muted-foreground w-64 hover:border-primary/20 transition-colors">
-            <Search className="h-3.5 w-3.5" />
-            <span className="text-xs">Search clients…</span>
-            <kbd className="ml-auto text-[10px] border border-border rounded px-1.5 py-0.5 font-mono-data text-muted-foreground">⌘K</kbd>
-          </div>
-
           <button
             onClick={handleRefresh}
             disabled={isFetching > 0}
@@ -161,10 +158,10 @@ export default function AppLayout() {
             <RefreshCw className={`h-[18px] w-[18px] ${isFetching > 0 ? "animate-spin" : ""}`} />
           </button>
 
-          <button className="relative h-9 w-9 flex items-center justify-center rounded-lg text-muted-foreground hover:bg-accent transition-colors">
-            <Bell className="h-[18px] w-[18px]" />
-            <span className="absolute top-1.5 right-1.5 h-2 w-2 rounded-full bg-primary ring-2 ring-card" />
-          </button>
+          <NotificationDropdown
+            clients={data?.clients ?? []}
+            trends={data?.monthlyTrends ?? []}
+          />
 
           <div className="h-9 w-9 rounded-full bg-primary/15 flex items-center justify-center overflow-hidden ring-2 ring-primary/20">
             <img src={logo} alt="BA" className="h-6 w-6 object-contain" />
