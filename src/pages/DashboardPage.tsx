@@ -2,7 +2,7 @@ import {
   Users, CheckCircle2, XCircle, Pause, TrendingUp, AlertTriangle,
   FileText, StickyNote, Award, Clock, AlertCircle, ChevronRight,
 } from "lucide-react";
-import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
+import { LineChart, Line, BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from "recharts";
 import KPICard from "@/components/KPICard";
 import ComplianceProgress from "@/components/ComplianceProgress";
 import StatusBadge from "@/components/StatusBadge";
@@ -148,6 +148,60 @@ function BookkeepersSection({ clients, bookkeepers }: { clients: Client[]; bookk
   );
 }
 
+const PIE_COLORS = ["hsl(340 45% 55%)", "hsl(38 70% 50%)", "hsl(160 55% 42%)"];
+const tooltipStyle = {
+  background: "hsl(20 10% 13%)", border: "1px solid hsl(20 8% 20%)",
+  borderRadius: "8px", fontSize: "12px", color: "hsl(30 25% 88%)",
+};
+
+function KPIChartsSection({ kpi }: { kpi: ReturnType<typeof getKPIMetrics> }) {
+  const pieData = [
+    { name: "Compliant", value: kpi.compliant },
+    { name: "On Hold", value: kpi.onHold },
+    { name: "Non-Compliant", value: kpi.nonCompliant },
+  ];
+  const barData = [
+    { name: "Total", value: kpi.total, fill: "hsl(340 45% 55%)" },
+    { name: "Compliant", value: kpi.compliant, fill: "hsl(160 55% 42%)" },
+    { name: "On Hold", value: kpi.onHold, fill: "hsl(38 70% 50%)" },
+    { name: "Non-Compliant", value: kpi.nonCompliant, fill: "hsl(0 65% 50%)" },
+  ];
+
+  return (
+    <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4, delay: 0.35 }}
+      className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+      {/* Compliance Overview - Pie */}
+      <div className="rounded-xl border border-border bg-card p-6 shadow-card">
+        <h2 className="text-sm font-semibold text-foreground mb-4">Compliance Overview</h2>
+        <ResponsiveContainer width="100%" height={240}>
+          <PieChart>
+            <Pie data={pieData} cx="50%" cy="50%" innerRadius={55} outerRadius={90} dataKey="value" paddingAngle={3} strokeWidth={0}>
+              {pieData.map((_, i) => <Cell key={i} fill={PIE_COLORS[i]} />)}
+            </Pie>
+            <Tooltip contentStyle={tooltipStyle} />
+            <Legend iconType="circle" iconSize={8} wrapperStyle={{ fontSize: "11px" }} />
+          </PieChart>
+        </ResponsiveContainer>
+      </div>
+      {/* Compliant vs Non-Compliant - Bar */}
+      <div className="rounded-xl border border-border bg-card p-6 shadow-card">
+        <h2 className="text-sm font-semibold text-foreground mb-4">Compliant vs Non-Compliant</h2>
+        <ResponsiveContainer width="100%" height={240}>
+          <BarChart data={barData}>
+            <CartesianGrid strokeDasharray="3 3" stroke="hsl(20 8% 16%)" />
+            <XAxis dataKey="name" tick={{ fontSize: 10, fill: "hsl(25 10% 50%)" }} />
+            <YAxis tick={{ fontSize: 10, fill: "hsl(25 10% 50%)" }} />
+            <Tooltip contentStyle={tooltipStyle} />
+            <Bar dataKey="value" radius={[6, 6, 0, 0]} name="Clients">
+              {barData.map((entry, i) => <Cell key={i} fill={entry.fill} />)}
+            </Bar>
+          </BarChart>
+        </ResponsiveContainer>
+      </div>
+    </motion.div>
+  );
+}
+
 export default function DashboardPage() {
   const { data, isLoading, error } = useSheetData();
   if (isLoading) return <DataLoading />;
@@ -169,6 +223,9 @@ export default function DashboardPage() {
         <KPICard title="Outstanding Stmts" value={kpi.outstandingStatements} icon={FileText} variant="warning" index={6} />
         <KPICard title="No Updated Notes" value={kpi.withoutNotes} icon={StickyNote} variant="destructive" index={7} />
       </div>
+
+      {/* KPI Metrics Overview Charts */}
+      <KPIChartsSection kpi={kpi} />
 
       <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4, delay: 0.5 }}
         className="rounded-xl border border-border bg-card p-6 shadow-card">
