@@ -9,12 +9,18 @@ import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContaine
 type SortKey = "name" | "completionPct" | "complianceStatus" | "uncategorizedTransactions";
 type SortDir = "asc" | "desc";
 
-const tooltipStyle = {
-  background: "hsl(20 10% 13%)",
-  border: "1px solid hsl(20 8% 20%)",
-  borderRadius: "8px",
-  fontSize: "12px",
-  color: "hsl(30 25% 88%)",
+const CustomTooltip = ({ active, payload, label }: any) => {
+  if (!active || !payload?.length) return null;
+  return (
+    <div className="px-3 py-2 rounded-lg border border-border bg-card shadow-elevated text-foreground">
+      <p className="text-xs font-semibold mb-0.5">{payload[0]?.payload?.full || label}</p>
+      {payload.map((p: any, i: number) => (
+        <p key={i} className="text-[11px] text-muted-foreground">
+          {p.name}: <span className="font-mono-data font-semibold text-foreground">{p.value}%</span>
+        </p>
+      ))}
+    </div>
+  );
 };
 
 function getIssueDetails(c: { uncategorizedTransactions: number; bankTransactions: string; unappliedPayments: number; prevMonthNotesApproved: boolean }) {
@@ -57,9 +63,9 @@ export default function ClientsPage() {
     .map(c => ({ name: c.name.length > 18 ? c.name.slice(0, 16) + "…" : c.name, pct: c.completionPct, full: c.name }));
 
   const getBarColor = (pct: number) => {
-    if (pct >= 80) return "hsl(160 55% 42%)";
-    if (pct >= 50) return "hsl(38 70% 50%)";
-    return "hsl(0 65% 50%)";
+    if (pct >= 80) return "hsl(160, 55%, 42%)";
+    if (pct >= 50) return "hsl(38, 70%, 50%)";
+    return "hsl(0, 65%, 50%)";
   };
 
   const sortButtons: { key: SortKey; label: string }[] = [
@@ -72,7 +78,8 @@ export default function ClientsPage() {
   return (
     <div className="space-y-6">
       <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4 }}
-        className="rounded-xl border border-border bg-card p-6 shadow-card">
+        whileHover={{ scale: 1.003 }}
+        className="rounded-xl border border-border bg-card p-6 shadow-card hover:shadow-card-hover transition-[box-shadow] duration-300">
         <h2 className="text-sm font-semibold text-foreground mb-1 flex items-center gap-2">
           <BarChart3 className="h-4 w-4 text-primary" />
           Lowest Completion % Clients
@@ -80,10 +87,10 @@ export default function ClientsPage() {
         <p className="text-[11px] text-muted-foreground mb-4">Bottom {chartData.length} clients by completion percentage</p>
         <ResponsiveContainer width="100%" height={280}>
           <BarChart data={chartData} layout="vertical" margin={{ left: 10, right: 20 }}>
-            <CartesianGrid strokeDasharray="3 3" stroke="hsl(20 8% 16%)" horizontal={false} />
-            <XAxis type="number" domain={[0, 100]} tick={{ fontSize: 10, fill: "hsl(25 10% 50%)" }} unit="%" />
-            <YAxis type="category" dataKey="name" width={130} tick={{ fontSize: 10, fill: "hsl(25 10% 50%)" }} />
-            <Tooltip contentStyle={tooltipStyle} formatter={(val: number) => [`${val}%`, "Completion"]} />
+            <CartesianGrid strokeDasharray="3 3" stroke="hsl(20, 8%, 16%)" horizontal={false} />
+            <XAxis type="number" domain={[0, 100]} tick={{ fontSize: 10, fill: "hsl(25, 10%, 50%)" }} unit="%" />
+            <YAxis type="category" dataKey="name" width={130} tick={{ fontSize: 10, fill: "hsl(25, 10%, 50%)" }} />
+            <Tooltip content={<CustomTooltip />} cursor={{ fill: "hsl(20, 8%, 14%)" }} />
             <Bar dataKey="pct" radius={[0, 4, 4, 0]} name="Completion %">
               {chartData.map((entry, i) => (
                 <Cell key={i} fill={getBarColor(entry.pct)} />
@@ -122,6 +129,7 @@ export default function ClientsPage() {
           const issues = getIssueDetails(c);
           return (
             <motion.div key={c.id} initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.05 + i * 0.015 }}
+              whileHover={{ scale: 1.01, y: -2 }}
               className="rounded-xl border border-border bg-card p-4 shadow-card hover:shadow-card-hover transition-[box-shadow] duration-300">
               <div className="flex items-start justify-between mb-3">
                 <div>

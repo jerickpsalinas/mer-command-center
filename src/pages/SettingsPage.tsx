@@ -1,40 +1,212 @@
-import { Settings as SettingsIcon } from "lucide-react";
+import { useState } from "react";
+import { Settings as SettingsIcon, RefreshCw, Bell, Moon, Sun, Shield, Clock, Download, Users, ChevronRight } from "lucide-react";
 import { motion } from "framer-motion";
 
 export default function SettingsPage() {
+  const [autoRefresh, setAutoRefresh] = useState(true);
+  const [refreshInterval, setRefreshInterval] = useState(60);
+  const [notifications, setNotifications] = useState(true);
+  const [compactMode, setCompactMode] = useState(false);
+
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 16 }}
-      animate={{ opacity: 1, y: 0 }}
-      className="max-w-xl"
-    >
-      <div className="rounded-lg border border-border bg-card p-6 shadow-sm">
-        <div className="flex items-center gap-3 mb-6">
-          <SettingsIcon className="h-5 w-5 text-muted-foreground" />
-          <h2 className="text-sm font-semibold text-foreground">Settings</h2>
+    <div className="max-w-2xl space-y-5">
+      {/* General */}
+      <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0 }}
+        className="rounded-xl border border-border bg-card shadow-card overflow-hidden">
+        <div className="flex items-center gap-3 px-6 py-4 border-b border-border">
+          <div className="h-7 w-7 rounded-lg bg-primary/10 flex items-center justify-center">
+            <SettingsIcon className="h-4 w-4 text-primary" />
+          </div>
+          <h2 className="text-sm font-semibold text-foreground">General</h2>
         </div>
-        <div className="space-y-4 text-sm text-muted-foreground">
-          <p>Configure your MER dashboard preferences, manage team members, and set up notification rules.</p>
-          <div className="space-y-3">
-            <div className="flex items-center justify-between py-2 border-b border-border">
-              <span className="text-foreground">Organization</span>
-              <span>Brant & Associates</span>
+        <div className="divide-y divide-border">
+          <div className="flex items-center justify-between px-6 py-4">
+            <div>
+              <p className="text-sm font-medium text-foreground">Organization</p>
+              <p className="text-xs text-muted-foreground">Account name</p>
             </div>
-            <div className="flex items-center justify-between py-2 border-b border-border">
-              <span className="text-foreground">Review Period</span>
-              <span>July 2025</span>
+            <span className="text-sm text-muted-foreground">Brant & Associates</span>
+          </div>
+          <div className="flex items-center justify-between px-6 py-4">
+            <div>
+              <p className="text-sm font-medium text-foreground">Review Period</p>
+              <p className="text-xs text-muted-foreground">Current active period</p>
             </div>
-            <div className="flex items-center justify-between py-2 border-b border-border">
-              <span className="text-foreground">Bookkeepers</span>
-              <span>4 active</span>
+            <span className="text-sm text-muted-foreground">July 2025</span>
+          </div>
+          <div className="flex items-center justify-between px-6 py-4">
+            <div>
+              <p className="text-sm font-medium text-foreground">Bookkeepers</p>
+              <p className="text-xs text-muted-foreground">Active team members</p>
             </div>
-            <div className="flex items-center justify-between py-2">
-              <span className="text-foreground">Notifications</span>
-              <span>Enabled</span>
-            </div>
+            <span className="text-sm text-muted-foreground">4 active</span>
           </div>
         </div>
-      </div>
-    </motion.div>
+      </motion.div>
+
+      {/* Data & Sync */}
+      <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.08 }}
+        className="rounded-xl border border-border bg-card shadow-card overflow-hidden">
+        <div className="flex items-center gap-3 px-6 py-4 border-b border-border">
+          <div className="h-7 w-7 rounded-lg bg-success/10 flex items-center justify-center">
+            <RefreshCw className="h-4 w-4 text-success" />
+          </div>
+          <h2 className="text-sm font-semibold text-foreground">Data & Sync</h2>
+        </div>
+        <div className="divide-y divide-border">
+          <div className="flex items-center justify-between px-6 py-4">
+            <div>
+              <p className="text-sm font-medium text-foreground">Auto-Refresh</p>
+              <p className="text-xs text-muted-foreground">Automatically fetch new data</p>
+            </div>
+            <button
+              onClick={() => setAutoRefresh(!autoRefresh)}
+              className={`relative h-6 w-11 rounded-full transition-colors duration-200 ${autoRefresh ? "bg-primary" : "bg-muted"}`}
+            >
+              <motion.div
+                animate={{ x: autoRefresh ? 20 : 2 }}
+                transition={{ type: "spring", stiffness: 500, damping: 30 }}
+                className="absolute top-1 h-4 w-4 rounded-full bg-primary-foreground shadow-sm"
+              />
+            </button>
+          </div>
+          {autoRefresh && (
+            <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} exit={{ opacity: 0, height: 0 }}
+              className="flex items-center justify-between px-6 py-4">
+              <div>
+                <p className="text-sm font-medium text-foreground">Refresh Interval</p>
+                <p className="text-xs text-muted-foreground">How often to sync data</p>
+              </div>
+              <select
+                value={refreshInterval}
+                onChange={(e) => setRefreshInterval(Number(e.target.value))}
+                className="rounded-md border border-border bg-muted px-3 py-1.5 text-sm text-foreground"
+              >
+                <option value={30}>30 seconds</option>
+                <option value={60}>1 minute</option>
+                <option value={120}>2 minutes</option>
+                <option value={300}>5 minutes</option>
+              </select>
+            </motion.div>
+          )}
+          <div className="flex items-center justify-between px-6 py-4">
+            <div>
+              <p className="text-sm font-medium text-foreground">Data Source</p>
+              <p className="text-xs text-muted-foreground">Google Apps Script endpoint</p>
+            </div>
+            <span className="inline-flex items-center gap-1.5 text-xs font-medium text-success">
+              <span className="h-1.5 w-1.5 rounded-full bg-success" />
+              Connected
+            </span>
+          </div>
+        </div>
+      </motion.div>
+
+      {/* Notifications */}
+      <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.16 }}
+        className="rounded-xl border border-border bg-card shadow-card overflow-hidden">
+        <div className="flex items-center gap-3 px-6 py-4 border-b border-border">
+          <div className="h-7 w-7 rounded-lg bg-warning/10 flex items-center justify-center">
+            <Bell className="h-4 w-4 text-warning" />
+          </div>
+          <h2 className="text-sm font-semibold text-foreground">Notifications</h2>
+        </div>
+        <div className="divide-y divide-border">
+          <div className="flex items-center justify-between px-6 py-4">
+            <div>
+              <p className="text-sm font-medium text-foreground">Enable Notifications</p>
+              <p className="text-xs text-muted-foreground">Show alerts for compliance changes</p>
+            </div>
+            <button
+              onClick={() => setNotifications(!notifications)}
+              className={`relative h-6 w-11 rounded-full transition-colors duration-200 ${notifications ? "bg-primary" : "bg-muted"}`}
+            >
+              <motion.div
+                animate={{ x: notifications ? 20 : 2 }}
+                transition={{ type: "spring", stiffness: 500, damping: 30 }}
+                className="absolute top-1 h-4 w-4 rounded-full bg-primary-foreground shadow-sm"
+              />
+            </button>
+          </div>
+          <div className="flex items-center justify-between px-6 py-4">
+            <div>
+              <p className="text-sm font-medium text-foreground">Alert Types</p>
+              <p className="text-xs text-muted-foreground">Missing statements, low completion, trends</p>
+            </div>
+            <span className="text-xs text-muted-foreground">All enabled</span>
+          </div>
+        </div>
+      </motion.div>
+
+      {/* Display */}
+      <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.24 }}
+        className="rounded-xl border border-border bg-card shadow-card overflow-hidden">
+        <div className="flex items-center gap-3 px-6 py-4 border-b border-border">
+          <div className="h-7 w-7 rounded-lg bg-accent flex items-center justify-center">
+            <Moon className="h-4 w-4 text-foreground" />
+          </div>
+          <h2 className="text-sm font-semibold text-foreground">Display</h2>
+        </div>
+        <div className="divide-y divide-border">
+          <div className="flex items-center justify-between px-6 py-4">
+            <div>
+              <p className="text-sm font-medium text-foreground">Compact Mode</p>
+              <p className="text-xs text-muted-foreground">Reduce card spacing and padding</p>
+            </div>
+            <button
+              onClick={() => setCompactMode(!compactMode)}
+              className={`relative h-6 w-11 rounded-full transition-colors duration-200 ${compactMode ? "bg-primary" : "bg-muted"}`}
+            >
+              <motion.div
+                animate={{ x: compactMode ? 20 : 2 }}
+                transition={{ type: "spring", stiffness: 500, damping: 30 }}
+                className="absolute top-1 h-4 w-4 rounded-full bg-primary-foreground shadow-sm"
+              />
+            </button>
+          </div>
+          <div className="flex items-center justify-between px-6 py-4">
+            <div>
+              <p className="text-sm font-medium text-foreground">Theme</p>
+              <p className="text-xs text-muted-foreground">Dark mode is always active</p>
+            </div>
+            <span className="inline-flex items-center gap-1.5 text-xs text-muted-foreground">
+              <Moon className="h-3.5 w-3.5" /> Dark
+            </span>
+          </div>
+          <div className="flex items-center justify-between px-6 py-4">
+            <div>
+              <p className="text-sm font-medium text-foreground">Chart Animations</p>
+              <p className="text-xs text-muted-foreground">Smooth transitions on all charts</p>
+            </div>
+            <span className="text-xs text-success font-medium">Enabled</span>
+          </div>
+        </div>
+      </motion.div>
+
+      {/* About */}
+      <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.32 }}
+        className="rounded-xl border border-border bg-card shadow-card overflow-hidden">
+        <div className="flex items-center gap-3 px-6 py-4 border-b border-border">
+          <div className="h-7 w-7 rounded-lg bg-primary/10 flex items-center justify-center">
+            <Shield className="h-4 w-4 text-primary" />
+          </div>
+          <h2 className="text-sm font-semibold text-foreground">About</h2>
+        </div>
+        <div className="divide-y divide-border">
+          <div className="flex items-center justify-between px-6 py-4">
+            <p className="text-sm font-medium text-foreground">Version</p>
+            <span className="font-mono-data text-xs text-muted-foreground">MER Dashboard v1.0</span>
+          </div>
+          <div className="flex items-center justify-between px-6 py-4">
+            <p className="text-sm font-medium text-foreground">Built with</p>
+            <span className="text-xs text-muted-foreground">React · Recharts · Framer Motion</span>
+          </div>
+          <div className="flex items-center justify-between px-6 py-4">
+            <p className="text-sm font-medium text-foreground">Data Provider</p>
+            <span className="text-xs text-muted-foreground">Google Sheets via Apps Script</span>
+          </div>
+        </div>
+      </motion.div>
+    </div>
   );
 }

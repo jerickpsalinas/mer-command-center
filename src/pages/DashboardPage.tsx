@@ -12,18 +12,33 @@ import { motion } from "framer-motion";
 import type { Client } from "@/data/mockData";
 
 const CHART_COLORS = {
-  primary: "hsl(340 45% 55%)",
-  success: "hsl(160 55% 42%)",
-  warning: "hsl(38 80% 52%)",
-  destructive: "hsl(0 65% 50%)",
-  muted: "hsl(25 10% 50%)",
-  grid: "hsl(20 8% 16%)",
-  bg: "hsl(20 10% 11%)",
+  primary: "hsl(340, 45%, 55%)",
+  success: "hsl(160, 55%, 42%)",
+  warning: "hsl(38, 80%, 52%)",
+  destructive: "hsl(0, 65%, 50%)",
+  muted: "hsl(25, 10%, 50%)",
+  grid: "hsl(20, 8%, 16%)",
+  bg: "hsl(20, 10%, 11%)",
 };
 
 const tooltipStyle = {
-  background: "hsl(20 10% 13%)", border: "1px solid hsl(20 8% 20%)",
-  borderRadius: "8px", fontSize: "12px", color: "hsl(30 25% 88%)",
+  background: "hsl(20, 10%, 13%)", border: "1px solid hsl(20, 8%, 20%)",
+  borderRadius: "10px", fontSize: "12px", color: "hsl(30, 25%, 88%)",
+  boxShadow: "0 8px 24px -6px hsl(20 12% 3% / 0.6)",
+};
+
+const CustomTooltip = ({ active, payload, label }: any) => {
+  if (!active || !payload?.length) return null;
+  return (
+    <div style={tooltipStyle} className="px-3 py-2">
+      <p className="text-xs font-semibold text-foreground mb-1">{label}</p>
+      {payload.map((p: any, i: number) => (
+        <p key={i} className="text-[11px]" style={{ color: p.color || p.fill }}>
+          {p.name}: <span className="font-mono-data font-semibold">{p.value}{typeof p.value === 'number' && p.unit ? p.unit : ''}</span>
+        </p>
+      ))}
+    </div>
+  );
 };
 
 function NeedsAttentionSection({ clients }: { clients: Client[] }) {
@@ -90,16 +105,43 @@ function NeedsAttentionSection({ clients }: { clients: Client[] }) {
 function BookkeepersSection({ clients, bookkeepers }: { clients: Client[]; bookkeepers: string[] }) {
   const bkStats = getBookkeeperStats(clients, bookkeepers);
 
-  const recentActivity: { id: string; message: React.ReactNode }[] = [];
-  clients.filter(c => c.complianceStatus === "Compliant").slice(0, 3).forEach(c => {
-    recentActivity.push({ id: `compliant-${c.id}`, message: <><span className="text-foreground font-medium">{c.name}</span> — <span className="text-success font-semibold">Compliant</span> ({c.bookkeeper})</> });
+  // Enhanced recent activity with timestamps and more detail
+  const now = new Date();
+  const recentActivity: { id: string; message: React.ReactNode; time: string; type: string }[] = [];
+
+  clients.filter(c => c.complianceStatus === "Compliant").slice(0, 3).forEach((c, i) => {
+    const mins = 5 + i * 12;
+    recentActivity.push({
+      id: `compliant-${c.id}`,
+      time: `${mins}m ago`,
+      type: "success",
+      message: <><span className="text-foreground font-medium">{c.name}</span> marked <span className="text-success font-semibold">Compliant</span> · {c.completionPct}% complete · <span className="text-muted-foreground">{c.bookkeeper}</span></>
+    });
   });
-  clients.filter(c => c.bankTransactions.includes("Missing")).slice(0, 2).forEach(c => {
-    recentActivity.push({ id: `flagged-${c.id}`, message: <><span className="text-foreground font-medium">{c.name}</span> — <span className="text-destructive font-semibold">missing statements</span> ({c.bookkeeper})</> });
+  clients.filter(c => c.bankTransactions.includes("Missing")).slice(0, 2).forEach((c, i) => {
+    const mins = 18 + i * 15;
+    recentActivity.push({
+      id: `flagged-${c.id}`,
+      time: `${mins}m ago`,
+      type: "destructive",
+      message: <><span className="text-foreground font-medium">{c.name}</span> flagged — <span className="text-destructive font-semibold">missing bank statements</span> · {c.clientType} · <span className="text-muted-foreground">{c.bookkeeper}</span></>
+    });
   });
-  clients.filter(c => c.uncategorizedTransactions > 0).sort((a, b) => b.uncategorizedTransactions - a.uncategorizedTransactions).slice(0, 2).forEach(c => {
-    recentActivity.push({ id: `uncat-${c.id}`, message: <><span className="text-foreground font-medium">{c.name}</span> — <span className="text-warning font-semibold">{c.uncategorizedTransactions} uncategorized txns</span> ({c.bookkeeper})</> });
+  clients.filter(c => c.uncategorizedTransactions > 0).sort((a, b) => b.uncategorizedTransactions - a.uncategorizedTransactions).slice(0, 2).forEach((c, i) => {
+    const mins = 35 + i * 20;
+    recentActivity.push({
+      id: `uncat-${c.id}`,
+      time: `${mins}m ago`,
+      type: "warning",
+      message: <><span className="text-foreground font-medium">{c.name}</span> has <span className="text-warning font-semibold">{c.uncategorizedTransactions} uncategorized txns</span> · {c.completionPct}% complete · <span className="text-muted-foreground">{c.bookkeeper}</span></>
+    });
   });
+
+  const dotColor: Record<string, string> = {
+    success: "bg-success",
+    destructive: "bg-destructive",
+    warning: "bg-warning",
+  };
 
   return (
     <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4, delay: 0.9 }}
@@ -111,21 +153,36 @@ function BookkeepersSection({ clients, bookkeepers }: { clients: Client[]; bookk
         </h2>
       </div>
       <div className="p-5 space-y-3">
-        {bkStats.map((bk, i) => (
-          <div key={bk.name} className="flex items-center gap-3 p-2 rounded-lg hover:bg-accent/50 transition-colors -mx-2">
-            <div className="h-9 w-9 rounded-lg bg-primary/8 flex items-center justify-center text-xs font-bold text-primary">#{i + 1}</div>
-            <div className="flex-1 min-w-0">
-              <p className="text-[13px] font-semibold text-foreground">{bk.name}</p>
-              <p className="text-[11px] text-muted-foreground">{bk.totalClients} clients · {bk.compliant} compliant</p>
-            </div>
-            <div className="text-right"><span className="font-mono-data text-sm font-bold text-foreground">{bk.rate}%</span></div>
-          </div>
-        ))}
+        {bkStats.map((bk, i) => {
+          const nonCompliant = bk.totalClients - bk.compliant;
+          return (
+            <motion.div key={bk.name} whileHover={{ scale: 1.01 }} transition={{ type: "spring", stiffness: 400, damping: 25 }}
+              className="flex items-center gap-3 p-2.5 rounded-lg hover:bg-accent/50 transition-colors -mx-2 cursor-default">
+              <div className="h-9 w-9 rounded-lg bg-primary/8 flex items-center justify-center text-xs font-bold text-primary">#{i + 1}</div>
+              <div className="flex-1 min-w-0">
+                <p className="text-[13px] font-semibold text-foreground">{bk.name}</p>
+                <p className="text-[11px] text-muted-foreground">{bk.totalClients} clients · <span className="text-success">{bk.compliant} compliant</span> · <span className="text-destructive">{nonCompliant} non-compliant</span></p>
+              </div>
+              <div className="text-right">
+                <span className="font-mono-data text-sm font-bold text-foreground">{bk.rate}%</span>
+                <p className="text-[10px] text-muted-foreground">rate</p>
+              </div>
+            </motion.div>
+          );
+        })}
       </div>
       <div className="border-t border-border px-6 py-4">
         <h3 className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider mb-3 flex items-center gap-1.5"><Clock className="h-3.5 w-3.5" /> Recent Activity</h3>
-        <div className="space-y-2.5 text-[12px] text-muted-foreground">
-          {recentActivity.slice(0, 5).map(a => <p key={a.id}>{a.message}</p>)}
+        <div className="space-y-3 text-[12px] text-muted-foreground">
+          {recentActivity.slice(0, 6).map(a => (
+            <div key={a.id} className="flex items-start gap-2.5">
+              <div className={`mt-1.5 h-1.5 w-1.5 rounded-full shrink-0 ${dotColor[a.type] || "bg-muted-foreground"}`} />
+              <div className="flex-1 min-w-0">
+                <p className="leading-relaxed">{a.message}</p>
+              </div>
+              <span className="text-[10px] text-muted-foreground whitespace-nowrap shrink-0">{a.time}</span>
+            </div>
+          ))}
           {recentActivity.length === 0 && <p className="text-muted-foreground">No recent activity</p>}
         </div>
       </div>
@@ -147,41 +204,55 @@ function KPIChartsSection({ kpi, breakdown }: { kpi: ReturnType<typeof getKPIMet
     { name: "Statements", value: breakdown.stmtPct, fill: CHART_COLORS.destructive },
   ];
 
+  const renderCustomLabel = ({ cx, cy, midAngle, innerRadius, outerRadius, name, value }: any) => {
+    const RADIAN = Math.PI / 180;
+    const radius = outerRadius + 28;
+    const x = cx + radius * Math.cos(-midAngle * RADIAN);
+    const y = cy + radius * Math.sin(-midAngle * RADIAN);
+    return (
+      <text x={x} y={y} fill="hsl(30, 25%, 88%)" textAnchor={x > cx ? "start" : "end"} dominantBaseline="central" fontSize={11} fontWeight={500}>
+        {name}: {value}
+      </text>
+    );
+  };
+
   return (
     <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4, delay: 0.35 }}
       className="grid grid-cols-1 lg:grid-cols-2 gap-5">
       {/* Compliance Distribution - Donut */}
-      <div className="rounded-xl border border-border bg-card p-6 shadow-card">
+      <motion.div whileHover={{ scale: 1.005 }} transition={{ type: "spring", stiffness: 300, damping: 25 }}
+        className="rounded-xl border border-border bg-card p-6 shadow-card hover:shadow-card-hover transition-[box-shadow] duration-300">
         <h2 className="text-sm font-semibold text-foreground mb-1">Compliance Distribution</h2>
         <p className="text-[11px] text-muted-foreground mb-3">{kpi.total} total clients</p>
-        <ResponsiveContainer width="100%" height={240}>
+        <ResponsiveContainer width="100%" height={260}>
           <PieChart>
-            <Pie data={pieData} cx="50%" cy="50%" innerRadius={55} outerRadius={90} dataKey="value" paddingAngle={3} strokeWidth={0}
-              label={({ name, value }) => `${name}: ${value}`} labelLine={false}>
+            <Pie data={pieData} cx="50%" cy="50%" innerRadius={55} outerRadius={88} dataKey="value" paddingAngle={3} strokeWidth={0}
+              label={renderCustomLabel} labelLine={false}>
               {pieData.map((entry, i) => <Cell key={i} fill={entry.color} />)}
             </Pie>
-            <Tooltip contentStyle={tooltipStyle} formatter={(val: number, name: string) => [`${val} clients`, name]} />
-            <Legend iconType="circle" iconSize={8} wrapperStyle={{ fontSize: "11px" }} />
+            <Tooltip content={<CustomTooltip />} />
+            <Legend iconType="circle" iconSize={8} wrapperStyle={{ fontSize: "11px", color: "hsl(30, 25%, 88%)" }} />
           </PieChart>
         </ResponsiveContainer>
-      </div>
+      </motion.div>
 
       {/* Compliance Breakdown % - Bar */}
-      <div className="rounded-xl border border-border bg-card p-6 shadow-card">
+      <motion.div whileHover={{ scale: 1.005 }} transition={{ type: "spring", stiffness: 300, damping: 25 }}
+        className="rounded-xl border border-border bg-card p-6 shadow-card hover:shadow-card-hover transition-[box-shadow] duration-300">
         <h2 className="text-sm font-semibold text-foreground mb-1">Compliance Breakdown %</h2>
         <p className="text-[11px] text-muted-foreground mb-3">Percentage of clients meeting each criteria</p>
-        <ResponsiveContainer width="100%" height={240}>
+        <ResponsiveContainer width="100%" height={260}>
           <BarChart data={breakdownData} layout="vertical" margin={{ left: 5, right: 20 }}>
             <CartesianGrid strokeDasharray="3 3" stroke={CHART_COLORS.grid} horizontal={false} />
             <XAxis type="number" domain={[0, 100]} tick={{ fontSize: 10, fill: CHART_COLORS.muted }} unit="%" />
             <YAxis type="category" dataKey="name" width={80} tick={{ fontSize: 10, fill: CHART_COLORS.muted }} />
-            <Tooltip contentStyle={tooltipStyle} formatter={(val: number) => [`${val}%`, "Compliant"]} />
+            <Tooltip content={<CustomTooltip />} cursor={{ fill: "hsl(20, 8%, 14%)" }} />
             <Bar dataKey="value" radius={[0, 6, 6, 0]} name="% Compliant">
               {breakdownData.map((entry, i) => <Cell key={i} fill={entry.fill} />)}
             </Bar>
           </BarChart>
         </ResponsiveContainer>
-      </div>
+      </motion.div>
     </motion.div>
   );
 }
@@ -202,7 +273,6 @@ function ReportsSummarySection({ clients, bookkeepers }: { clients: Client[]; bo
         </h2>
       </div>
       <div className="grid grid-cols-1 sm:grid-cols-2 divide-y sm:divide-y-0 sm:divide-x divide-border">
-        {/* Risk Overview */}
         <div className="p-5">
           <div className="flex items-center gap-2 mb-3">
             <ShieldAlert className="h-4 w-4 text-destructive" />
@@ -229,7 +299,6 @@ function ReportsSummarySection({ clients, bookkeepers }: { clients: Client[]; bo
           )}
         </div>
 
-        {/* Performance Summary */}
         <div className="p-5">
           <div className="flex items-center gap-2 mb-3">
             <FileText className="h-4 w-4 text-primary" />
@@ -299,28 +368,28 @@ export default function DashboardPage() {
       {/* Trend Charts */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
         <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4, delay: 0.6 }}
-          className="rounded-xl border border-border bg-card p-6 shadow-card hover:shadow-card-hover transition-[box-shadow] duration-300">
+          whileHover={{ scale: 1.005 }} className="rounded-xl border border-border bg-card p-6 shadow-card hover:shadow-card-hover transition-[box-shadow] duration-300">
           <h2 className="text-sm font-semibold text-foreground mb-5">Compliance Trend</h2>
           <ResponsiveContainer width="100%" height={240}>
             <LineChart data={monthlyTrends}>
               <CartesianGrid strokeDasharray="3 3" stroke={CHART_COLORS.grid} />
               <XAxis dataKey="month" tick={{ fontSize: 11, fill: CHART_COLORS.muted }} />
               <YAxis tick={{ fontSize: 11, fill: CHART_COLORS.muted }} />
-              <Tooltip contentStyle={tooltipStyle} />
+              <Tooltip content={<CustomTooltip />} />
               <Line type="monotone" dataKey="compliant" stroke={CHART_COLORS.success} strokeWidth={2.5} dot={{ r: 3.5, strokeWidth: 2, fill: CHART_COLORS.bg }} name="Compliant" />
               <Line type="monotone" dataKey="nonCompliant" stroke={CHART_COLORS.destructive} strokeWidth={2.5} dot={{ r: 3.5, strokeWidth: 2, fill: CHART_COLORS.bg }} name="Non-Compliant" />
             </LineChart>
           </ResponsiveContainer>
         </motion.div>
         <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4, delay: 0.7 }}
-          className="rounded-xl border border-border bg-card p-6 shadow-card hover:shadow-card-hover transition-[box-shadow] duration-300">
+          whileHover={{ scale: 1.005 }} className="rounded-xl border border-border bg-card p-6 shadow-card hover:shadow-card-hover transition-[box-shadow] duration-300">
           <h2 className="text-sm font-semibold text-foreground mb-5">Completion % by Month</h2>
           <ResponsiveContainer width="100%" height={240}>
             <BarChart data={monthlyTrends}>
               <CartesianGrid strokeDasharray="3 3" stroke={CHART_COLORS.grid} />
               <XAxis dataKey="month" tick={{ fontSize: 11, fill: CHART_COLORS.muted }} />
               <YAxis tick={{ fontSize: 11, fill: CHART_COLORS.muted }} />
-              <Tooltip contentStyle={tooltipStyle} />
+              <Tooltip content={<CustomTooltip />} cursor={{ fill: "hsl(20, 8%, 14%)" }} />
               <Bar dataKey="completionPct" fill={CHART_COLORS.primary} radius={[6, 6, 0, 0]} name="Completion %" />
             </BarChart>
           </ResponsiveContainer>
