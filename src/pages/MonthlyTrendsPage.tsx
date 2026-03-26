@@ -138,15 +138,7 @@ export default function MonthlyTrendsPage() {
                 }`}>
                   {previous ? (isImproving ? "Improving" : "Declining") : "—"}
                 </p>
-                {previous && (
-                  <motion.p
-                    initial={{ opacity: 0, y: 4 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    className={`text-xs mt-1 font-semibold ${isImproving ? "text-success" : "text-destructive"}`}
-                  >
-                    {trendDiff > 0 ? "+" : ""}{trendDiff}pp
-                  </motion.p>
-                )}
+                
               </div>
             </div>
           </motion.div>
