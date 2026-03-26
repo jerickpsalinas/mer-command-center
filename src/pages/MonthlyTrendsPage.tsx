@@ -92,12 +92,9 @@ export default function MonthlyTrendsPage() {
 
       {/* KPI cards */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-        <KPICard title="Compliant" value={current.compliant} icon={CheckCircle2} variant="success"
-          trend={previous ? `${(current.compliant - previous.compliant) >= 0 ? "+" : ""}${current.compliant - previous.compliant}` : undefined} index={0} />
-        <KPICard title="Non-Compliant" value={current.nonCompliant} icon={XCircle} variant="destructive"
-          trend={previous ? `${(current.nonCompliant - previous.nonCompliant) >= 0 ? "+" : ""}${current.nonCompliant - previous.nonCompliant}` : undefined} index={1} />
-        <KPICard title="Completion %" value={`${current.completionPct}%`} icon={TrendingUp}
-          trend={previous ? `${(current.completionPct - previous.completionPct) >= 0 ? "+" : ""}${current.completionPct - previous.completionPct}pp` : undefined} index={2} />
+        <KPICard title="Compliant" value={current.compliant} icon={CheckCircle2} variant="success" index={0} />
+        <KPICard title="Non-Compliant" value={current.nonCompliant} icon={XCircle} variant="destructive" index={1} />
+        <KPICard title="Completion %" value={`${current.completionPct}%`} icon={TrendingUp} index={2} />
 
         {/* Trend card with effects */}
         <AnimatePresence mode="wait">
