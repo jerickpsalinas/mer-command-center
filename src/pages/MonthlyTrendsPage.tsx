@@ -80,21 +80,26 @@ export default function MonthlyTrendsPage() {
         <div className="flex flex-wrap items-end gap-5">
           <div className="flex flex-col gap-1.5">
             <label className="text-[11px] font-medium text-muted-foreground uppercase tracking-wider">View Month</label>
-            <select value={pendingIdx} onChange={(e) => setPendingMonth(Number(e.target.value))}
-              className="rounded-lg border border-border bg-muted/30 px-4 py-2.5 text-sm text-foreground min-w-[160px] focus:outline-none focus:ring-2 focus:ring-primary/30 transition-all">
-              {validTrends.map((t, i) => <option key={t.month} value={i}>{t.month}</option>)}
-            </select>
+            <Select value={String(pendingIdx)} onValueChange={(v) => setPendingMonth(Number(v))}>
+              <SelectTrigger className="min-w-[160px] bg-muted/30 border-border">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {validTrends.map((t, i) => <SelectItem key={t.month} value={String(i)}>{t.month}</SelectItem>)}
+              </SelectContent>
+            </Select>
           </div>
           <div className="flex flex-col gap-1.5">
             <label className="text-[11px] font-medium text-muted-foreground uppercase tracking-wider">Compare To</label>
-            <select
-              value={pendingCompare}
-              onChange={(e) => setPendingCompare(e.target.value)}
-              className="rounded-lg border border-border bg-muted/30 px-4 py-2.5 text-sm text-foreground min-w-[160px] focus:outline-none focus:ring-2 focus:ring-primary/30 transition-all"
-            >
-              <option value="-">—</option>
-              {validTrends.map((t, i) => i !== pendingIdx ? <option key={t.month} value={i}>{t.month}</option> : null)}
-            </select>
+            <Select value={pendingCompare} onValueChange={(v) => setPendingCompare(v)}>
+              <SelectTrigger className="min-w-[160px] bg-muted/30 border-border">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="-">—</SelectItem>
+                {validTrends.map((t, i) => i !== pendingIdx ? <SelectItem key={t.month} value={String(i)}>{t.month}</SelectItem> : null)}
+              </SelectContent>
+            </Select>
           </div>
           <motion.button
             onClick={handleApply}
