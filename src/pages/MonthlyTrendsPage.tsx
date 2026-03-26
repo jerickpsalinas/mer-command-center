@@ -253,7 +253,7 @@ export default function MonthlyTrendsPage() {
           <tbody>
             {validTrends.map((t, i) => (
               <tr key={t.month} className={`border-b border-border hover:bg-accent/50 transition-colors cursor-pointer ${i === idx ? "bg-primary/5 border-l-2 border-l-primary" : ""} ${compIdx !== null && i === compIdx ? "bg-accent/30" : ""}`}
-                onClick={() => setSelectedMonth(i)}>
+                onClick={() => { setPendingMonth(i); setAppliedMonth(i); }}>
                 <td className="px-4 py-2.5 font-medium text-foreground">{t.month}</td>
                 <td className="px-4 py-2.5 font-mono-data text-success">{t.compliant}</td>
                 <td className="px-4 py-2.5 font-mono-data text-destructive">{t.nonCompliant}</td>
