@@ -67,10 +67,22 @@ function parseClient(row: Record<string, unknown>, index: number): Client {
   };
 }
 
+function formatMonthYear(raw: string): string {
+  // Try parsing as a date and return "Mon YYYY"
+  const d = new Date(raw);
+  if (!isNaN(d.getTime())) {
+    const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+    return `${months[d.getMonth()]} ${d.getFullYear()}`;
+  }
+  // Already in "Mon YYYY" format or similar, return as-is
+  return raw;
+}
+
 function parseTrend(row: Record<string, unknown>): MonthlyTrend {
   const pct = num(row["Completion %"]);
+  const rawMonth = String(row["Month End Date"] ?? "").trim();
   return {
-    month: String(row["Month End Date"] ?? "").trim(),
+    month: formatMonthYear(rawMonth),
     compliant: num(row["Compliant"]),
     nonCompliant: num(row["Non-Compliant"]),
     completionPct: pct <= 1 ? Math.round(pct * 100) : Math.round(pct),
