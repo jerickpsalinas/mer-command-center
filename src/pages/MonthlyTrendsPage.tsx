@@ -1,7 +1,7 @@
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import KPICard from "@/components/KPICard";
 import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from "recharts";
-import { TrendingUp, TrendingDown, CheckCircle2, XCircle, ArrowRight } from "lucide-react";
+import { TrendingUp, TrendingDown, CheckCircle2, XCircle, ArrowRight, Play } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useSheetData } from "@/hooks/useSheetData";
 import { DataLoading, DataError } from "@/components/DataStatus";
@@ -28,25 +28,32 @@ const CustomTooltip = ({ active, payload, label }: any) => {
 
 export default function MonthlyTrendsPage() {
   const { data, isLoading, error } = useSheetData();
-  const [selectedMonth, setSelectedMonth] = useState<number | null>(null);
-  const [compareMonth, setCompareMonth] = useState<number | null>(null);
+  // Pending state (what user picks before clicking Apply)
+  const [pendingMonth, setPendingMonth] = useState<number | null>(null);
+  const [pendingCompare, setPendingCompare] = useState<string>("-");
+  // Applied state (what's actually shown)
+  const [appliedMonth, setAppliedMonth] = useState<number | null>(null);
+  const [appliedCompare, setAppliedCompare] = useState<string>("-");
 
   if (isLoading) return <DataLoading />;
   if (error || !data) return <DataError message={error?.message} />;
 
   const { monthlyTrends } = data;
 
-  // Filter to only months that have data (at least one compliant or nonCompliant)
   const validIndices = monthlyTrends
     .map((t, i) => ({ ...t, originalIndex: i }))
     .filter(t => t.compliant > 0 || t.nonCompliant > 0 || t.completionPct > 0);
 
   const validTrends = validIndices.map(v => monthlyTrends[v.originalIndex]);
 
-  const idx = selectedMonth ?? validIndices.length - 1;
-  const compIdx = compareMonth ?? (idx > 0 ? idx - 1 : null);
+  // Resolve applied values
+  const idx = appliedMonth ?? validIndices.length - 1;
+  const compIdx = appliedCompare !== "-" ? Number(appliedCompare) : null;
   const current = validTrends[idx];
   const previous = compIdx !== null && compIdx !== idx ? validTrends[compIdx] : null;
+
+  // Resolve pending for UI
+  const pendingIdx = pendingMonth ?? validIndices.length - 1;
 
   const metrics = previous ? [
     { label: "Compliant", curr: current.compliant, prev: previous.compliant, suffix: "", inverse: false },
@@ -57,37 +64,58 @@ export default function MonthlyTrendsPage() {
   const trendDiff = previous ? current.completionPct - previous.completionPct : 0;
   const isImproving = previous ? trendDiff >= 0 : false;
 
+  const hasPendingChanges = pendingIdx !== idx || pendingCompare !== appliedCompare;
+
+  const handleApply = () => {
+    setAppliedMonth(pendingIdx);
+    setAppliedCompare(pendingCompare);
+  };
+
   return (
     <div className="space-y-6">
       {/* Month selectors */}
       <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }}
-        className="rounded-xl border border-border bg-card p-4 shadow-card flex flex-wrap items-center gap-6">
-        <div className="flex items-center gap-3">
-          <span className="text-sm font-medium text-foreground whitespace-nowrap">View Month</span>
-          <select value={idx} onChange={(e) => setSelectedMonth(Number(e.target.value))}
-            className="rounded-lg border border-border bg-muted/30 px-4 py-2 text-sm text-foreground min-w-[140px] focus:outline-none focus:ring-2 focus:ring-primary/30 transition-all">
-            {validTrends.map((t, i) => <option key={t.month} value={i}>{t.month}</option>)}
-          </select>
-        </div>
-        <div className="h-8 w-px bg-border hidden sm:block" />
-        <div className="flex items-center gap-3">
-          <span className="text-sm font-medium text-foreground whitespace-nowrap">Compare</span>
-          <select
-            value={compIdx ?? ""}
-            onChange={(e) => setCompareMonth(e.target.value === "" ? null : Number(e.target.value))}
-            className="rounded-lg border border-border bg-muted/30 px-4 py-2 text-sm text-foreground min-w-[140px] focus:outline-none focus:ring-2 focus:ring-primary/30 transition-all"
-          >
-            <option value="">None</option>
-            {validTrends.map((t, i) => i !== idx ? <option key={t.month} value={i}>{t.month}</option> : null)}
-          </select>
-        </div>
-        {previous && (
-          <div className="ml-auto hidden sm:flex items-center gap-2 rounded-lg bg-muted/30 px-3 py-1.5">
-            <span className="text-xs font-medium text-foreground">{previous.month}</span>
-            <ArrowRight className="h-3 w-3 text-muted-foreground" />
-            <span className="text-xs font-medium text-foreground">{current.month}</span>
+        className="rounded-xl border border-border bg-card p-4 shadow-card">
+        <div className="flex flex-wrap items-end gap-5">
+          <div className="flex flex-col gap-1.5">
+            <label className="text-[11px] font-medium text-muted-foreground uppercase tracking-wider">View Month</label>
+            <select value={pendingIdx} onChange={(e) => setPendingMonth(Number(e.target.value))}
+              className="rounded-lg border border-border bg-muted/30 px-4 py-2.5 text-sm text-foreground min-w-[160px] focus:outline-none focus:ring-2 focus:ring-primary/30 transition-all">
+              {validTrends.map((t, i) => <option key={t.month} value={i}>{t.month}</option>)}
+            </select>
           </div>
-        )}
+          <div className="flex flex-col gap-1.5">
+            <label className="text-[11px] font-medium text-muted-foreground uppercase tracking-wider">Compare To</label>
+            <select
+              value={pendingCompare}
+              onChange={(e) => setPendingCompare(e.target.value)}
+              className="rounded-lg border border-border bg-muted/30 px-4 py-2.5 text-sm text-foreground min-w-[160px] focus:outline-none focus:ring-2 focus:ring-primary/30 transition-all"
+            >
+              <option value="-">—</option>
+              {validTrends.map((t, i) => i !== pendingIdx ? <option key={t.month} value={i}>{t.month}</option> : null)}
+            </select>
+          </div>
+          <motion.button
+            onClick={handleApply}
+            whileHover={{ scale: 1.03 }}
+            whileTap={{ scale: 0.97 }}
+            className={`inline-flex items-center gap-2 rounded-lg px-5 py-2.5 text-sm font-medium transition-all ${
+              hasPendingChanges
+                ? "bg-primary text-primary-foreground shadow-md hover:shadow-lg"
+                : "bg-muted/50 text-muted-foreground"
+            }`}
+          >
+            <Play className="h-3.5 w-3.5" />
+            Apply
+          </motion.button>
+          {previous && (
+            <div className="ml-auto hidden sm:flex items-center gap-2 rounded-lg bg-muted/30 px-3 py-2">
+              <span className="text-xs font-medium text-foreground">{previous.month}</span>
+              <ArrowRight className="h-3 w-3 text-muted-foreground" />
+              <span className="text-xs font-medium text-foreground">{current.month}</span>
+            </div>
+          )}
+        </div>
       </motion.div>
 
       {/* KPI cards */}
