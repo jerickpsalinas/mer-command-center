@@ -2,7 +2,7 @@ import { useState } from "react";
 import KPICard from "@/components/KPICard";
 import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from "recharts";
 import { TrendingUp, TrendingDown, CheckCircle2, XCircle, ArrowRight } from "lucide-react";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import { useSheetData } from "@/hooks/useSheetData";
 import { DataLoading, DataError } from "@/components/DataStatus";
 
@@ -35,16 +35,27 @@ export default function MonthlyTrendsPage() {
   if (error || !data) return <DataError message={error?.message} />;
 
   const { monthlyTrends } = data;
-  const idx = selectedMonth ?? monthlyTrends.length - 1;
+
+  // Filter to only months that have data (at least one compliant or nonCompliant)
+  const validIndices = monthlyTrends
+    .map((t, i) => ({ ...t, originalIndex: i }))
+    .filter(t => t.compliant > 0 || t.nonCompliant > 0 || t.completionPct > 0);
+
+  const validTrends = validIndices.map(v => monthlyTrends[v.originalIndex]);
+
+  const idx = selectedMonth ?? validIndices.length - 1;
   const compIdx = compareMonth ?? (idx > 0 ? idx - 1 : null);
-  const current = monthlyTrends[idx];
-  const previous = compIdx !== null && compIdx !== idx ? monthlyTrends[compIdx] : null;
+  const current = validTrends[idx];
+  const previous = compIdx !== null && compIdx !== idx ? validTrends[compIdx] : null;
 
   const metrics = previous ? [
     { label: "Compliant", curr: current.compliant, prev: previous.compliant, suffix: "", inverse: false },
     { label: "Non-Compliant", curr: current.nonCompliant, prev: previous.nonCompliant, suffix: "", inverse: true },
     { label: "Completion", curr: current.completionPct, prev: previous.completionPct, suffix: "%", inverse: false },
   ] : [];
+
+  const trendDiff = previous ? current.completionPct - previous.completionPct : 0;
+  const isImproving = previous ? trendDiff >= 0 : false;
 
   return (
     <div className="space-y-6">
@@ -54,7 +65,7 @@ export default function MonthlyTrendsPage() {
           <label className="text-xs text-muted-foreground font-medium">Month:</label>
           <select value={idx} onChange={(e) => setSelectedMonth(Number(e.target.value))}
             className="rounded-md border border-border bg-card px-3 py-1.5 text-sm text-foreground">
-            {monthlyTrends.map((t, i) => <option key={t.month} value={i}>{t.month}</option>)}
+            {validTrends.map((t, i) => <option key={t.month} value={i}>{t.month}</option>)}
           </select>
         </div>
         <div className="flex items-center gap-2">
@@ -65,7 +76,7 @@ export default function MonthlyTrendsPage() {
             className="rounded-md border border-border bg-card px-3 py-1.5 text-sm text-foreground"
           >
             <option value="">None</option>
-            {monthlyTrends.map((t, i) => i !== idx ? <option key={t.month} value={i}>{t.month}</option> : null)}
+            {validTrends.map((t, i) => i !== idx ? <option key={t.month} value={i}>{t.month}</option> : null)}
           </select>
         </div>
         {previous && (
@@ -85,9 +96,61 @@ export default function MonthlyTrendsPage() {
           trend={previous ? `${(current.nonCompliant - previous.nonCompliant) >= 0 ? "+" : ""}${current.nonCompliant - previous.nonCompliant}` : undefined} index={1} />
         <KPICard title="Completion %" value={`${current.completionPct}%`} icon={TrendingUp}
           trend={previous ? `${(current.completionPct - previous.completionPct) >= 0 ? "+" : ""}${current.completionPct - previous.completionPct}pp` : undefined} index={2} />
-        <KPICard title="Trend" value={previous ? ((current.completionPct - previous.completionPct) >= 0 ? "Improving" : "Declining") : "—"}
-          icon={(previous && (current.completionPct - previous.completionPct) >= 0) ? TrendingUp : TrendingDown}
-          variant={!previous ? undefined : (current.completionPct - previous.completionPct) >= 0 ? "success" : "destructive"} index={3} />
+
+        {/* Trend card with effects */}
+        <AnimatePresence mode="wait">
+          <motion.div
+            key={previous ? (isImproving ? "improving" : "declining") : "neutral"}
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.95 }}
+            transition={{ type: "spring", stiffness: 300, damping: 25 }}
+          >
+            <div className={`relative overflow-hidden rounded-xl border p-4 transition-all duration-500 ${
+              !previous ? "border-border bg-card" :
+              isImproving
+                ? "border-success/30 bg-success/5"
+                : "border-destructive/30 bg-destructive/5"
+            }`}>
+              {previous && (
+                <motion.div
+                  className={`absolute inset-0 opacity-10 ${isImproving ? "bg-success" : "bg-destructive"}`}
+                  animate={{ opacity: [0.05, 0.12, 0.05] }}
+                  transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
+                />
+              )}
+              <div className="relative z-10">
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-[11px] text-muted-foreground uppercase tracking-wider font-medium">Trend</span>
+                  <motion.div
+                    animate={previous ? { y: [0, -2, 0] } : {}}
+                    transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
+                  >
+                    {(previous && isImproving)
+                      ? <TrendingUp className="h-4 w-4 text-success" />
+                      : <TrendingDown className="h-4 w-4 text-destructive" />
+                    }
+                  </motion.div>
+                </div>
+                <p className={`font-mono-data text-2xl font-bold ${
+                  !previous ? "text-muted-foreground" :
+                  isImproving ? "text-success" : "text-destructive"
+                }`}>
+                  {previous ? (isImproving ? "Improving" : "Declining") : "—"}
+                </p>
+                {previous && (
+                  <motion.p
+                    initial={{ opacity: 0, y: 4 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className={`text-xs mt-1 font-semibold ${isImproving ? "text-success" : "text-destructive"}`}
+                  >
+                    {trendDiff > 0 ? "+" : ""}{trendDiff}pp
+                  </motion.p>
+                )}
+              </div>
+            </div>
+          </motion.div>
+        </AnimatePresence>
       </div>
 
       {/* Comparison detail */}
@@ -128,7 +191,7 @@ export default function MonthlyTrendsPage() {
           className="rounded-xl border border-border bg-card p-5 shadow-card hover:shadow-card-hover transition-[box-shadow] duration-300">
           <h2 className="text-sm font-semibold text-foreground mb-4">Compliance Over Time</h2>
           <ResponsiveContainer width="100%" height={280}>
-            <LineChart data={monthlyTrends}>
+            <LineChart data={validTrends}>
               <CartesianGrid strokeDasharray="3 3" stroke="hsl(20, 8%, 16%)" />
               <XAxis dataKey="month" tick={{ fontSize: 11, fill: "hsl(25, 10%, 50%)" }} />
               <YAxis tick={{ fontSize: 11, fill: "hsl(25, 10%, 50%)" }} />
@@ -145,7 +208,7 @@ export default function MonthlyTrendsPage() {
           className="rounded-xl border border-border bg-card p-5 shadow-card hover:shadow-card-hover transition-[box-shadow] duration-300">
           <h2 className="text-sm font-semibold text-foreground mb-4">Completion % by Month</h2>
           <ResponsiveContainer width="100%" height={280}>
-            <BarChart data={monthlyTrends}>
+            <BarChart data={validTrends}>
               <CartesianGrid strokeDasharray="3 3" stroke="hsl(20, 8%, 16%)" />
               <XAxis dataKey="month" tick={{ fontSize: 11, fill: "hsl(25, 10%, 50%)" }} />
               <YAxis tick={{ fontSize: 11, fill: "hsl(25, 10%, 50%)" }} domain={[0, 100]} />
@@ -169,7 +232,7 @@ export default function MonthlyTrendsPage() {
             </tr>
           </thead>
           <tbody>
-            {monthlyTrends.map((t, i) => (
+            {validTrends.map((t, i) => (
               <tr key={t.month} className={`border-b border-border hover:bg-accent/50 transition-colors cursor-pointer ${i === idx ? "bg-primary/5 border-l-2 border-l-primary" : ""} ${compIdx !== null && i === compIdx ? "bg-accent/30" : ""}`}
                 onClick={() => setSelectedMonth(i)}>
                 <td className="px-4 py-2.5 font-medium text-foreground">{t.month}</td>
