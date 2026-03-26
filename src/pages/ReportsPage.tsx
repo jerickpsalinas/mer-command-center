@@ -16,6 +16,8 @@ export default function ReportsPage() {
   const bkStats = getBookkeeperStats(clients, bookkeepers);
   const attention = getNeedsAttention(clients);
 
+  const highRiskClients = clients.filter(c => c.completionPct < 40);
+
   const sections = [
     {
       title: "Compliance Summary", icon: FileText,
@@ -44,15 +46,21 @@ export default function ReportsPage() {
           <div className="flex justify-between text-sm"><span className="text-muted-foreground">Unresolved Txns</span><span className="font-mono-data text-warning font-medium">{attention.unresolvedTransactions.length}</span></div>
           <div className="flex justify-between text-sm"><span className="text-muted-foreground">No Approved Notes</span><span className="font-mono-data text-destructive font-medium">{attention.noApprovedNotes.length}</span></div>
           <div className="mt-4 pt-3 border-t border-border">
-            <p className="text-xs text-muted-foreground">High-risk clients:</p>
-            <div className="mt-2 space-y-1">
-              {clients.filter(c => c.completionPct < 40).map(c => (
-                <div key={c.id} className="flex items-center justify-between text-sm py-1">
-                  <span className="text-foreground">{c.name}</span>
-                  <span className="font-mono-data text-xs text-destructive">{c.completionPct}%</span>
-                </div>
-              ))}
-            </div>
+            <p className="text-xs font-semibold text-muted-foreground mb-2">High-risk clients ({highRiskClients.length})</p>
+            {highRiskClients.length > 0 ? (
+              <div className="space-y-1.5 max-h-48 overflow-y-auto">
+                {highRiskClients
+                  .sort((a, b) => a.completionPct - b.completionPct)
+                  .map(c => (
+                  <div key={c.id} className="flex items-center justify-between py-1.5 px-2 rounded-md hover:bg-accent/30 transition-colors">
+                    <span className="text-sm text-foreground truncate mr-2">{c.name}</span>
+                    <span className="font-mono-data text-xs font-semibold text-destructive shrink-0">{c.completionPct}%</span>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p className="text-sm text-success">No high-risk clients</p>
+            )}
           </div>
         </div>
       ),
