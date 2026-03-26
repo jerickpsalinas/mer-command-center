@@ -170,6 +170,9 @@ export default function DashboardPage() {
         <KPICard title="No Updated Notes" value={kpi.withoutNotes} icon={StickyNote} variant="destructive" index={7} />
       </div>
 
+      {/* KPI Metrics Overview Charts */}
+      <KPIChartsSection kpi={kpi} />
+
       <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4, delay: 0.5 }}
         className="rounded-xl border border-border bg-card p-6 shadow-card">
         <h2 className="text-sm font-semibold text-foreground mb-5">Compliance Breakdown</h2>
