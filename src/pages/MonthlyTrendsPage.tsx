@@ -6,6 +6,26 @@ import { motion } from "framer-motion";
 import { useSheetData } from "@/hooks/useSheetData";
 import { DataLoading, DataError } from "@/components/DataStatus";
 
+const tooltipStyle = {
+  background: "hsl(20, 10%, 13%)", border: "1px solid hsl(20, 8%, 20%)",
+  borderRadius: "10px", fontSize: "12px", color: "hsl(30, 25%, 88%)",
+  boxShadow: "0 8px 24px -6px hsl(20 12% 3% / 0.6)",
+};
+
+const CustomTooltip = ({ active, payload, label }: any) => {
+  if (!active || !payload?.length) return null;
+  return (
+    <div style={tooltipStyle} className="px-3 py-2">
+      <p className="text-xs font-semibold text-foreground mb-1">{label}</p>
+      {payload.map((p: any, i: number) => (
+        <p key={i} className="text-[11px]" style={{ color: p.color || p.stroke }}>
+          {p.name}: <span className="font-mono-data font-semibold">{p.value}</span>
+        </p>
+      ))}
+    </div>
+  );
+};
+
 export default function MonthlyTrendsPage() {
   const { data, isLoading, error } = useSheetData();
   const [selectedMonth, setSelectedMonth] = useState<number | null>(null);
@@ -83,7 +103,8 @@ export default function MonthlyTrendsPage() {
               const isPositive = inverse ? diff < 0 : diff > 0;
               const isNegative = inverse ? diff > 0 : diff < 0;
               return (
-                <div key={label} className="rounded-lg border border-border bg-muted/20 p-4 text-center">
+                <motion.div key={label} whileHover={{ scale: 1.02 }} transition={{ type: "spring", stiffness: 400, damping: 25 }}
+                  className="rounded-lg border border-border bg-muted/20 p-4 text-center">
                   <p className="text-[11px] text-muted-foreground uppercase tracking-wider mb-2">{label}</p>
                   <div className="flex items-center justify-center gap-3">
                     <span className="font-mono-data text-lg text-muted-foreground">{prev}{suffix}</span>
@@ -93,7 +114,7 @@ export default function MonthlyTrendsPage() {
                   <p className={`text-xs font-semibold mt-1.5 ${isPositive ? "text-success" : isNegative ? "text-destructive" : "text-muted-foreground"}`}>
                     {diff > 0 ? "+" : ""}{diff}{suffix === "%" ? "pp" : ""}
                   </p>
-                </div>
+                </motion.div>
               );
             })}
           </div>
@@ -103,31 +124,33 @@ export default function MonthlyTrendsPage() {
       {/* Charts */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }}
-          className="rounded-xl border border-border bg-card p-5 shadow-card">
+          whileHover={{ scale: 1.005 }}
+          className="rounded-xl border border-border bg-card p-5 shadow-card hover:shadow-card-hover transition-[box-shadow] duration-300">
           <h2 className="text-sm font-semibold text-foreground mb-4">Compliance Over Time</h2>
           <ResponsiveContainer width="100%" height={280}>
             <LineChart data={monthlyTrends}>
-              <CartesianGrid strokeDasharray="3 3" stroke="hsl(20 8% 16%)" />
-              <XAxis dataKey="month" tick={{ fontSize: 11, fill: "hsl(25 10% 50%)" }} />
-              <YAxis tick={{ fontSize: 11, fill: "hsl(25 10% 50%)" }} />
-              <Tooltip contentStyle={{ background: "hsl(20 10% 13%)", border: "1px solid hsl(20 8% 20%)", borderRadius: "6px", fontSize: "12px", color: "hsl(30 25% 88%)" }} />
-              <Legend />
-              <Line type="monotone" dataKey="compliant" stroke="hsl(160 55% 42%)" strokeWidth={2} dot={{ r: 3 }} name="Compliant" />
-              <Line type="monotone" dataKey="nonCompliant" stroke="hsl(0 65% 50%)" strokeWidth={2} dot={{ r: 3 }} name="Non-Compliant" />
+              <CartesianGrid strokeDasharray="3 3" stroke="hsl(20, 8%, 16%)" />
+              <XAxis dataKey="month" tick={{ fontSize: 11, fill: "hsl(25, 10%, 50%)" }} />
+              <YAxis tick={{ fontSize: 11, fill: "hsl(25, 10%, 50%)" }} />
+              <Tooltip content={<CustomTooltip />} />
+              <Legend wrapperStyle={{ fontSize: "11px", color: "hsl(30, 25%, 88%)" }} />
+              <Line type="monotone" dataKey="compliant" stroke="hsl(160, 55%, 42%)" strokeWidth={2} dot={{ r: 3 }} name="Compliant" />
+              <Line type="monotone" dataKey="nonCompliant" stroke="hsl(0, 65%, 50%)" strokeWidth={2} dot={{ r: 3 }} name="Non-Compliant" />
             </LineChart>
           </ResponsiveContainer>
         </motion.div>
 
         <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.4 }}
-          className="rounded-xl border border-border bg-card p-5 shadow-card">
+          whileHover={{ scale: 1.005 }}
+          className="rounded-xl border border-border bg-card p-5 shadow-card hover:shadow-card-hover transition-[box-shadow] duration-300">
           <h2 className="text-sm font-semibold text-foreground mb-4">Completion % by Month</h2>
           <ResponsiveContainer width="100%" height={280}>
             <BarChart data={monthlyTrends}>
-              <CartesianGrid strokeDasharray="3 3" stroke="hsl(20 8% 16%)" />
-              <XAxis dataKey="month" tick={{ fontSize: 11, fill: "hsl(25 10% 50%)" }} />
-              <YAxis tick={{ fontSize: 11, fill: "hsl(25 10% 50%)" }} domain={[0, 100]} />
-              <Tooltip contentStyle={{ background: "hsl(20 10% 13%)", border: "1px solid hsl(20 8% 20%)", borderRadius: "6px", fontSize: "12px", color: "hsl(30 25% 88%)" }} />
-              <Bar dataKey="completionPct" fill="hsl(340 45% 55%)" radius={[4, 4, 0, 0]} name="Completion %" />
+              <CartesianGrid strokeDasharray="3 3" stroke="hsl(20, 8%, 16%)" />
+              <XAxis dataKey="month" tick={{ fontSize: 11, fill: "hsl(25, 10%, 50%)" }} />
+              <YAxis tick={{ fontSize: 11, fill: "hsl(25, 10%, 50%)" }} domain={[0, 100]} />
+              <Tooltip content={<CustomTooltip />} cursor={{ fill: "hsl(20, 8%, 14%)" }} />
+              <Bar dataKey="completionPct" fill="hsl(340, 45%, 55%)" radius={[4, 4, 0, 0]} name="Completion %" />
             </BarChart>
           </ResponsiveContainer>
         </motion.div>
