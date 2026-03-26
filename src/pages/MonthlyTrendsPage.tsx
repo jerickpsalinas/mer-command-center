@@ -60,31 +60,33 @@ export default function MonthlyTrendsPage() {
   return (
     <div className="space-y-6">
       {/* Month selectors */}
-      <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} className="flex flex-wrap items-center gap-4">
-        <div className="flex items-center gap-2">
-          <label className="text-xs text-muted-foreground font-medium">Month:</label>
+      <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }}
+        className="rounded-xl border border-border bg-card p-4 shadow-card flex flex-wrap items-center gap-6">
+        <div className="flex items-center gap-3">
+          <span className="text-sm font-medium text-foreground whitespace-nowrap">View Month</span>
           <select value={idx} onChange={(e) => setSelectedMonth(Number(e.target.value))}
-            className="rounded-md border border-border bg-card px-3 py-1.5 text-sm text-foreground">
+            className="rounded-lg border border-border bg-muted/30 px-4 py-2 text-sm text-foreground min-w-[140px] focus:outline-none focus:ring-2 focus:ring-primary/30 transition-all">
             {validTrends.map((t, i) => <option key={t.month} value={i}>{t.month}</option>)}
           </select>
         </div>
-        <div className="flex items-center gap-2">
-          <label className="text-xs text-muted-foreground font-medium">Compare to:</label>
+        <div className="h-8 w-px bg-border hidden sm:block" />
+        <div className="flex items-center gap-3">
+          <span className="text-sm font-medium text-foreground whitespace-nowrap">Compare</span>
           <select
             value={compIdx ?? ""}
             onChange={(e) => setCompareMonth(e.target.value === "" ? null : Number(e.target.value))}
-            className="rounded-md border border-border bg-card px-3 py-1.5 text-sm text-foreground"
+            className="rounded-lg border border-border bg-muted/30 px-4 py-2 text-sm text-foreground min-w-[140px] focus:outline-none focus:ring-2 focus:ring-primary/30 transition-all"
           >
             <option value="">None</option>
             {validTrends.map((t, i) => i !== idx ? <option key={t.month} value={i}>{t.month}</option> : null)}
           </select>
         </div>
         {previous && (
-          <span className="inline-flex items-center gap-1.5 text-xs text-muted-foreground">
-            <span className="text-foreground font-medium">{previous.month}</span>
-            <ArrowRight className="h-3 w-3" />
-            <span className="text-foreground font-medium">{current.month}</span>
-          </span>
+          <div className="ml-auto hidden sm:flex items-center gap-2 rounded-lg bg-muted/30 px-3 py-1.5">
+            <span className="text-xs font-medium text-foreground">{previous.month}</span>
+            <ArrowRight className="h-3 w-3 text-muted-foreground" />
+            <span className="text-xs font-medium text-foreground">{current.month}</span>
+          </div>
         )}
       </motion.div>
 
