@@ -200,7 +200,7 @@ export default function MonthlyTrendsPage() {
                     <span className="font-mono-data text-lg font-bold text-foreground">{curr}{suffix}</span>
                   </div>
                   <p className={`text-xs font-semibold mt-1.5 ${isPositive ? "text-success" : isNegative ? "text-destructive" : "text-muted-foreground"}`}>
-                    {diff > 0 ? "+" : ""}{diff}{suffix === "%" ? "pp" : ""}
+                    {diff > 0 ? "+" : ""}{diff}{suffix === "%" ? "%" : ""}
                   </p>
                 </motion.div>
               );
