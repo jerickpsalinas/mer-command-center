@@ -17,6 +17,15 @@ const tooltipStyle = {
   color: "hsl(30 25% 88%)",
 };
 
+function getIssueDetails(c: { uncategorizedTransactions: number; bankTransactions: string; unappliedPayments: number; prevMonthNotesApproved: boolean }) {
+  const issues: string[] = [];
+  if (c.uncategorizedTransactions > 0) issues.push(`${c.uncategorizedTransactions} uncategorized txns`);
+  if (c.bankTransactions.includes("Missing")) issues.push("Missing bank statements");
+  if (c.unappliedPayments > 0) issues.push(`${c.unappliedPayments} unapplied payments`);
+  if (!c.prevMonthNotesApproved) issues.push("Notes not approved");
+  return issues;
+}
+
 export default function ClientsPage() {
   const { data, isLoading, error } = useSheetData();
   const [search, setSearch] = useState("");
@@ -42,7 +51,6 @@ export default function ClientsPage() {
       return 0;
     });
 
-  // Chart data: bottom 15 clients by completion
   const chartData = [...data.clients]
     .sort((a, b) => a.completionPct - b.completionPct)
     .slice(0, 15)
@@ -63,7 +71,6 @@ export default function ClientsPage() {
 
   return (
     <div className="space-y-6">
-      {/* Chart: Worst completion clients */}
       <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4 }}
         className="rounded-xl border border-border bg-card p-6 shadow-card">
         <h2 className="text-sm font-semibold text-foreground mb-1 flex items-center gap-2">
@@ -86,7 +93,6 @@ export default function ClientsPage() {
         </ResponsiveContainer>
       </motion.div>
 
-      {/* Controls */}
       <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}
         className="flex flex-wrap items-center gap-3">
         <div className="flex items-center gap-2 rounded-lg border border-border bg-card px-3 py-1.5 text-sm w-64">
@@ -111,11 +117,9 @@ export default function ClientsPage() {
         <span className="text-[11px] text-muted-foreground ml-auto">{filtered.length} clients</span>
       </motion.div>
 
-      {/* Client cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
         {filtered.map((c, i) => {
-          const issues = (c.uncategorizedTransactions > 0 ? 1 : 0) + (c.bankTransactions.includes("Missing") ? 1 : 0) +
-            (c.unappliedPayments > 0 ? 1 : 0) + (!c.prevMonthNotesApproved ? 1 : 0);
+          const issues = getIssueDetails(c);
           return (
             <motion.div key={c.id} initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.05 + i * 0.015 }}
               className="rounded-xl border border-border bg-card p-4 shadow-card hover:shadow-card-hover transition-[box-shadow] duration-300">
@@ -140,9 +144,19 @@ export default function ClientsPage() {
                 <div><span className="text-muted-foreground">Last Reconciled</span><p className="font-mono-data text-foreground">{c.lastReconciledDate || "—"}</p></div>
                 <div><span className="text-muted-foreground">Uncat. Txns</span><p className="font-mono-data text-foreground">{c.uncategorizedTransactions}</p></div>
               </div>
-              {issues > 0 && (
-                <div className="mt-3 flex items-center gap-1 text-xs text-destructive">
-                  <AlertTriangle className="h-3 w-3" /><span>{issues} issue{issues > 1 ? "s" : ""} found</span>
+              {issues.length > 0 && (
+                <div className="mt-3 pt-2.5 border-t border-border/50">
+                  <div className="flex items-center gap-1 text-xs text-destructive mb-1.5">
+                    <AlertTriangle className="h-3 w-3" /><span className="font-semibold">{issues.length} issue{issues.length > 1 ? "s" : ""} found</span>
+                  </div>
+                  <ul className="space-y-0.5">
+                    {issues.map((issue, idx) => (
+                      <li key={idx} className="text-[11px] text-muted-foreground flex items-center gap-1.5">
+                        <span className="h-1 w-1 rounded-full bg-destructive/60 shrink-0" />
+                        {issue}
+                      </li>
+                    ))}
+                  </ul>
                 </div>
               )}
             </motion.div>

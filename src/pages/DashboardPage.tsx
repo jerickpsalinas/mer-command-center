@@ -1,6 +1,6 @@
 import {
   Users, CheckCircle2, XCircle, Pause, TrendingUp, AlertTriangle,
-  FileText, StickyNote, Award, Clock, AlertCircle, ChevronRight,
+  FileText, StickyNote, Award, Clock, AlertCircle, ChevronRight, ShieldAlert, BarChart3,
 } from "lucide-react";
 import { LineChart, Line, BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from "recharts";
 import KPICard from "@/components/KPICard";
@@ -10,6 +10,21 @@ import { useSheetData, getKPIMetrics, getComplianceBreakdown, getNeedsAttention,
 import { DataLoading, DataError } from "@/components/DataStatus";
 import { motion } from "framer-motion";
 import type { Client } from "@/data/mockData";
+
+const CHART_COLORS = {
+  primary: "hsl(340 45% 55%)",
+  success: "hsl(160 55% 42%)",
+  warning: "hsl(38 80% 52%)",
+  destructive: "hsl(0 65% 50%)",
+  muted: "hsl(25 10% 50%)",
+  grid: "hsl(20 8% 16%)",
+  bg: "hsl(20 10% 11%)",
+};
+
+const tooltipStyle = {
+  background: "hsl(20 10% 13%)", border: "1px solid hsl(20 8% 20%)",
+  borderRadius: "8px", fontSize: "12px", color: "hsl(30 25% 88%)",
+};
 
 function NeedsAttentionSection({ clients }: { clients: Client[] }) {
   const attention = getNeedsAttention(clients);
@@ -75,41 +90,15 @@ function NeedsAttentionSection({ clients }: { clients: Client[] }) {
 function BookkeepersSection({ clients, bookkeepers }: { clients: Client[]; bookkeepers: string[] }) {
   const bkStats = getBookkeeperStats(clients, bookkeepers);
 
-  // Generate real recent activity from actual client data
   const recentActivity: { id: string; message: React.ReactNode }[] = [];
-
-  // Clients with highest completion (recently compliant)
-  const topCompliant = clients
-    .filter(c => c.complianceStatus === "Compliant")
-    .slice(0, 3);
-  topCompliant.forEach(c => {
-    recentActivity.push({
-      id: `compliant-${c.id}`,
-      message: <><span className="text-foreground font-medium">{c.name}</span> — <span className="text-success font-semibold">Compliant</span> ({c.bookkeeper})</>,
-    });
+  clients.filter(c => c.complianceStatus === "Compliant").slice(0, 3).forEach(c => {
+    recentActivity.push({ id: `compliant-${c.id}`, message: <><span className="text-foreground font-medium">{c.name}</span> — <span className="text-success font-semibold">Compliant</span> ({c.bookkeeper})</> });
   });
-
-  // Clients with missing statements (flagged)
-  const flagged = clients
-    .filter(c => c.bankTransactions.includes("Missing"))
-    .slice(0, 2);
-  flagged.forEach(c => {
-    recentActivity.push({
-      id: `flagged-${c.id}`,
-      message: <><span className="text-foreground font-medium">{c.name}</span> — <span className="text-destructive font-semibold">missing statements</span> ({c.bookkeeper})</>,
-    });
+  clients.filter(c => c.bankTransactions.includes("Missing")).slice(0, 2).forEach(c => {
+    recentActivity.push({ id: `flagged-${c.id}`, message: <><span className="text-foreground font-medium">{c.name}</span> — <span className="text-destructive font-semibold">missing statements</span> ({c.bookkeeper})</> });
   });
-
-  // Clients with uncategorized transactions
-  const uncatClients = clients
-    .filter(c => c.uncategorizedTransactions > 0)
-    .sort((a, b) => b.uncategorizedTransactions - a.uncategorizedTransactions)
-    .slice(0, 2);
-  uncatClients.forEach(c => {
-    recentActivity.push({
-      id: `uncat-${c.id}`,
-      message: <><span className="text-foreground font-medium">{c.name}</span> — <span className="text-warning font-semibold">{c.uncategorizedTransactions} uncategorized txns</span> ({c.bookkeeper})</>,
-    });
+  clients.filter(c => c.uncategorizedTransactions > 0).sort((a, b) => b.uncategorizedTransactions - a.uncategorizedTransactions).slice(0, 2).forEach(c => {
+    recentActivity.push({ id: `uncat-${c.id}`, message: <><span className="text-foreground font-medium">{c.name}</span> — <span className="text-warning font-semibold">{c.uncategorizedTransactions} uncategorized txns</span> ({c.bookkeeper})</> });
   });
 
   return (
@@ -136,67 +125,134 @@ function BookkeepersSection({ clients, bookkeepers }: { clients: Client[]; bookk
       <div className="border-t border-border px-6 py-4">
         <h3 className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider mb-3 flex items-center gap-1.5"><Clock className="h-3.5 w-3.5" /> Recent Activity</h3>
         <div className="space-y-2.5 text-[12px] text-muted-foreground">
-          {recentActivity.slice(0, 5).map(a => (
-            <p key={a.id}>{a.message}</p>
-          ))}
-          {recentActivity.length === 0 && (
-            <p className="text-muted-foreground">No recent activity</p>
-          )}
+          {recentActivity.slice(0, 5).map(a => <p key={a.id}>{a.message}</p>)}
+          {recentActivity.length === 0 && <p className="text-muted-foreground">No recent activity</p>}
         </div>
       </div>
     </motion.div>
   );
 }
 
-const PIE_COLORS = ["hsl(340 45% 55%)", "hsl(38 70% 50%)", "hsl(160 55% 42%)"];
-const tooltipStyle = {
-  background: "hsl(20 10% 13%)", border: "1px solid hsl(20 8% 20%)",
-  borderRadius: "8px", fontSize: "12px", color: "hsl(30 25% 88%)",
-};
-
-function KPIChartsSection({ kpi }: { kpi: ReturnType<typeof getKPIMetrics> }) {
+function KPIChartsSection({ kpi, breakdown }: { kpi: ReturnType<typeof getKPIMetrics>; breakdown: ReturnType<typeof getComplianceBreakdown> }) {
   const pieData = [
-    { name: "Compliant", value: kpi.compliant },
-    { name: "On Hold", value: kpi.onHold },
-    { name: "Non-Compliant", value: kpi.nonCompliant },
+    { name: "Compliant", value: kpi.compliant, color: CHART_COLORS.success },
+    { name: "On Hold", value: kpi.onHold, color: CHART_COLORS.warning },
+    { name: "Non-Compliant", value: kpi.nonCompliant, color: CHART_COLORS.destructive },
   ];
-  const barData = [
-    { name: "Total", value: kpi.total, fill: "hsl(340 45% 55%)" },
-    { name: "Compliant", value: kpi.compliant, fill: "hsl(160 55% 42%)" },
-    { name: "On Hold", value: kpi.onHold, fill: "hsl(38 70% 50%)" },
-    { name: "Non-Compliant", value: kpi.nonCompliant, fill: "hsl(0 65% 50%)" },
+
+  const breakdownData = [
+    { name: "Bank Txns", value: breakdown.bankPct, fill: CHART_COLORS.success },
+    { name: "Uncat. Txns", value: breakdown.uncatPct, fill: CHART_COLORS.primary },
+    { name: "Unapplied", value: breakdown.unappliedPct, fill: CHART_COLORS.warning },
+    { name: "Statements", value: breakdown.stmtPct, fill: CHART_COLORS.destructive },
   ];
 
   return (
     <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4, delay: 0.35 }}
       className="grid grid-cols-1 lg:grid-cols-2 gap-5">
-      {/* Compliance Overview - Pie */}
+      {/* Compliance Distribution - Donut */}
       <div className="rounded-xl border border-border bg-card p-6 shadow-card">
-        <h2 className="text-sm font-semibold text-foreground mb-4">Compliance Overview</h2>
+        <h2 className="text-sm font-semibold text-foreground mb-1">Compliance Distribution</h2>
+        <p className="text-[11px] text-muted-foreground mb-3">{kpi.total} total clients</p>
         <ResponsiveContainer width="100%" height={240}>
           <PieChart>
-            <Pie data={pieData} cx="50%" cy="50%" innerRadius={55} outerRadius={90} dataKey="value" paddingAngle={3} strokeWidth={0}>
-              {pieData.map((_, i) => <Cell key={i} fill={PIE_COLORS[i]} />)}
+            <Pie data={pieData} cx="50%" cy="50%" innerRadius={55} outerRadius={90} dataKey="value" paddingAngle={3} strokeWidth={0}
+              label={({ name, value }) => `${name}: ${value}`} labelLine={false}>
+              {pieData.map((entry, i) => <Cell key={i} fill={entry.color} />)}
             </Pie>
-            <Tooltip contentStyle={tooltipStyle} />
+            <Tooltip contentStyle={tooltipStyle} formatter={(val: number, name: string) => [`${val} clients`, name]} />
             <Legend iconType="circle" iconSize={8} wrapperStyle={{ fontSize: "11px" }} />
           </PieChart>
         </ResponsiveContainer>
       </div>
-      {/* Compliant vs Non-Compliant - Bar */}
+
+      {/* Compliance Breakdown % - Bar */}
       <div className="rounded-xl border border-border bg-card p-6 shadow-card">
-        <h2 className="text-sm font-semibold text-foreground mb-4">Compliant vs Non-Compliant</h2>
+        <h2 className="text-sm font-semibold text-foreground mb-1">Compliance Breakdown %</h2>
+        <p className="text-[11px] text-muted-foreground mb-3">Percentage of clients meeting each criteria</p>
         <ResponsiveContainer width="100%" height={240}>
-          <BarChart data={barData}>
-            <CartesianGrid strokeDasharray="3 3" stroke="hsl(20 8% 16%)" />
-            <XAxis dataKey="name" tick={{ fontSize: 10, fill: "hsl(25 10% 50%)" }} />
-            <YAxis tick={{ fontSize: 10, fill: "hsl(25 10% 50%)" }} />
-            <Tooltip contentStyle={tooltipStyle} />
-            <Bar dataKey="value" radius={[6, 6, 0, 0]} name="Clients">
-              {barData.map((entry, i) => <Cell key={i} fill={entry.fill} />)}
+          <BarChart data={breakdownData} layout="vertical" margin={{ left: 5, right: 20 }}>
+            <CartesianGrid strokeDasharray="3 3" stroke={CHART_COLORS.grid} horizontal={false} />
+            <XAxis type="number" domain={[0, 100]} tick={{ fontSize: 10, fill: CHART_COLORS.muted }} unit="%" />
+            <YAxis type="category" dataKey="name" width={80} tick={{ fontSize: 10, fill: CHART_COLORS.muted }} />
+            <Tooltip contentStyle={tooltipStyle} formatter={(val: number) => [`${val}%`, "Compliant"]} />
+            <Bar dataKey="value" radius={[0, 6, 6, 0]} name="% Compliant">
+              {breakdownData.map((entry, i) => <Cell key={i} fill={entry.fill} />)}
             </Bar>
           </BarChart>
         </ResponsiveContainer>
+      </div>
+    </motion.div>
+  );
+}
+
+function ReportsSummarySection({ clients, bookkeepers }: { clients: Client[]; bookkeepers: string[] }) {
+  const kpi = getKPIMetrics(clients);
+  const attention = getNeedsAttention(clients);
+  const bkStats = getBookkeeperStats(clients, bookkeepers);
+  const highRisk = clients.filter(c => c.completionPct < 40).sort((a, b) => a.completionPct - b.completionPct);
+
+  return (
+    <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4, delay: 1.0 }}
+      className="rounded-xl border border-border bg-card shadow-card overflow-hidden">
+      <div className="px-6 py-4 border-b border-border">
+        <h2 className="text-sm font-semibold text-foreground flex items-center gap-2">
+          <div className="h-7 w-7 rounded-lg bg-primary/10 flex items-center justify-center"><BarChart3 className="h-4 w-4 text-primary" /></div>
+          Reports Summary
+        </h2>
+      </div>
+      <div className="grid grid-cols-1 sm:grid-cols-2 divide-y sm:divide-y-0 sm:divide-x divide-border">
+        {/* Risk Overview */}
+        <div className="p-5">
+          <div className="flex items-center gap-2 mb-3">
+            <ShieldAlert className="h-4 w-4 text-destructive" />
+            <span className="text-xs font-semibold text-foreground">Risk Overview</span>
+          </div>
+          <div className="space-y-2 text-sm">
+            <div className="flex justify-between"><span className="text-muted-foreground">Missing Statements</span><span className="font-mono-data text-destructive font-medium">{attention.missingStatements.length}</span></div>
+            <div className="flex justify-between"><span className="text-muted-foreground">Not Reconciled</span><span className="font-mono-data text-destructive font-medium">{attention.notReconciled.length}</span></div>
+            <div className="flex justify-between"><span className="text-muted-foreground">Unresolved Txns</span><span className="font-mono-data text-warning font-medium">{attention.unresolvedTransactions.length}</span></div>
+            <div className="flex justify-between"><span className="text-muted-foreground">No Approved Notes</span><span className="font-mono-data text-destructive font-medium">{attention.noApprovedNotes.length}</span></div>
+          </div>
+          {highRisk.length > 0 && (
+            <div className="mt-3 pt-3 border-t border-border">
+              <p className="text-[11px] font-semibold text-muted-foreground mb-2">High-risk ({highRisk.length})</p>
+              <div className="space-y-1 max-h-28 overflow-y-auto">
+                {highRisk.slice(0, 5).map(c => (
+                  <div key={c.id} className="flex items-center justify-between text-xs py-1">
+                    <span className="text-foreground truncate mr-2">{c.name}</span>
+                    <span className="font-mono-data text-destructive font-semibold">{c.completionPct}%</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Performance Summary */}
+        <div className="p-5">
+          <div className="flex items-center gap-2 mb-3">
+            <FileText className="h-4 w-4 text-primary" />
+            <span className="text-xs font-semibold text-foreground">Performance</span>
+          </div>
+          <div className="space-y-2 text-sm">
+            <div className="flex justify-between"><span className="text-muted-foreground">Total Clients</span><span className="font-mono-data text-foreground">{kpi.total}</span></div>
+            <div className="flex justify-between"><span className="text-muted-foreground">Avg Completion</span><span className="font-mono-data text-foreground">{kpi.avgCompletion}%</span></div>
+            <div className="flex justify-between"><span className="text-muted-foreground">Outstanding Stmts</span><span className="font-mono-data text-foreground">{kpi.outstandingStatements}</span></div>
+            <div className="flex justify-between"><span className="text-muted-foreground">Without Notes</span><span className="font-mono-data text-foreground">{kpi.withoutNotes}</span></div>
+          </div>
+          <div className="mt-3 pt-3 border-t border-border">
+            <p className="text-[11px] font-semibold text-muted-foreground mb-2">Top Bookkeepers</p>
+            <div className="space-y-1">
+              {bkStats.slice(0, 3).map((bk, i) => (
+                <div key={bk.name} className="flex items-center justify-between text-xs py-1">
+                  <span className="text-foreground">#{i + 1} {bk.name}</span>
+                  <span className="font-mono-data text-foreground font-semibold">{bk.rate}%</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
       </div>
     </motion.div>
   );
@@ -213,6 +269,7 @@ export default function DashboardPage() {
 
   return (
     <div className="space-y-7">
+      {/* KPI Cards */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <KPICard title="Total Clients" value={kpi.total} icon={Users} index={0} />
         <KPICard title="Compliant" value={kpi.compliant} icon={CheckCircle2} variant="success" index={1} />
@@ -224,9 +281,10 @@ export default function DashboardPage() {
         <KPICard title="No Updated Notes" value={kpi.withoutNotes} icon={StickyNote} variant="destructive" index={7} />
       </div>
 
-      {/* KPI Metrics Overview Charts */}
-      <KPIChartsSection kpi={kpi} />
+      {/* Charts: Donut + Breakdown Bar */}
+      <KPIChartsSection kpi={kpi} breakdown={breakdown} />
 
+      {/* Compliance Breakdown Progress Bars */}
       <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4, delay: 0.5 }}
         className="rounded-xl border border-border bg-card p-6 shadow-card">
         <h2 className="text-sm font-semibold text-foreground mb-5">Compliance Breakdown</h2>
@@ -238,18 +296,19 @@ export default function DashboardPage() {
         </div>
       </motion.div>
 
+      {/* Trend Charts */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
         <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4, delay: 0.6 }}
           className="rounded-xl border border-border bg-card p-6 shadow-card hover:shadow-card-hover transition-[box-shadow] duration-300">
           <h2 className="text-sm font-semibold text-foreground mb-5">Compliance Trend</h2>
           <ResponsiveContainer width="100%" height={240}>
             <LineChart data={monthlyTrends}>
-              <CartesianGrid strokeDasharray="3 3" stroke="hsl(20 8% 16%)" />
-              <XAxis dataKey="month" tick={{ fontSize: 11, fill: "hsl(25 10% 50%)" }} />
-              <YAxis tick={{ fontSize: 11, fill: "hsl(25 10% 50%)" }} />
-              <Tooltip contentStyle={{ background: "hsl(20 10% 13%)", border: "1px solid hsl(20 8% 20%)", borderRadius: "8px", fontSize: "12px", boxShadow: "var(--shadow-elevated)", color: "hsl(30 25% 88%)" }} />
-              <Line type="monotone" dataKey="compliant" stroke="hsl(160 55% 42%)" strokeWidth={2.5} dot={{ r: 3.5, strokeWidth: 2, fill: "hsl(20 10% 11%)" }} name="Compliant" />
-              <Line type="monotone" dataKey="nonCompliant" stroke="hsl(0 65% 50%)" strokeWidth={2.5} dot={{ r: 3.5, strokeWidth: 2, fill: "hsl(20 10% 11%)" }} name="Non-Compliant" />
+              <CartesianGrid strokeDasharray="3 3" stroke={CHART_COLORS.grid} />
+              <XAxis dataKey="month" tick={{ fontSize: 11, fill: CHART_COLORS.muted }} />
+              <YAxis tick={{ fontSize: 11, fill: CHART_COLORS.muted }} />
+              <Tooltip contentStyle={tooltipStyle} />
+              <Line type="monotone" dataKey="compliant" stroke={CHART_COLORS.success} strokeWidth={2.5} dot={{ r: 3.5, strokeWidth: 2, fill: CHART_COLORS.bg }} name="Compliant" />
+              <Line type="monotone" dataKey="nonCompliant" stroke={CHART_COLORS.destructive} strokeWidth={2.5} dot={{ r: 3.5, strokeWidth: 2, fill: CHART_COLORS.bg }} name="Non-Compliant" />
             </LineChart>
           </ResponsiveContainer>
         </motion.div>
@@ -258,20 +317,24 @@ export default function DashboardPage() {
           <h2 className="text-sm font-semibold text-foreground mb-5">Completion % by Month</h2>
           <ResponsiveContainer width="100%" height={240}>
             <BarChart data={monthlyTrends}>
-              <CartesianGrid strokeDasharray="3 3" stroke="hsl(20 8% 16%)" />
-              <XAxis dataKey="month" tick={{ fontSize: 11, fill: "hsl(25 10% 50%)" }} />
-              <YAxis tick={{ fontSize: 11, fill: "hsl(25 10% 50%)" }} />
-              <Tooltip contentStyle={{ background: "hsl(20 10% 13%)", border: "1px solid hsl(20 8% 20%)", borderRadius: "8px", fontSize: "12px", boxShadow: "var(--shadow-elevated)", color: "hsl(30 25% 88%)" }} />
-              <Bar dataKey="completionPct" fill="hsl(340 45% 55%)" radius={[6, 6, 0, 0]} name="Completion %" />
+              <CartesianGrid strokeDasharray="3 3" stroke={CHART_COLORS.grid} />
+              <XAxis dataKey="month" tick={{ fontSize: 11, fill: CHART_COLORS.muted }} />
+              <YAxis tick={{ fontSize: 11, fill: CHART_COLORS.muted }} />
+              <Tooltip contentStyle={tooltipStyle} />
+              <Bar dataKey="completionPct" fill={CHART_COLORS.primary} radius={[6, 6, 0, 0]} name="Completion %" />
             </BarChart>
           </ResponsiveContainer>
         </motion.div>
       </div>
 
+      {/* Needs Attention + Bookkeepers */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
         <NeedsAttentionSection clients={clients} />
         <BookkeepersSection clients={clients} bookkeepers={bookkeepers} />
       </div>
+
+      {/* Reports Summary */}
+      <ReportsSummarySection clients={clients} bookkeepers={bookkeepers} />
     </div>
   );
 }
