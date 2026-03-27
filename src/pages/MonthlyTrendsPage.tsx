@@ -84,11 +84,10 @@ export default function MonthlyTrendsPage() {
         completion: `${current.completionPct}%`,
         trend: previous ? (isImproving ? "Improving" : "Declining") : "-",
       };
-      const res = await fetch(
+      await fetch(
         "https://script.google.com/macros/s/AKfycbyvS5rAd82eeX4kom8ac_cepHs8a6B_RnORqfuSOU-AOP3aSwF9y9RzTq4xjQf46SNG/exec",
-        { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) }
+        { method: "POST", mode: "no-cors", headers: { "Content-Type": "text/plain" }, body: JSON.stringify(payload) }
       );
-      if (!res.ok) throw new Error();
       toast({ title: "Monthly snapshot saved" });
     } catch {
       toast({ title: "Failed to save snapshot", variant: "destructive" });
