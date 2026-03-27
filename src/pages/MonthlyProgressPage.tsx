@@ -121,25 +121,10 @@ export default function MonthlyProgressPage() {
       <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}
         className="rounded-xl border border-border bg-card shadow-card overflow-hidden relative">
         <div className="overflow-auto max-h-[calc(100vh-220px)] scrollbar-thin scrollbar-thumb-muted-foreground/20 hover:scrollbar-thumb-muted-foreground/40 scrollbar-track-transparent">
-          <table className="w-full text-sm table-fixed">
-            <colgroup>
-              <col className="w-[16%]" />
-              <col className="w-[7%]" />
-              <col className="w-[8%]" />
-              <col className="w-[7%]" />
-              <col className="w-[5%]" />
-              <col className="w-[5%]" />
-              <col className="w-[5%]" />
-              <col className="w-[6%]" />
-              <col className="w-[8%]" />
-              <col className="w-[9%]" />
-              <col className="w-[5%]" />
-              <col className="w-[11%]" />
-              <col className="w-[8%]" />
-            </colgroup>
+          <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-border">
-                <SortHeader label="Client" field="name" />
+                <SortHeader label="Client" field="name" className="min-w-[180px]" />
                 <StaticHeader>Type</StaticHeader>
                 <StaticHeader>Bookkeeper</StaticHeader>
                 <StaticHeader>Bank Txns</StaticHeader>
@@ -160,22 +145,22 @@ export default function MonthlyProgressPage() {
                 return (
                   <motion.tr key={c.id} initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.12 + i * 0.015 }}
                     className={`border-b border-border/60 hover:bg-accent/40 transition-colors cursor-pointer ${needsAttention ? "bg-destructive/[0.03]" : ""}`}>
-                    <td className="px-3 py-2.5 font-semibold text-foreground text-[12px] truncate">
-                      <div className="flex items-center gap-1.5 truncate">{needsAttention && <span className="h-1.5 w-1.5 rounded-full bg-destructive shrink-0" />}<span className="truncate">{c.name}</span></div>
+                    <td className="px-4 py-3 font-semibold text-foreground whitespace-nowrap text-[13px]">
+                      <div className="flex items-center gap-2">{needsAttention && <span className="h-1.5 w-1.5 rounded-full bg-destructive shrink-0" />}{c.name}</div>
                     </td>
-                    <td className="px-3 py-2.5 text-muted-foreground text-[12px] truncate">{c.clientType}</td>
-                    <td className="px-3 py-2.5 text-muted-foreground text-[12px] truncate">{c.bookkeeper}</td>
-                    <td className="px-3 py-2.5"><StatusBadge status={c.bankTransactions.includes("Missing") ? "Non-Compliant" : "Compliant"} className="text-[10px]" /></td>
-                    <td className="px-3 py-2.5"><span className={`font-mono-data text-[12px] font-semibold ${c.uncategorizedTransactions > 0 ? "text-destructive" : "text-success"}`}>{c.uncategorizedTransactions}</span></td>
-                    <td className="px-3 py-2.5"><span className={`font-mono-data text-[12px] font-semibold ${c.transactionsWithoutPayees > 0 ? "text-warning" : "text-foreground"}`}>{c.transactionsWithoutPayees}</span></td>
-                    <td className="px-3 py-2.5 font-mono-data text-[12px] text-foreground">{c.undepositedFunds}</td>
-                    <td className="px-3 py-2.5 font-mono-data text-[12px] text-foreground">{c.unappliedPayments}</td>
-                    <td className="px-3 py-2.5"><StatusBadge status={c.statementRequestStatus === "Received" ? "Received" : "Not Received"} className="text-[10px]" /></td>
-                    <td className="px-3 py-2.5 font-mono-data text-[12px] text-muted-foreground">{formatDateToISO(c.lastReconciledDate)}</td>
-                    <td className="px-3 py-2.5"><StatusBadge status={c.prevMonthNotesApproved ? "Yes" : "No"} className="text-[10px]" /></td>
-                    <td className="px-3 py-2.5">
-                      <div className="flex items-center gap-1.5">
-                        <div className="w-10 h-1.5 rounded-full bg-muted overflow-hidden">
+                    <td className="px-4 py-3 text-muted-foreground whitespace-nowrap text-[13px]">{c.clientType}</td>
+                    <td className="px-4 py-3 text-muted-foreground whitespace-nowrap text-[13px]">{c.bookkeeper}</td>
+                    <td className="px-4 py-3 whitespace-nowrap"><StatusBadge status={c.bankTransactions.includes("Missing") ? "Non-Compliant" : "Compliant"} className="text-[11px]" /></td>
+                    <td className="px-4 py-3"><span className={`font-mono-data text-[13px] font-semibold ${c.uncategorizedTransactions > 0 ? "text-destructive" : "text-success"}`}>{c.uncategorizedTransactions}</span></td>
+                    <td className="px-4 py-3"><span className={`font-mono-data text-[13px] font-semibold ${c.transactionsWithoutPayees > 0 ? "text-warning" : "text-foreground"}`}>{c.transactionsWithoutPayees}</span></td>
+                    <td className="px-4 py-3 font-mono-data text-[13px] text-foreground">{c.undepositedFunds}</td>
+                    <td className="px-4 py-3 font-mono-data text-[13px] text-foreground">{c.unappliedPayments}</td>
+                    <td className="px-4 py-3 whitespace-nowrap"><StatusBadge status={c.statementRequestStatus === "Received" ? "Received" : "Not Received"} /></td>
+                    <td className="px-4 py-3 font-mono-data text-[13px] text-muted-foreground whitespace-nowrap">{formatDateToISO(c.lastReconciledDate)}</td>
+                    <td className="px-4 py-3 whitespace-nowrap"><StatusBadge status={c.prevMonthNotesApproved ? "Yes" : "No"} /></td>
+                    <td className="px-4 py-3">
+                      <div className="flex items-center gap-2.5">
+                        <div className="w-14 h-2 rounded-full bg-muted overflow-hidden">
                           <div className={`h-full rounded-full transition-all ${c.completionPct >= 90 ? "bg-success" : c.completionPct >= 50 ? "bg-warning" : "bg-destructive"}`}
                             style={{ width: `${c.completionPct}%` }} />
                         </div>
