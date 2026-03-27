@@ -73,6 +73,30 @@ export default function MonthlyTrendsPage() {
     setAppliedCompare(pendingCompare);
   };
 
+  const handleSaveSnapshot = async () => {
+    if (isSaving || !current?.month || current.compliant == null || current.nonCompliant == null) return;
+    setIsSaving(true);
+    try {
+      const payload = {
+        month: current.month,
+        compliant: current.compliant,
+        nonCompliant: current.nonCompliant,
+        completion: `${current.completionPct}%`,
+        trend: previous ? (isImproving ? "Improving" : "Declining") : "-",
+      };
+      const res = await fetch(
+        "https://script.google.com/macros/s/AKfycbyvS5rAd82eeX4kom8ac_cepHs8a6B_RnORqfuSOU-AOP3aSwF9y9RzTq4xjQf46SNG/exec",
+        { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) }
+      );
+      if (!res.ok) throw new Error();
+      toast({ title: "Monthly snapshot saved" });
+    } catch {
+      toast({ title: "Failed to save snapshot", variant: "destructive" });
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
   return (
     <div className="space-y-6">
       {/* Month selectors */}
