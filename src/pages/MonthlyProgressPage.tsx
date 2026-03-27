@@ -1,4 +1,16 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useCallback } from "react";
+
+function formatDateToISO(dateStr: string): string {
+  // Handle MM/DD/YY format
+  const parts = dateStr.split("/");
+  if (parts.length === 3) {
+    const [mm, dd, yy] = parts;
+    const year = parseInt(yy, 10);
+    const fullYear = year < 100 ? 2000 + year : year;
+    return `${fullYear}-${mm.padStart(2, "0")}-${dd.padStart(2, "0")}`;
+  }
+  return dateStr;
+}
 import StatusBadge from "@/components/StatusBadge";
 import { Search, ArrowUpDown, Filter, ChevronDown } from "lucide-react";
 import { motion } from "framer-motion";
