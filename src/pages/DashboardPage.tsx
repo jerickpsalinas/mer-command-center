@@ -1,13 +1,16 @@
+import { useRef, useCallback, useState as useLocalState } from "react";
 import {
   Users, CheckCircle2, XCircle, Pause, TrendingUp, AlertTriangle,
-  FileText, StickyNote, Award, Clock, AlertCircle, ChevronRight, ShieldAlert, BarChart3,
+  FileText, StickyNote, Award, Clock, AlertCircle, ChevronRight, ShieldAlert, BarChart3, Camera,
 } from "lucide-react";
 import { LineChart, Line, BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from "recharts";
+import html2canvas from "html2canvas";
 import KPICard from "@/components/KPICard";
 import ComplianceProgress from "@/components/ComplianceProgress";
 import StatusBadge from "@/components/StatusBadge";
 import { useSheetData, getKPIMetrics, getComplianceBreakdown, getNeedsAttention, getBookkeeperStats } from "@/hooks/useSheetData";
 import { DataLoading, DataError } from "@/components/DataStatus";
+import { toast } from "@/hooks/use-toast";
 import { motion } from "framer-motion";
 import type { Client } from "@/data/mockData";
 
@@ -329,6 +332,32 @@ function ReportsSummarySection({ clients, bookkeepers }: { clients: Client[]; bo
 
 export default function DashboardPage() {
   const { data, isLoading, error } = useSheetData();
+  const dashRef = useRef<HTMLDivElement>(null);
+  const [capturing, setCapturing] = useLocalState(false);
+
+  const handleCapture = useCallback(async () => {
+    if (!dashRef.current || capturing) return;
+    setCapturing(true);
+    try {
+      const canvas = await html2canvas(dashRef.current, {
+        backgroundColor: "#1a1614",
+        scale: 2,
+        useCORS: true,
+        logging: false,
+      });
+      const link = document.createElement("a");
+      const date = new Date().toISOString().split("T")[0];
+      link.download = `MER_Dashboard_${date}.png`;
+      link.href = canvas.toDataURL("image/png");
+      link.click();
+      toast({ title: "Snapshot saved", description: `Dashboard exported as MER_Dashboard_${date}.png` });
+    } catch {
+      toast({ title: "Capture failed", description: "Could not generate snapshot", variant: "destructive" });
+    } finally {
+      setCapturing(false);
+    }
+  }, [capturing]);
+
   if (isLoading) return <DataLoading />;
   if (error || !data) return <DataError message={error?.message} />;
 
@@ -337,8 +366,18 @@ export default function DashboardPage() {
   const breakdown = getComplianceBreakdown(clients);
 
   return (
-    <div className="space-y-7">
-      {/* KPI Cards */}
+    <div ref={dashRef} className="space-y-7">
+      {/* Capture Button */}
+      <div className="flex justify-end">
+        <button
+          onClick={handleCapture}
+          disabled={capturing}
+          className="inline-flex items-center gap-2 rounded-lg border border-border bg-card px-4 py-2 text-xs font-semibold text-muted-foreground shadow-card hover:bg-accent hover:text-foreground transition-colors disabled:opacity-50"
+        >
+          <Camera className={`h-3.5 w-3.5 ${capturing ? "animate-pulse" : ""}`} />
+          {capturing ? "Capturing…" : "Capture Snapshot"}
+        </button>
+      </div>
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <KPICard title="Total Clients" value={kpi.total} icon={Users} index={0} />
         <KPICard title="Compliant" value={kpi.compliant} icon={CheckCircle2} variant="success" index={1} />
