@@ -105,7 +105,7 @@ export async function fetchSheetData(): Promise<SheetData> {
     .map((r, i) => parseClient(r, i));
 
   const monthlyTrends = trendRows
-    .filter((r) => String(r["Month End Date"] ?? "").trim() !== "")
+    .filter((r) => String(r["Month"] ?? r["Month End Date"] ?? "").trim() !== "")
     .map(parseTrend);
 
   const bookkeepers = bkRows
