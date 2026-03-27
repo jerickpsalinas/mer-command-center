@@ -283,7 +283,7 @@ export default function MonthlyTrendsPage() {
               className="rounded-xl border border-border bg-card p-5 shadow-card hover:shadow-card-hover transition-[box-shadow] duration-300">
               <h2 className="text-sm font-semibold text-foreground mb-4">Completion % by Month</h2>
               <ResponsiveContainer width="100%" height={280}>
-                <BarChart data={validTrends}>
+                <BarChart data={autoTrends}>
                   <CartesianGrid strokeDasharray="3 3" stroke="hsl(20, 8%, 16%)" />
                   <XAxis dataKey="month" tick={{ fontSize: 11, fill: "hsl(25, 10%, 50%)" }} />
                   <YAxis tick={{ fontSize: 11, fill: "hsl(25, 10%, 50%)" }} domain={[0, 100]} />
