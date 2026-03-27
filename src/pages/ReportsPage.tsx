@@ -48,7 +48,7 @@ export default function ReportsPage() {
           <div className="mt-4 pt-3 border-t border-border">
             <p className="text-xs font-semibold text-muted-foreground mb-2">High-risk clients ({highRiskClients.length})</p>
             {highRiskClients.length > 0 ? (
-              <div className="space-y-1.5 max-h-48 overflow-y-auto">
+              <div className="space-y-1.5">
                 {highRiskClients
                   .sort((a, b) => a.completionPct - b.completionPct)
                   .map(c => (
