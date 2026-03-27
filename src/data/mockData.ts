@@ -60,6 +60,8 @@ export interface MonthlyTrend {
   compliant: number;
   nonCompliant: number;
   completionPct: number;
+  trend?: string;
+  type?: "auto" | "manual";
 }
 
 export const monthlyTrends: MonthlyTrend[] = [

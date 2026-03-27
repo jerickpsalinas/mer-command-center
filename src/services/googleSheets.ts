@@ -82,11 +82,14 @@ function parseTrend(row: Record<string, unknown>): MonthlyTrend {
   const rawCompletion = String(row["Completion"] ?? row["Completion %"] ?? "0").replace("%", "");
   const pct = num(rawCompletion);
   const rawMonth = String(row["Month"] ?? row["Month End Date"] ?? "").trim();
+  const rawType = String(row["Type"] ?? "auto").trim().toLowerCase();
   return {
     month: formatMonthYear(rawMonth),
     compliant: num(row["Compliant"]),
     nonCompliant: num(row["Non-Compliant"]),
     completionPct: pct <= 1 ? Math.round(pct * 100) : Math.round(pct),
+    trend: String(row["Trend"] ?? "-").trim(),
+    type: rawType === "manual" ? "manual" : "auto",
   };
 }
 
