@@ -1,7 +1,7 @@
 import type { Client, MonthlyTrend } from "@/data/mockData";
 
 const SHEET_URL =
-  "https://script.google.com/macros/s/AKfycbyvS5rAd82eeX4kom8ac_cepHs8a6B_RnORqfuSOU-AOP3aSwF9y9RzTq4xjQf46SNG/exec";
+  "https://script.google.com/macros/s/AKfycbx4pYcIhw6Q6KIfwl8Lpt2ydQ_2inlyzQcISJLTK1my1CXw09xrn-MRRKz611i4CqBv/exec";
 
 export interface SheetData {
   clients: Client[];
