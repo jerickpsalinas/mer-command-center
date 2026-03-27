@@ -127,7 +127,7 @@ export default function MonthlyTrendsPage() {
             <Save className="h-3.5 w-3.5" />
             {isSaving ? "Saving…" : "Save Manual Snapshot"}
           </motion.button>
-          <p className="text-[11px] text-muted-foreground/70 italic">Auto-snapshots are saved at the end of each month. Use manual snapshot to capture data anytime.</p>
+          <p className="text-[11px] text-muted-foreground/70 italic">Auto-snapshots are saved at the end of each month. Use manual snapshot to capture data anytime. All snapshots are stored in the Trends sheet of your Google Spreadsheet.</p>
         </div>
       </motion.div>
 
