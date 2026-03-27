@@ -268,8 +268,8 @@ export default function MonthlyTrendsPage() {
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
             <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }}
               whileHover={{ scale: 1.005 }}
-              className="rounded-xl border border-border bg-card p-5 shadow-card hover:shadow-card-hover transition-[box-shadow] duration-300">
-              <h2 className="text-sm font-semibold text-foreground mb-4">Compliance Over Time</h2>
+              className="rounded-xl border border-border bg-card p-4 sm:p-5 shadow-card hover:shadow-card-hover transition-[box-shadow] duration-300">
+              <h2 className="text-sm font-semibold text-foreground mb-3 sm:mb-4">Compliance Over Time</h2>
               <ResponsiveContainer width="100%" height={280}>
                 <LineChart data={autoTrends}>
                   <CartesianGrid strokeDasharray="3 3" stroke="hsl(20, 8%, 16%)" />
