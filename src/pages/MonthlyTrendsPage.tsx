@@ -304,16 +304,37 @@ export default function MonthlyTrendsPage() {
                   <th className="text-left text-xs font-medium text-muted-foreground uppercase tracking-wide px-4 py-2.5">Compliant</th>
                   <th className="text-left text-xs font-medium text-muted-foreground uppercase tracking-wide px-4 py-2.5">Non-Compliant</th>
                   <th className="text-left text-xs font-medium text-muted-foreground uppercase tracking-wide px-4 py-2.5">Completion %</th>
+                  <th className="text-left text-xs font-medium text-muted-foreground uppercase tracking-wide px-4 py-2.5">Trend</th>
+                  <th className="text-left text-xs font-medium text-muted-foreground uppercase tracking-wide px-4 py-2.5">Type</th>
                 </tr>
               </thead>
               <tbody>
                 {validTrends.map((t, i) => (
-                  <tr key={t.month} className={`border-b border-border hover:bg-accent/50 transition-colors cursor-pointer ${i === histIdx ? "bg-primary/5 border-l-2 border-l-primary" : ""} ${compIdxNum !== null && i === compIdxNum ? "bg-accent/30" : ""}`}
+                  <tr key={`${t.month}-${t.type}-${i}`} className={`border-b border-border hover:bg-accent/50 transition-colors cursor-pointer ${i === histIdx ? "bg-primary/5 border-l-2 border-l-primary" : ""} ${compIdxNum !== null && i === compIdxNum ? "bg-accent/30" : ""}`}
                     onClick={() => setSelectedHistoryIdx(i)}>
                     <td className="px-4 py-2.5 font-medium text-foreground">{t.month}</td>
                     <td className="px-4 py-2.5 font-mono-data text-success">{t.compliant}</td>
                     <td className="px-4 py-2.5 font-mono-data text-destructive">{t.nonCompliant}</td>
                     <td className="px-4 py-2.5 font-mono-data text-foreground">{t.completionPct}%</td>
+                    <td className="px-4 py-2.5">
+                      <span className={`text-xs font-medium ${
+                        t.trend === "Improving" ? "text-success" : t.trend === "Declining" ? "text-destructive" : "text-muted-foreground"
+                      }`}>
+                        {t.trend === "Improving" && <TrendingUp className="inline h-3 w-3 mr-1" />}
+                        {t.trend === "Declining" && <TrendingDown className="inline h-3 w-3 mr-1" />}
+                        {t.trend === "Stable" && <Minus className="inline h-3 w-3 mr-1" />}
+                        {t.trend || "-"}
+                      </span>
+                    </td>
+                    <td className="px-4 py-2.5">
+                      <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider ${
+                        t.type === "manual"
+                          ? "bg-accent/50 text-accent-foreground border border-border"
+                          : "bg-primary/10 text-primary border border-primary/20"
+                      }`}>
+                        {t.type || "auto"}
+                      </span>
+                    </td>
                   </tr>
                 ))}
               </tbody>
