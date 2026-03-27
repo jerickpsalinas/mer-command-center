@@ -104,30 +104,34 @@ export default function MonthlyTrendsPage() {
     <div className="space-y-6">
       {/* Current Month Section */}
       <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }}
-        className="rounded-xl border border-border bg-card p-4 shadow-card">
-        <div className="flex flex-wrap items-center justify-between gap-4">
+        className="rounded-xl border border-border bg-card p-4 sm:p-5 shadow-card">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div className="flex items-center gap-3">
-            <Calendar className="h-5 w-5 text-primary" />
+            <Calendar className="h-5 w-5 text-primary shrink-0" />
             <div>
               <h2 className="text-sm font-semibold text-foreground">Current Month: {currentMonthLabel}</h2>
               <p className="text-[11px] text-muted-foreground">Live data from your dashboard</p>
             </div>
           </div>
-          <motion.button
-            onClick={handleSaveSnapshot}
-            disabled={isSaving}
-            whileHover={{ scale: isSaving ? 1 : 1.03 }}
-            whileTap={{ scale: isSaving ? 1 : 0.97 }}
-            className={`inline-flex items-center gap-2 rounded-lg px-5 py-2.5 text-sm font-medium transition-all ${
-              isSaving
-                ? "bg-muted/30 text-muted-foreground cursor-not-allowed border border-border"
-                : "bg-primary text-primary-foreground shadow-md hover:shadow-lg"
-            }`}
-          >
-            <Save className="h-3.5 w-3.5" />
-            {isSaving ? "Saving…" : "Save Manual Snapshot"}
-          </motion.button>
-          <p className="text-[11px] text-muted-foreground/70 italic">Auto-snapshots are saved at the end of each month. Use manual snapshot to capture data anytime. All snapshots are stored in the Trends sheet of your Google Spreadsheet.</p>
+          <div className="flex flex-col sm:items-end gap-2">
+            <motion.button
+              onClick={handleSaveSnapshot}
+              disabled={isSaving}
+              whileHover={{ scale: isSaving ? 1 : 1.03 }}
+              whileTap={{ scale: isSaving ? 1 : 0.97 }}
+              className={`inline-flex items-center justify-center gap-2 rounded-lg px-5 py-2.5 text-sm font-medium transition-all w-full sm:w-auto ${
+                isSaving
+                  ? "bg-muted/30 text-muted-foreground cursor-not-allowed border border-border"
+                  : "bg-primary text-primary-foreground shadow-md hover:shadow-lg"
+              }`}
+            >
+              <Save className="h-3.5 w-3.5" />
+              {isSaving ? "Saving…" : "Save Manual Snapshot"}
+            </motion.button>
+            <p className="text-[11px] text-muted-foreground/70 italic max-w-sm text-left sm:text-right leading-relaxed">
+              Auto-snapshots save at month-end. Use manual snapshot to capture data anytime. All data is stored in the Trends sheet.
+            </p>
+          </div>
         </div>
       </motion.div>
 
@@ -144,12 +148,12 @@ export default function MonthlyTrendsPage() {
         <>
           {/* History selectors */}
           <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.15 }}
-            className="rounded-xl border border-border bg-card p-4 shadow-card">
-            <div className="flex flex-wrap items-end gap-5">
+            className="rounded-xl border border-border bg-card p-4 sm:p-5 shadow-card">
+            <div className="flex flex-col sm:flex-row sm:flex-wrap sm:items-end gap-4 sm:gap-5">
               <div className="flex flex-col gap-1.5">
                 <label className="text-[11px] font-medium text-muted-foreground uppercase tracking-wider">View Month</label>
                 <Select value={String(histIdx)} onValueChange={(v) => setSelectedHistoryIdx(Number(v))}>
-                  <SelectTrigger className="min-w-[160px] bg-muted/30 border-border">
+                  <SelectTrigger className="w-full sm:min-w-[160px] bg-muted/30 border-border">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -160,7 +164,7 @@ export default function MonthlyTrendsPage() {
               <div className="flex flex-col gap-1.5">
                 <label className="text-[11px] font-medium text-muted-foreground uppercase tracking-wider">Compare To</label>
                 <Select value={compareIdx} onValueChange={(v) => setCompareIdx(v)}>
-                  <SelectTrigger className="min-w-[160px] bg-muted/30 border-border">
+                  <SelectTrigger className="w-full sm:min-w-[160px] bg-muted/30 border-border">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -193,7 +197,7 @@ export default function MonthlyTrendsPage() {
                   exit={{ opacity: 0, scale: 0.95 }}
                   transition={{ type: "spring", stiffness: 300, damping: 25 }}
                 >
-                  <div className={`relative overflow-hidden rounded-xl border p-5 h-full transition-all duration-500 ${
+                  <div className={`relative overflow-hidden rounded-xl border p-4 sm:p-5 h-full transition-all duration-500 ${
                     !histPrevious ? "border-border bg-card" :
                     isImproving ? "border-success/30 bg-success/5" : "border-destructive/30 bg-destructive/5"
                   }`}>
@@ -217,7 +221,7 @@ export default function MonthlyTrendsPage() {
                           }
                         </motion.div>
                       </div>
-                      <p className={`font-mono-data text-2xl font-bold ${
+                      <p className={`font-mono-data text-xl sm:text-2xl font-bold ${
                         !histPrevious ? "text-muted-foreground" : isImproving ? "text-success" : "text-destructive"
                       }`}>
                         {histPrevious ? (isImproving ? "Improving" : "Declining") : "—"}
@@ -232,8 +236,8 @@ export default function MonthlyTrendsPage() {
           {/* Comparison detail */}
           {histPrevious && histCurrent && (
             <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}
-              className="rounded-xl border border-border bg-card p-5 shadow-card">
-              <h2 className="text-sm font-semibold text-foreground mb-4">
+              className="rounded-xl border border-border bg-card p-4 sm:p-5 shadow-card">
+              <h2 className="text-sm font-semibold text-foreground mb-3 sm:mb-4">
                 {histPrevious.month} → {histCurrent.month}
               </h2>
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
@@ -264,9 +268,9 @@ export default function MonthlyTrendsPage() {
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
             <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }}
               whileHover={{ scale: 1.005 }}
-              className="rounded-xl border border-border bg-card p-5 shadow-card hover:shadow-card-hover transition-[box-shadow] duration-300">
-              <h2 className="text-sm font-semibold text-foreground mb-4">Compliance Over Time</h2>
-              <ResponsiveContainer width="100%" height={280}>
+              className="rounded-xl border border-border bg-card p-4 sm:p-5 shadow-card hover:shadow-card-hover transition-[box-shadow] duration-300">
+              <h2 className="text-sm font-semibold text-foreground mb-3 sm:mb-4">Compliance Over Time</h2>
+              <ResponsiveContainer width="100%" height={240}>
                 <LineChart data={autoTrends}>
                   <CartesianGrid strokeDasharray="3 3" stroke="hsl(20, 8%, 16%)" />
                   <XAxis dataKey="month" tick={{ fontSize: 11, fill: "hsl(25, 10%, 50%)" }} />
@@ -281,9 +285,9 @@ export default function MonthlyTrendsPage() {
 
             <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.4 }}
               whileHover={{ scale: 1.005 }}
-              className="rounded-xl border border-border bg-card p-5 shadow-card hover:shadow-card-hover transition-[box-shadow] duration-300">
-              <h2 className="text-sm font-semibold text-foreground mb-4">Completion % by Month</h2>
-              <ResponsiveContainer width="100%" height={280}>
+              className="rounded-xl border border-border bg-card p-4 sm:p-5 shadow-card hover:shadow-card-hover transition-[box-shadow] duration-300">
+              <h2 className="text-sm font-semibold text-foreground mb-3 sm:mb-4">Completion % by Month</h2>
+              <ResponsiveContainer width="100%" height={240}>
                 <BarChart data={autoTrends}>
                   <CartesianGrid strokeDasharray="3 3" stroke="hsl(20, 8%, 16%)" />
                   <XAxis dataKey="month" tick={{ fontSize: 11, fill: "hsl(25, 10%, 50%)" }} />
@@ -297,27 +301,27 @@ export default function MonthlyTrendsPage() {
 
           {/* Data table */}
           <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.5 }}
-            className="rounded-xl border border-border bg-card shadow-card overflow-x-auto">
-            <table className="w-full text-sm">
+            className="rounded-xl border border-border bg-card shadow-card overflow-x-auto -mx-5 sm:mx-0">
+            <table className="w-full text-sm min-w-[540px]">
               <thead>
                 <tr className="border-b border-border bg-muted/30">
-                  <th className="text-left text-xs font-medium text-muted-foreground uppercase tracking-wide px-4 py-2.5">Month</th>
-                  <th className="text-left text-xs font-medium text-muted-foreground uppercase tracking-wide px-4 py-2.5">Compliant</th>
-                  <th className="text-left text-xs font-medium text-muted-foreground uppercase tracking-wide px-4 py-2.5">Non-Compliant</th>
-                  <th className="text-left text-xs font-medium text-muted-foreground uppercase tracking-wide px-4 py-2.5">Completion %</th>
-                  <th className="text-left text-xs font-medium text-muted-foreground uppercase tracking-wide px-4 py-2.5">Trend</th>
-                  <th className="text-left text-xs font-medium text-muted-foreground uppercase tracking-wide px-4 py-2.5">Type</th>
+                  <th className="text-left text-xs font-medium text-muted-foreground uppercase tracking-wide px-3 sm:px-4 py-2.5">Month</th>
+                  <th className="text-left text-xs font-medium text-muted-foreground uppercase tracking-wide px-3 sm:px-4 py-2.5">Compliant</th>
+                  <th className="text-left text-xs font-medium text-muted-foreground uppercase tracking-wide px-3 sm:px-4 py-2.5">Non-Comp.</th>
+                  <th className="text-left text-xs font-medium text-muted-foreground uppercase tracking-wide px-3 sm:px-4 py-2.5">Completion</th>
+                  <th className="text-left text-xs font-medium text-muted-foreground uppercase tracking-wide px-3 sm:px-4 py-2.5">Trend</th>
+                  <th className="text-left text-xs font-medium text-muted-foreground uppercase tracking-wide px-3 sm:px-4 py-2.5">Type</th>
                 </tr>
               </thead>
               <tbody>
                 {validTrends.map((t, i) => (
                   <tr key={`${t.month}-${t.type}-${i}`} className={`border-b border-border hover:bg-accent/50 transition-colors cursor-pointer ${i === histIdx ? "bg-primary/5 border-l-2 border-l-primary" : ""} ${compIdxNum !== null && i === compIdxNum ? "bg-accent/30" : ""}`}
                     onClick={() => setSelectedHistoryIdx(i)}>
-                    <td className="px-4 py-2.5 font-medium text-foreground">{t.month}</td>
-                    <td className="px-4 py-2.5 font-mono-data text-success">{t.compliant}</td>
-                    <td className="px-4 py-2.5 font-mono-data text-destructive">{t.nonCompliant}</td>
-                    <td className="px-4 py-2.5 font-mono-data text-foreground">{t.completionPct}%</td>
-                    <td className="px-4 py-2.5">
+                    <td className="px-3 sm:px-4 py-2.5 font-medium text-foreground whitespace-nowrap">{t.month}</td>
+                    <td className="px-3 sm:px-4 py-2.5 font-mono-data text-success">{t.compliant}</td>
+                    <td className="px-3 sm:px-4 py-2.5 font-mono-data text-destructive">{t.nonCompliant}</td>
+                    <td className="px-3 sm:px-4 py-2.5 font-mono-data text-foreground">{t.completionPct}%</td>
+                    <td className="px-3 sm:px-4 py-2.5">
                       <span className={`text-xs font-medium ${
                         t.trend === "Improving" ? "text-success" : t.trend === "Declining" ? "text-destructive" : "text-muted-foreground"
                       }`}>
@@ -327,7 +331,7 @@ export default function MonthlyTrendsPage() {
                         {t.trend || "-"}
                       </span>
                     </td>
-                    <td className="px-4 py-2.5">
+                    <td className="px-3 sm:px-4 py-2.5">
                       <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider ${
                         t.type === "manual"
                           ? "bg-accent/50 text-accent-foreground border border-border"
