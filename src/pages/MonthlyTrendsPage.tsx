@@ -89,7 +89,7 @@ export default function MonthlyTrendsPage() {
         type: "manual",
       };
       await fetch(
-        "https://script.google.com/macros/s/AKfycbx4pYcIhw6Q6KIfwl8Lpt2ydQ_2inlyzQcISJLTK1my1CXw09xrn-MRRKz611i4CqBv/exec",
+        "https://script.google.com/macros/s/AKfycbwZ5jsmJtCHl30-M0G2qOzo6xlawt7e32WfxxbjLapX3GWe62gBv61HMsD-LIZdxiSm/exec",
         { method: "POST", mode: "no-cors", headers: { "Content-Type": "text/plain" }, body: JSON.stringify(payload) }
       );
       toast({ title: "Manual snapshot saved", description: `${currentMonthLabel} data sent to Google Sheets (type: manual)` });
