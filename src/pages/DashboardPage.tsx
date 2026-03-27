@@ -241,7 +241,7 @@ function KPIChartsSection({ kpi, breakdown }: { kpi: ReturnType<typeof getKPIMet
               {pieData.map((entry, i) => <Cell key={i} fill={entry.color} />)}
             </Pie>
             <Tooltip content={<CustomTooltip />} />
-            <Legend iconType="circle" iconSize={8} wrapperStyle={{ fontSize: "11px", color: "hsl(30, 25%, 88%)" }} />
+            <Legend iconType="circle" iconSize={8} wrapperStyle={{ fontSize: "11px" }} />
           </PieChart>
         </ResponsiveContainer>
       </motion.div>
