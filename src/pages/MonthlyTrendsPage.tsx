@@ -125,7 +125,7 @@ export default function MonthlyTrendsPage() {
             }`}
           >
             <Save className="h-3.5 w-3.5" />
-            {isSaving ? "Saving…" : "Save Monthly Snapshot"}
+            {isSaving ? "Saving…" : "Save Manual Snapshot"}
           </motion.button>
         </div>
       </motion.div>
