@@ -236,8 +236,8 @@ export default function MonthlyTrendsPage() {
           {/* Comparison detail */}
           {histPrevious && histCurrent && (
             <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}
-              className="rounded-xl border border-border bg-card p-5 shadow-card">
-              <h2 className="text-sm font-semibold text-foreground mb-4">
+              className="rounded-xl border border-border bg-card p-4 sm:p-5 shadow-card">
+              <h2 className="text-sm font-semibold text-foreground mb-3 sm:mb-4">
                 {histPrevious.month} → {histCurrent.month}
               </h2>
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
