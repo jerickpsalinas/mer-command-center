@@ -103,8 +103,8 @@ export default function MonthlyProgressPage() {
       </motion.div>
 
       <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}
-        className="rounded-xl border border-border bg-card shadow-card overflow-hidden">
-        <div className="overflow-x-auto max-h-[calc(100vh-220px)]">
+        className="rounded-xl border border-border bg-card shadow-card overflow-hidden relative">
+        <div className="overflow-auto max-h-[calc(100vh-220px)] scrollbar-thin scrollbar-thumb-muted-foreground/20 hover:scrollbar-thumb-muted-foreground/40 scrollbar-track-transparent">
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-border">
