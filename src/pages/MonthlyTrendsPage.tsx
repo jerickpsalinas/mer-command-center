@@ -1,11 +1,11 @@
 import { useState } from "react";
 import KPICard from "@/components/KPICard";
 import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from "recharts";
-import { TrendingUp, TrendingDown, CheckCircle2, XCircle, ArrowRight, Play, Save } from "lucide-react";
+import { TrendingUp, TrendingDown, CheckCircle2, XCircle, ArrowRight, Save, Calendar } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { motion, AnimatePresence } from "framer-motion";
-import { useSheetData } from "@/hooks/useSheetData";
+import { useSheetData, getKPIMetrics } from "@/hooks/useSheetData";
 import { DataLoading, DataError } from "@/components/DataStatus";
 
 const tooltipStyle = {
@@ -28,67 +28,62 @@ const CustomTooltip = ({ active, payload, label }: any) => {
   );
 };
 
+function getCurrentMonthLabel() {
+  const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+  const now = new Date();
+  return `${months[now.getMonth()]} ${now.getFullYear()}`;
+}
+
 export default function MonthlyTrendsPage() {
   const { data, isLoading, error } = useSheetData();
-  // Pending state (what user picks before clicking Apply)
-  const [pendingMonth, setPendingMonth] = useState<number | null>(null);
-  const [pendingCompare, setPendingCompare] = useState<string>("-");
-  const [appliedMonth, setAppliedMonth] = useState<number | null>(null);
-  const [appliedCompare, setAppliedCompare] = useState<string>("-");
   const [isSaving, setIsSaving] = useState(false);
+  const [selectedHistoryIdx, setSelectedHistoryIdx] = useState<number | null>(null);
+  const [compareIdx, setCompareIdx] = useState<string>("-");
 
   if (isLoading) return <DataLoading />;
   if (error || !data) return <DataError message={error?.message} />;
 
-  const { monthlyTrends } = data;
+  const { clients, monthlyTrends } = data;
 
-  const validIndices = monthlyTrends
-    .map((t, i) => ({ ...t, originalIndex: i }))
-    .filter(t => t.compliant > 0 || t.nonCompliant > 0 || t.completionPct > 0);
+  // Current month metrics computed from dashboard (Monthly Progress) data
+  const kpi = getKPIMetrics(clients);
+  const currentMonthLabel = getCurrentMonthLabel();
 
-  const validTrends = validIndices.map(v => monthlyTrends[v.originalIndex]);
+  // Historical trends from the Monthly Trends sheet
+  const validTrends = monthlyTrends.filter(t => t.compliant > 0 || t.nonCompliant > 0 || t.completionPct > 0);
+  const hasHistory = validTrends.length > 0;
 
-  // Resolve applied values
-  const idx = appliedMonth ?? Math.max(0, validTrends.length - 1);
-  const compIdx = appliedCompare !== "-" ? Number(appliedCompare) : null;
-  const current = validTrends[idx] ?? { month: "", compliant: 0, nonCompliant: 0, completionPct: 0 };
-  const previous = compIdx !== null && compIdx !== idx ? validTrends[compIdx] ?? null : null;
+  // Comparison logic for historical data
+  const histIdx = selectedHistoryIdx ?? (hasHistory ? validTrends.length - 1 : null);
+  const compIdxNum = compareIdx !== "-" ? Number(compareIdx) : null;
+  const histCurrent = histIdx !== null ? validTrends[histIdx] : null;
+  const histPrevious = compIdxNum !== null && histIdx !== null && compIdxNum !== histIdx ? validTrends[compIdxNum] ?? null : null;
 
-  // Resolve pending for UI
-  const pendingIdx = pendingMonth ?? validIndices.length - 1;
-
-  const metrics = previous ? [
-    { label: "Compliant", curr: current.compliant, prev: previous.compliant, suffix: "", inverse: false },
-    { label: "Non-Compliant", curr: current.nonCompliant, prev: previous.nonCompliant, suffix: "", inverse: true },
-    { label: "Completion", curr: current.completionPct, prev: previous.completionPct, suffix: "%", inverse: false },
+  const histMetrics = histCurrent && histPrevious ? [
+    { label: "Compliant", curr: histCurrent.compliant, prev: histPrevious.compliant, suffix: "", inverse: false },
+    { label: "Non-Compliant", curr: histCurrent.nonCompliant, prev: histPrevious.nonCompliant, suffix: "", inverse: true },
+    { label: "Completion", curr: histCurrent.completionPct, prev: histPrevious.completionPct, suffix: "%", inverse: false },
   ] : [];
 
-  const trendDiff = previous ? current.completionPct - previous.completionPct : 0;
-  const isImproving = previous ? trendDiff >= 0 : false;
-
-  const hasPendingChanges = pendingIdx !== idx || pendingCompare !== appliedCompare;
-
-  const handleApply = () => {
-    setAppliedMonth(pendingIdx);
-    setAppliedCompare(pendingCompare);
-  };
+  const trendDiff = histPrevious && histCurrent ? histCurrent.completionPct - histPrevious.completionPct : 0;
+  const isImproving = histPrevious ? trendDiff >= 0 : false;
 
   const handleSaveSnapshot = async () => {
-    if (isSaving || !current?.month || current.compliant == null || current.nonCompliant == null) return;
+    if (isSaving) return;
     setIsSaving(true);
     try {
       const payload = {
-        month: current.month,
-        compliant: current.compliant,
-        nonCompliant: current.nonCompliant,
-        completion: `${current.completionPct}%`,
-        trend: previous ? (isImproving ? "Improving" : "Declining") : "-",
+        month: currentMonthLabel,
+        compliant: kpi.compliant,
+        nonCompliant: kpi.nonCompliant,
+        completion: `${kpi.avgCompletion}%`,
+        trend: "-",
       };
       await fetch(
         "https://script.google.com/macros/s/AKfycbx4pYcIhw6Q6KIfwl8Lpt2ydQ_2inlyzQcISJLTK1my1CXw09xrn-MRRKz611i4CqBv/exec",
         { method: "POST", mode: "no-cors", headers: { "Content-Type": "text/plain" }, body: JSON.stringify(payload) }
       );
-      toast({ title: "Monthly snapshot saved" });
+      toast({ title: "Monthly snapshot saved", description: `${currentMonthLabel} data sent to Google Sheets` });
     } catch {
       toast({ title: "Failed to save snapshot", variant: "destructive" });
     } finally {
@@ -98,215 +93,234 @@ export default function MonthlyTrendsPage() {
 
   return (
     <div className="space-y-6">
-      {/* Month selectors */}
+      {/* Current Month Section */}
       <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }}
         className="rounded-xl border border-border bg-card p-4 shadow-card">
-        <div className="flex flex-wrap items-end gap-5">
-          <div className="flex flex-col gap-1.5">
-            <label className="text-[11px] font-medium text-muted-foreground uppercase tracking-wider">View Month</label>
-            <Select value={String(pendingIdx)} onValueChange={(v) => setPendingMonth(Number(v))}>
-              <SelectTrigger className="min-w-[160px] bg-muted/30 border-border">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {validTrends.map((t, i) => <SelectItem key={t.month} value={String(i)}>{t.month}</SelectItem>)}
-              </SelectContent>
-            </Select>
+        <div className="flex flex-wrap items-center justify-between gap-4">
+          <div className="flex items-center gap-3">
+            <Calendar className="h-5 w-5 text-primary" />
+            <div>
+              <h2 className="text-sm font-semibold text-foreground">Current Month: {currentMonthLabel}</h2>
+              <p className="text-[11px] text-muted-foreground">Live data from your dashboard</p>
+            </div>
           </div>
-          <div className="flex flex-col gap-1.5">
-            <label className="text-[11px] font-medium text-muted-foreground uppercase tracking-wider">Compare To</label>
-            <Select value={pendingCompare} onValueChange={(v) => setPendingCompare(v)}>
-              <SelectTrigger className="min-w-[160px] bg-muted/30 border-border">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="-">—</SelectItem>
-                {validTrends.map((t, i) => i !== pendingIdx ? <SelectItem key={t.month} value={String(i)}>{t.month}</SelectItem> : null)}
-              </SelectContent>
-            </Select>
-          </div>
-          <motion.button
-            onClick={handleApply}
-            whileHover={{ scale: 1.03 }}
-            whileTap={{ scale: 0.97 }}
-            className={`inline-flex items-center gap-2 rounded-lg px-5 py-2.5 text-sm font-medium transition-all ${
-              hasPendingChanges
-                ? "bg-primary text-primary-foreground shadow-md hover:shadow-lg"
-                : "bg-muted/50 text-muted-foreground"
-            }`}
-          >
-            <Play className="h-3.5 w-3.5" />
-            Apply
-          </motion.button>
           <motion.button
             onClick={handleSaveSnapshot}
             disabled={isSaving}
             whileHover={{ scale: isSaving ? 1 : 1.03 }}
             whileTap={{ scale: isSaving ? 1 : 0.97 }}
-            className={`inline-flex items-center gap-2 rounded-lg px-5 py-2.5 text-sm font-medium transition-all border border-border ${
+            className={`inline-flex items-center gap-2 rounded-lg px-5 py-2.5 text-sm font-medium transition-all ${
               isSaving
-                ? "bg-muted/30 text-muted-foreground cursor-not-allowed"
-                : "bg-accent/50 text-foreground hover:bg-accent/80"
+                ? "bg-muted/30 text-muted-foreground cursor-not-allowed border border-border"
+                : "bg-primary text-primary-foreground shadow-md hover:shadow-lg"
             }`}
           >
             <Save className="h-3.5 w-3.5" />
             {isSaving ? "Saving…" : "Save Monthly Snapshot"}
           </motion.button>
-          {previous && (
-            <div className="ml-auto hidden sm:flex items-center gap-2 rounded-lg bg-muted/30 px-3 py-2">
-              <span className="text-xs font-medium text-foreground">{previous.month}</span>
-              <ArrowRight className="h-3 w-3 text-muted-foreground" />
-              <span className="text-xs font-medium text-foreground">{current.month}</span>
-            </div>
-          )}
         </div>
       </motion.div>
 
-      {/* KPI cards */}
+      {/* Current KPI Cards */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-        <KPICard title="Compliant" value={current.compliant} icon={CheckCircle2} variant="success" index={0} />
-        <KPICard title="Non-Compliant" value={current.nonCompliant} icon={XCircle} variant="destructive" index={1} />
-        <KPICard title="Completion %" value={`${current.completionPct}%`} icon={TrendingUp} index={2} />
+        <KPICard title="Compliant" value={kpi.compliant} icon={CheckCircle2} variant="success" index={0} />
+        <KPICard title="Non-Compliant" value={kpi.nonCompliant} icon={XCircle} variant="destructive" index={1} />
+        <KPICard title="Completion %" value={`${kpi.avgCompletion}%`} icon={TrendingUp} index={2} />
+        <KPICard title="Total Clients" value={kpi.total} icon={Calendar} index={3} />
+      </div>
 
-        {/* Trend card with effects */}
-        <AnimatePresence mode="wait">
-          <motion.div
-            key={previous ? (isImproving ? "improving" : "declining") : "neutral"}
-            initial={{ opacity: 0, scale: 0.95 }}
-            animate={{ opacity: 1, scale: 1 }}
-            exit={{ opacity: 0, scale: 0.95 }}
-            transition={{ type: "spring", stiffness: 300, damping: 25 }}
-          >
-            <div className={`relative overflow-hidden rounded-xl border p-5 h-full transition-all duration-500 ${
-              !previous ? "border-border bg-card" :
-              isImproving
-                ? "border-success/30 bg-success/5"
-                : "border-destructive/30 bg-destructive/5"
-            }`}>
-              {previous && (
-                <motion.div
-                  className={`absolute inset-0 opacity-10 ${isImproving ? "bg-success" : "bg-destructive"}`}
-                  animate={{ opacity: [0.05, 0.12, 0.05] }}
-                  transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
-                />
-              )}
-              <div className="relative z-10">
-                <div className="flex items-center justify-between mb-2">
-                  <span className="text-[11px] text-muted-foreground uppercase tracking-wider font-medium">Trend</span>
-                  <motion.div
-                    animate={previous ? { y: [0, -2, 0] } : {}}
-                    transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
-                  >
-                    {(previous && isImproving)
-                      ? <TrendingUp className="h-4 w-4 text-success" />
-                      : <TrendingDown className="h-4 w-4 text-destructive" />
-                    }
-                  </motion.div>
-                </div>
-                <p className={`font-mono-data text-2xl font-bold ${
-                  !previous ? "text-muted-foreground" :
-                  isImproving ? "text-success" : "text-destructive"
-                }`}>
-                  {previous ? (isImproving ? "Improving" : "Declining") : "—"}
-                </p>
-                
+      {/* Historical Trends Section */}
+      {hasHistory ? (
+        <>
+          {/* History selectors */}
+          <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.15 }}
+            className="rounded-xl border border-border bg-card p-4 shadow-card">
+            <div className="flex flex-wrap items-end gap-5">
+              <div className="flex flex-col gap-1.5">
+                <label className="text-[11px] font-medium text-muted-foreground uppercase tracking-wider">View Month</label>
+                <Select value={String(histIdx)} onValueChange={(v) => setSelectedHistoryIdx(Number(v))}>
+                  <SelectTrigger className="min-w-[160px] bg-muted/30 border-border">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {validTrends.map((t, i) => <SelectItem key={t.month} value={String(i)}>{t.month}</SelectItem>)}
+                  </SelectContent>
+                </Select>
               </div>
+              <div className="flex flex-col gap-1.5">
+                <label className="text-[11px] font-medium text-muted-foreground uppercase tracking-wider">Compare To</label>
+                <Select value={compareIdx} onValueChange={(v) => setCompareIdx(v)}>
+                  <SelectTrigger className="min-w-[160px] bg-muted/30 border-border">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="-">—</SelectItem>
+                    {validTrends.map((t, i) => i !== histIdx ? <SelectItem key={t.month} value={String(i)}>{t.month}</SelectItem> : null)}
+                  </SelectContent>
+                </Select>
+              </div>
+              {histPrevious && histCurrent && (
+                <div className="ml-auto hidden sm:flex items-center gap-2 rounded-lg bg-muted/30 px-3 py-2">
+                  <span className="text-xs font-medium text-foreground">{histPrevious.month}</span>
+                  <ArrowRight className="h-3 w-3 text-muted-foreground" />
+                  <span className="text-xs font-medium text-foreground">{histCurrent.month}</span>
+                </div>
+              )}
             </div>
           </motion.div>
-        </AnimatePresence>
-      </div>
 
-      {/* Comparison detail */}
-      {previous && (
-        <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}
-          className="rounded-xl border border-border bg-card p-5 shadow-card">
-          <h2 className="text-sm font-semibold text-foreground mb-4">
-            {previous.month} → {current.month}
-          </h2>
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-            {metrics.map(({ label, curr, prev, suffix, inverse }) => {
-              const diff = curr - prev;
-              const isPositive = inverse ? diff < 0 : diff > 0;
-              const isNegative = inverse ? diff > 0 : diff < 0;
-              return (
-                <motion.div key={label} whileHover={{ scale: 1.02 }} transition={{ type: "spring", stiffness: 400, damping: 25 }}
-                  className="rounded-lg border border-border bg-muted/20 p-4 text-center">
-                  <p className="text-[11px] text-muted-foreground uppercase tracking-wider mb-2">{label}</p>
-                  <div className="flex items-center justify-center gap-3">
-                    <span className="font-mono-data text-lg text-muted-foreground">{prev}{suffix}</span>
-                    <ArrowRight className="h-3.5 w-3.5 text-muted-foreground" />
-                    <span className="font-mono-data text-lg font-bold text-foreground">{curr}{suffix}</span>
+          {/* History KPI cards */}
+          {histCurrent && (
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+              <KPICard title="Compliant" value={histCurrent.compliant} icon={CheckCircle2} variant="success" index={0} />
+              <KPICard title="Non-Compliant" value={histCurrent.nonCompliant} icon={XCircle} variant="destructive" index={1} />
+              <KPICard title="Completion %" value={`${histCurrent.completionPct}%`} icon={TrendingUp} index={2} />
+              <AnimatePresence mode="wait">
+                <motion.div
+                  key={histPrevious ? (isImproving ? "improving" : "declining") : "neutral"}
+                  initial={{ opacity: 0, scale: 0.95 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  exit={{ opacity: 0, scale: 0.95 }}
+                  transition={{ type: "spring", stiffness: 300, damping: 25 }}
+                >
+                  <div className={`relative overflow-hidden rounded-xl border p-5 h-full transition-all duration-500 ${
+                    !histPrevious ? "border-border bg-card" :
+                    isImproving ? "border-success/30 bg-success/5" : "border-destructive/30 bg-destructive/5"
+                  }`}>
+                    {histPrevious && (
+                      <motion.div
+                        className={`absolute inset-0 opacity-10 ${isImproving ? "bg-success" : "bg-destructive"}`}
+                        animate={{ opacity: [0.05, 0.12, 0.05] }}
+                        transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
+                      />
+                    )}
+                    <div className="relative z-10">
+                      <div className="flex items-center justify-between mb-2">
+                        <span className="text-[11px] text-muted-foreground uppercase tracking-wider font-medium">Trend</span>
+                        <motion.div
+                          animate={histPrevious ? { y: [0, -2, 0] } : {}}
+                          transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
+                        >
+                          {(histPrevious && isImproving)
+                            ? <TrendingUp className="h-4 w-4 text-success" />
+                            : <TrendingDown className="h-4 w-4 text-destructive" />
+                          }
+                        </motion.div>
+                      </div>
+                      <p className={`font-mono-data text-2xl font-bold ${
+                        !histPrevious ? "text-muted-foreground" : isImproving ? "text-success" : "text-destructive"
+                      }`}>
+                        {histPrevious ? (isImproving ? "Improving" : "Declining") : "—"}
+                      </p>
+                    </div>
                   </div>
-                  <p className={`text-xs font-semibold mt-1.5 ${isPositive ? "text-success" : isNegative ? "text-destructive" : "text-muted-foreground"}`}>
-                    {diff > 0 ? "+" : ""}{diff}{suffix === "%" ? "%" : ""}
-                  </p>
                 </motion.div>
-              );
-            })}
+              </AnimatePresence>
+            </div>
+          )}
+
+          {/* Comparison detail */}
+          {histPrevious && histCurrent && (
+            <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}
+              className="rounded-xl border border-border bg-card p-5 shadow-card">
+              <h2 className="text-sm font-semibold text-foreground mb-4">
+                {histPrevious.month} → {histCurrent.month}
+              </h2>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                {histMetrics.map(({ label, curr, prev, suffix, inverse }) => {
+                  const diff = curr - prev;
+                  const isPositive = inverse ? diff < 0 : diff > 0;
+                  const isNegative = inverse ? diff > 0 : diff < 0;
+                  return (
+                    <motion.div key={label} whileHover={{ scale: 1.02 }} transition={{ type: "spring", stiffness: 400, damping: 25 }}
+                      className="rounded-lg border border-border bg-muted/20 p-4 text-center">
+                      <p className="text-[11px] text-muted-foreground uppercase tracking-wider mb-2">{label}</p>
+                      <div className="flex items-center justify-center gap-3">
+                        <span className="font-mono-data text-lg text-muted-foreground">{prev}{suffix}</span>
+                        <ArrowRight className="h-3.5 w-3.5 text-muted-foreground" />
+                        <span className="font-mono-data text-lg font-bold text-foreground">{curr}{suffix}</span>
+                      </div>
+                      <p className={`text-xs font-semibold mt-1.5 ${isPositive ? "text-success" : isNegative ? "text-destructive" : "text-muted-foreground"}`}>
+                        {diff > 0 ? "+" : ""}{diff}{suffix === "%" ? "%" : ""}
+                      </p>
+                    </motion.div>
+                  );
+                })}
+              </div>
+            </motion.div>
+          )}
+
+          {/* Charts */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+            <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }}
+              whileHover={{ scale: 1.005 }}
+              className="rounded-xl border border-border bg-card p-5 shadow-card hover:shadow-card-hover transition-[box-shadow] duration-300">
+              <h2 className="text-sm font-semibold text-foreground mb-4">Compliance Over Time</h2>
+              <ResponsiveContainer width="100%" height={280}>
+                <LineChart data={validTrends}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="hsl(20, 8%, 16%)" />
+                  <XAxis dataKey="month" tick={{ fontSize: 11, fill: "hsl(25, 10%, 50%)" }} />
+                  <YAxis tick={{ fontSize: 11, fill: "hsl(25, 10%, 50%)" }} />
+                  <Tooltip content={<CustomTooltip />} />
+                  <Legend wrapperStyle={{ fontSize: "11px", color: "hsl(30, 25%, 88%)" }} />
+                  <Line type="monotone" dataKey="compliant" stroke="hsl(160, 55%, 42%)" strokeWidth={2} dot={{ r: 3 }} name="Compliant" />
+                  <Line type="monotone" dataKey="nonCompliant" stroke="hsl(0, 65%, 50%)" strokeWidth={2} dot={{ r: 3 }} name="Non-Compliant" />
+                </LineChart>
+              </ResponsiveContainer>
+            </motion.div>
+
+            <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.4 }}
+              whileHover={{ scale: 1.005 }}
+              className="rounded-xl border border-border bg-card p-5 shadow-card hover:shadow-card-hover transition-[box-shadow] duration-300">
+              <h2 className="text-sm font-semibold text-foreground mb-4">Completion % by Month</h2>
+              <ResponsiveContainer width="100%" height={280}>
+                <BarChart data={validTrends}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="hsl(20, 8%, 16%)" />
+                  <XAxis dataKey="month" tick={{ fontSize: 11, fill: "hsl(25, 10%, 50%)" }} />
+                  <YAxis tick={{ fontSize: 11, fill: "hsl(25, 10%, 50%)" }} domain={[0, 100]} />
+                  <Tooltip content={<CustomTooltip />} cursor={{ fill: "hsl(20, 8%, 14%)" }} />
+                  <Bar dataKey="completionPct" fill="hsl(340, 45%, 55%)" radius={[4, 4, 0, 0]} name="Completion %" />
+                </BarChart>
+              </ResponsiveContainer>
+            </motion.div>
           </div>
+
+          {/* Data table */}
+          <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.5 }}
+            className="rounded-xl border border-border bg-card shadow-card overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b border-border bg-muted/30">
+                  <th className="text-left text-xs font-medium text-muted-foreground uppercase tracking-wide px-4 py-2.5">Month</th>
+                  <th className="text-left text-xs font-medium text-muted-foreground uppercase tracking-wide px-4 py-2.5">Compliant</th>
+                  <th className="text-left text-xs font-medium text-muted-foreground uppercase tracking-wide px-4 py-2.5">Non-Compliant</th>
+                  <th className="text-left text-xs font-medium text-muted-foreground uppercase tracking-wide px-4 py-2.5">Completion %</th>
+                </tr>
+              </thead>
+              <tbody>
+                {validTrends.map((t, i) => (
+                  <tr key={t.month} className={`border-b border-border hover:bg-accent/50 transition-colors cursor-pointer ${i === histIdx ? "bg-primary/5 border-l-2 border-l-primary" : ""} ${compIdxNum !== null && i === compIdxNum ? "bg-accent/30" : ""}`}
+                    onClick={() => setSelectedHistoryIdx(i)}>
+                    <td className="px-4 py-2.5 font-medium text-foreground">{t.month}</td>
+                    <td className="px-4 py-2.5 font-mono-data text-success">{t.compliant}</td>
+                    <td className="px-4 py-2.5 font-mono-data text-destructive">{t.nonCompliant}</td>
+                    <td className="px-4 py-2.5 font-mono-data text-foreground">{t.completionPct}%</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </motion.div>
+        </>
+      ) : (
+        <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}
+          className="rounded-xl border border-border bg-card p-8 shadow-card text-center">
+          <TrendingUp className="h-10 w-10 text-muted-foreground mx-auto mb-3" />
+          <h3 className="text-sm font-semibold text-foreground mb-1">No Historical Data Yet</h3>
+          <p className="text-xs text-muted-foreground max-w-md mx-auto">
+            Click <strong>"Save Monthly Snapshot"</strong> above to save this month's data. Over time, charts and comparisons will appear here as you save more snapshots.
+          </p>
         </motion.div>
       )}
-
-      {/* Charts */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }}
-          whileHover={{ scale: 1.005 }}
-          className="rounded-xl border border-border bg-card p-5 shadow-card hover:shadow-card-hover transition-[box-shadow] duration-300">
-          <h2 className="text-sm font-semibold text-foreground mb-4">Compliance Over Time</h2>
-          <ResponsiveContainer width="100%" height={280}>
-            <LineChart data={validTrends}>
-              <CartesianGrid strokeDasharray="3 3" stroke="hsl(20, 8%, 16%)" />
-              <XAxis dataKey="month" tick={{ fontSize: 11, fill: "hsl(25, 10%, 50%)" }} />
-              <YAxis tick={{ fontSize: 11, fill: "hsl(25, 10%, 50%)" }} />
-              <Tooltip content={<CustomTooltip />} />
-              <Legend wrapperStyle={{ fontSize: "11px", color: "hsl(30, 25%, 88%)" }} />
-              <Line type="monotone" dataKey="compliant" stroke="hsl(160, 55%, 42%)" strokeWidth={2} dot={{ r: 3 }} name="Compliant" />
-              <Line type="monotone" dataKey="nonCompliant" stroke="hsl(0, 65%, 50%)" strokeWidth={2} dot={{ r: 3 }} name="Non-Compliant" />
-            </LineChart>
-          </ResponsiveContainer>
-        </motion.div>
-
-        <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.4 }}
-          whileHover={{ scale: 1.005 }}
-          className="rounded-xl border border-border bg-card p-5 shadow-card hover:shadow-card-hover transition-[box-shadow] duration-300">
-          <h2 className="text-sm font-semibold text-foreground mb-4">Completion % by Month</h2>
-          <ResponsiveContainer width="100%" height={280}>
-            <BarChart data={validTrends}>
-              <CartesianGrid strokeDasharray="3 3" stroke="hsl(20, 8%, 16%)" />
-              <XAxis dataKey="month" tick={{ fontSize: 11, fill: "hsl(25, 10%, 50%)" }} />
-              <YAxis tick={{ fontSize: 11, fill: "hsl(25, 10%, 50%)" }} domain={[0, 100]} />
-              <Tooltip content={<CustomTooltip />} cursor={{ fill: "hsl(20, 8%, 14%)" }} />
-              <Bar dataKey="completionPct" fill="hsl(340, 45%, 55%)" radius={[4, 4, 0, 0]} name="Completion %" />
-            </BarChart>
-          </ResponsiveContainer>
-        </motion.div>
-      </div>
-
-      {/* Data table */}
-      <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.5 }}
-        className="rounded-xl border border-border bg-card shadow-card overflow-x-auto">
-        <table className="w-full text-sm">
-          <thead>
-            <tr className="border-b border-border bg-muted/30">
-              <th className="text-left text-xs font-medium text-muted-foreground uppercase tracking-wide px-4 py-2.5">Month</th>
-              <th className="text-left text-xs font-medium text-muted-foreground uppercase tracking-wide px-4 py-2.5">Compliant</th>
-              <th className="text-left text-xs font-medium text-muted-foreground uppercase tracking-wide px-4 py-2.5">Non-Compliant</th>
-              <th className="text-left text-xs font-medium text-muted-foreground uppercase tracking-wide px-4 py-2.5">Completion %</th>
-            </tr>
-          </thead>
-          <tbody>
-            {validTrends.map((t, i) => (
-              <tr key={t.month} className={`border-b border-border hover:bg-accent/50 transition-colors cursor-pointer ${i === idx ? "bg-primary/5 border-l-2 border-l-primary" : ""} ${compIdx !== null && i === compIdx ? "bg-accent/30" : ""}`}
-                onClick={() => { setPendingMonth(i); setAppliedMonth(i); }}>
-                <td className="px-4 py-2.5 font-medium text-foreground">{t.month}</td>
-                <td className="px-4 py-2.5 font-mono-data text-success">{t.compliant}</td>
-                <td className="px-4 py-2.5 font-mono-data text-destructive">{t.nonCompliant}</td>
-                <td className="px-4 py-2.5 font-mono-data text-foreground">{t.completionPct}%</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </motion.div>
     </div>
   );
 }

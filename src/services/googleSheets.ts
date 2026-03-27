@@ -1,7 +1,7 @@
 import type { Client, MonthlyTrend } from "@/data/mockData";
 
 const SHEET_URL =
-  "https://script.google.com/macros/s/AKfycbyvS5rAd82eeX4kom8ac_cepHs8a6B_RnORqfuSOU-AOP3aSwF9y9RzTq4xjQf46SNG/exec";
+  "https://script.google.com/macros/s/AKfycbx4pYcIhw6Q6KIfwl8Lpt2ydQ_2inlyzQcISJLTK1my1CXw09xrn-MRRKz611i4CqBv/exec";
 
 export interface SheetData {
   clients: Client[];
@@ -79,8 +79,9 @@ function formatMonthYear(raw: string): string {
 }
 
 function parseTrend(row: Record<string, unknown>): MonthlyTrend {
-  const pct = num(row["Completion %"]);
-  const rawMonth = String(row["Month End Date"] ?? "").trim();
+  const rawCompletion = String(row["Completion"] ?? row["Completion %"] ?? "0").replace("%", "");
+  const pct = num(rawCompletion);
+  const rawMonth = String(row["Month"] ?? row["Month End Date"] ?? "").trim();
   return {
     month: formatMonthYear(rawMonth),
     compliant: num(row["Compliant"]),
@@ -104,7 +105,7 @@ export async function fetchSheetData(): Promise<SheetData> {
     .map((r, i) => parseClient(r, i));
 
   const monthlyTrends = trendRows
-    .filter((r) => String(r["Month End Date"] ?? "").trim() !== "")
+    .filter((r) => String(r["Month"] ?? r["Month End Date"] ?? "").trim() !== "")
     .map(parseTrend);
 
   const bookkeepers = bkRows
