@@ -21,6 +21,29 @@ const navItems = [
   { title: "Settings", url: "/settings", icon: Settings },
 ];
 
+function ThemeToggleButton() {
+  const { theme, toggle } = useTheme();
+  return (
+    <button
+      onClick={toggle}
+      className="h-9 w-9 flex items-center justify-center rounded-lg text-muted-foreground hover:bg-accent hover:text-foreground transition-colors"
+      title={theme === "dark" ? "Switch to light mode" : "Switch to dark mode"}
+    >
+      <AnimatePresence mode="wait" initial={false}>
+        <motion.div
+          key={theme}
+          initial={{ opacity: 0, scale: 0.8, rotate: -90 }}
+          animate={{ opacity: 1, scale: 1, rotate: 0 }}
+          exit={{ opacity: 0, scale: 0.8, rotate: 90 }}
+          transition={{ duration: 0.15 }}
+        >
+          {theme === "dark" ? <Sun className="h-[18px] w-[18px]" /> : <Moon className="h-[18px] w-[18px]" />}
+        </motion.div>
+      </AnimatePresence>
+    </button>
+  );
+}
+
 export default function AppLayout() {
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [mobileOpen, setMobileOpen] = useState(false);
