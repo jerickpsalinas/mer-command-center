@@ -3,10 +3,11 @@ import { Outlet, useLocation } from "react-router-dom";
 import { useQueryClient, useIsFetching } from "@tanstack/react-query";
 import { NavLink } from "@/components/NavLink";
 import { useSheetData } from "@/hooks/useSheetData";
+import { useTheme } from "@/hooks/useTheme";
 import NotificationDropdown from "@/components/NotificationDropdown";
 import {
   LayoutDashboard, CalendarCheck, TrendingUp, Users, FileText, Settings,
-  Menu, X, ChevronLeft, RefreshCw,
+  Menu, X, ChevronLeft, RefreshCw, Sun, Moon,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import logo from "@/assets/logo.png";
@@ -19,6 +20,29 @@ const navItems = [
   { title: "Reports", url: "/reports", icon: FileText },
   { title: "Settings", url: "/settings", icon: Settings },
 ];
+
+function ThemeToggleButton() {
+  const { theme, toggle } = useTheme();
+  return (
+    <button
+      onClick={toggle}
+      className="h-9 w-9 flex items-center justify-center rounded-lg text-muted-foreground hover:bg-accent hover:text-foreground transition-colors"
+      title={theme === "dark" ? "Switch to light mode" : "Switch to dark mode"}
+    >
+      <AnimatePresence mode="wait" initial={false}>
+        <motion.div
+          key={theme}
+          initial={{ opacity: 0, scale: 0.8, rotate: -90 }}
+          animate={{ opacity: 1, scale: 1, rotate: 0 }}
+          exit={{ opacity: 0, scale: 0.8, rotate: 90 }}
+          transition={{ duration: 0.15 }}
+        >
+          {theme === "dark" ? <Sun className="h-[18px] w-[18px]" /> : <Moon className="h-[18px] w-[18px]" />}
+        </motion.div>
+      </AnimatePresence>
+    </button>
+  );
+}
 
 export default function AppLayout() {
   const [sidebarOpen, setSidebarOpen] = useState(true);
@@ -148,6 +172,8 @@ export default function AppLayout() {
           <h1 className="text-[15px] font-semibold tracking-tight text-foreground">{currentTitle}</h1>
 
           <div className="flex-1" />
+
+          <ThemeToggleButton />
 
           <button
             onClick={handleRefresh}

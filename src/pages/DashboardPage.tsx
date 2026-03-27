@@ -24,17 +24,11 @@ const CHART_COLORS = {
   bg: "hsl(20, 10%, 11%)",
 };
 
-const tooltipStyle = {
-  background: "hsl(20, 10%, 13%)", border: "1px solid hsl(20, 8%, 20%)",
-  borderRadius: "10px", fontSize: "12px", color: "hsl(30, 25%, 88%)",
-  boxShadow: "0 8px 24px -6px hsl(20 12% 3% / 0.6)",
-};
-
 const CustomTooltip = ({ active, payload, label }: any) => {
   if (!active || !payload?.length) return null;
   return (
-    <div style={tooltipStyle} className="px-3 py-2">
-      <p className="text-xs font-semibold text-foreground mb-1">{label}</p>
+    <div className="px-3 py-2 rounded-[10px] text-xs border border-border bg-popover text-foreground shadow-elevated">
+      <p className="font-semibold text-foreground mb-1">{label}</p>
       {payload.map((p: any, i: number) => (
         <p key={i} className="text-[11px]" style={{ color: p.color || p.fill }}>
           {p.name}: <span className="font-mono-data font-semibold">{p.value}{typeof p.value === 'number' && p.unit ? p.unit : ''}</span>
@@ -108,35 +102,38 @@ function NeedsAttentionSection({ clients }: { clients: Client[] }) {
 function BookkeepersSection({ clients, bookkeepers }: { clients: Client[]; bookkeepers: string[] }) {
   const bkStats = getBookkeeperStats(clients, bookkeepers);
 
-  // Enhanced recent activity with timestamps and more detail
-  const now = new Date();
-  const recentActivity: { id: string; message: React.ReactNode; time: string; type: string }[] = [];
+  // Build richer activity feed from client data
+  const recentActivity: { id: string; message: React.ReactNode; time: string; type: string; category: string }[] = [];
 
-  clients.filter(c => c.complianceStatus === "Compliant").slice(0, 3).forEach((c, i) => {
-    const mins = 5 + i * 12;
+  // Compliant clients
+  clients.filter(c => c.complianceStatus === "Compliant").slice(0, 2).forEach((c, i) => {
     recentActivity.push({
-      id: `compliant-${c.id}`,
-      time: `${mins}m ago`,
-      type: "success",
-      message: <><span className="text-foreground font-medium">{c.name}</span> marked <span className="text-success font-semibold">Compliant</span> · {c.completionPct}% complete · <span className="text-muted-foreground">{c.bookkeeper}</span></>
+      id: `compliant-${c.id}`, time: `${5 + i * 12}m ago`, type: "success", category: "Compliance",
+      message: <><span className="text-foreground font-medium">{c.name}</span> is <span className="text-success font-semibold">fully compliant</span> — books closed, financials sent, {c.completionPct}% complete</>
     });
   });
+
+  // Missing bank statements  
   clients.filter(c => c.bankTransactions.includes("Missing")).slice(0, 2).forEach((c, i) => {
-    const mins = 18 + i * 15;
     recentActivity.push({
-      id: `flagged-${c.id}`,
-      time: `${mins}m ago`,
-      type: "destructive",
-      message: <><span className="text-foreground font-medium">{c.name}</span> flagged — <span className="text-destructive font-semibold">missing bank statements</span> · {c.clientType} · <span className="text-muted-foreground">{c.bookkeeper}</span></>
+      id: `flagged-${c.id}`, time: `${18 + i * 15}m ago`, type: "destructive", category: "Missing Data",
+      message: <><span className="text-foreground font-medium">{c.name}</span> — <span className="text-destructive font-semibold">{c.bankTransactions}</span> bank statement · Last reconciled {c.lastReconciledDate || "never"}</>
     });
   });
+
+  // High uncategorized
   clients.filter(c => c.uncategorizedTransactions > 0).sort((a, b) => b.uncategorizedTransactions - a.uncategorizedTransactions).slice(0, 2).forEach((c, i) => {
-    const mins = 35 + i * 20;
     recentActivity.push({
-      id: `uncat-${c.id}`,
-      time: `${mins}m ago`,
-      type: "warning",
-      message: <><span className="text-foreground font-medium">{c.name}</span> has <span className="text-warning font-semibold">{c.uncategorizedTransactions} uncategorized txns</span> · {c.completionPct}% complete · <span className="text-muted-foreground">{c.bookkeeper}</span></>
+      id: `uncat-${c.id}`, time: `${35 + i * 20}m ago`, type: "warning", category: "Transactions",
+      message: <><span className="text-foreground font-medium">{c.name}</span> has <span className="text-warning font-semibold">{c.uncategorizedTransactions} uncategorized</span> and <span className="text-muted-foreground">{c.transactionsWithoutPayees} without payees</span></>
+    });
+  });
+
+  // Low completion
+  clients.filter(c => c.completionPct < 40 && !c.bankTransactions.includes("Missing")).sort((a, b) => a.completionPct - b.completionPct).slice(0, 1).forEach((c) => {
+    recentActivity.push({
+      id: `low-${c.id}`, time: "45m ago", type: "destructive", category: "At Risk",
+      message: <><span className="text-foreground font-medium">{c.name}</span> at <span className="text-destructive font-semibold">{c.completionPct}% completion</span> — requires immediate attention</>
     });
   });
 
@@ -144,6 +141,13 @@ function BookkeepersSection({ clients, bookkeepers }: { clients: Client[]; bookk
     success: "bg-success",
     destructive: "bg-destructive",
     warning: "bg-warning",
+  };
+
+  const catColor: Record<string, string> = {
+    Compliance: "text-success bg-success/10",
+    "Missing Data": "text-destructive bg-destructive/10",
+    Transactions: "text-warning bg-warning/10",
+    "At Risk": "text-destructive bg-destructive/10",
   };
 
   return (
@@ -176,17 +180,20 @@ function BookkeepersSection({ clients, bookkeepers }: { clients: Client[]; bookk
       </div>
       <div className="border-t border-border px-6 py-4">
         <h3 className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider mb-3 flex items-center gap-1.5"><Clock className="h-3.5 w-3.5" /> Recent Activity</h3>
-        <div className="space-y-3 text-[12px] text-muted-foreground">
-          {recentActivity.slice(0, 6).map(a => (
-            <div key={a.id} className="flex items-start gap-2.5">
+        <div className="space-y-2.5">
+          {recentActivity.slice(0, 7).map(a => (
+            <div key={a.id} className="flex items-start gap-2.5 py-1.5 rounded-md hover:bg-accent/20 -mx-1 px-1 transition-colors">
               <div className={`mt-1.5 h-1.5 w-1.5 rounded-full shrink-0 ${dotColor[a.type] || "bg-muted-foreground"}`} />
               <div className="flex-1 min-w-0">
-                <p className="leading-relaxed">{a.message}</p>
+                <div className="flex items-center gap-2 mb-0.5">
+                  <span className={`text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded ${catColor[a.category] || "text-muted-foreground bg-muted"}`}>{a.category}</span>
+                  <span className="text-[10px] text-muted-foreground">{a.time}</span>
+                </div>
+                <p className="text-[12px] text-muted-foreground leading-relaxed">{a.message}</p>
               </div>
-              <span className="text-[10px] text-muted-foreground whitespace-nowrap shrink-0">{a.time}</span>
             </div>
           ))}
-          {recentActivity.length === 0 && <p className="text-muted-foreground">No recent activity</p>}
+          {recentActivity.length === 0 && <p className="text-xs text-muted-foreground">No recent activity</p>}
         </div>
       </div>
     </motion.div>
@@ -213,7 +220,7 @@ function KPIChartsSection({ kpi, breakdown }: { kpi: ReturnType<typeof getKPIMet
     const x = cx + radius * Math.cos(-midAngle * RADIAN);
     const y = cy + radius * Math.sin(-midAngle * RADIAN);
     return (
-      <text x={x} y={y} fill="hsl(30, 25%, 88%)" textAnchor={x > cx ? "start" : "end"} dominantBaseline="central" fontSize={11} fontWeight={500}>
+      <text x={x} y={y} fill="currentColor" className="fill-foreground" textAnchor={x > cx ? "start" : "end"} dominantBaseline="central" fontSize={11} fontWeight={500}>
         {name}: {value}
       </text>
     );
@@ -234,7 +241,7 @@ function KPIChartsSection({ kpi, breakdown }: { kpi: ReturnType<typeof getKPIMet
               {pieData.map((entry, i) => <Cell key={i} fill={entry.color} />)}
             </Pie>
             <Tooltip content={<CustomTooltip />} />
-            <Legend iconType="circle" iconSize={8} wrapperStyle={{ fontSize: "11px", color: "hsl(30, 25%, 88%)" }} />
+            <Legend iconType="circle" iconSize={8} wrapperStyle={{ fontSize: "11px" }} />
           </PieChart>
         </ResponsiveContainer>
       </motion.div>

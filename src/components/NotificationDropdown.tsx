@@ -142,6 +142,9 @@ export default function NotificationDropdown({ clients, trends }: { clients: Cli
     return () => document.removeEventListener("mousedown", handleClick);
   }, []);
 
+  const criticalCount = notifications.filter(n => n.variant === "destructive").length;
+  const warningCount = notifications.filter(n => n.variant === "warning").length;
+
   return (
     <div className="relative" ref={ref}>
       <button
@@ -150,7 +153,9 @@ export default function NotificationDropdown({ clients, trends }: { clients: Cli
       >
         <Bell className="h-[18px] w-[18px]" />
         {notifications.length > 0 && (
-          <span className="absolute top-1.5 right-1.5 h-2 w-2 rounded-full bg-primary ring-2 ring-card" />
+          <span className="absolute top-1 right-1 h-4 w-4 rounded-full bg-primary text-[9px] font-bold text-primary-foreground flex items-center justify-center ring-2 ring-card">
+            {notifications.length}
+          </span>
         )}
       </button>
 
@@ -161,13 +166,27 @@ export default function NotificationDropdown({ clients, trends }: { clients: Cli
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: -4, scale: 0.97 }}
             transition={{ duration: 0.15 }}
-            className="absolute right-0 top-11 w-96 rounded-xl border border-border bg-card shadow-elevated z-50 overflow-hidden"
+            className="absolute right-0 top-11 w-[360px] sm:w-96 rounded-xl border border-border bg-card shadow-elevated z-50 overflow-hidden"
           >
             <div className="px-4 py-3 border-b border-border">
-              <p className="text-xs font-semibold text-foreground">Notifications</p>
-              <p className="text-[11px] text-muted-foreground">{notifications.length} updates from current data</p>
+              <div className="flex items-center justify-between">
+                <p className="text-xs font-semibold text-foreground">Notifications</p>
+                <div className="flex items-center gap-2">
+                  {criticalCount > 0 && (
+                    <span className="inline-flex items-center gap-1 rounded-full bg-destructive/10 px-2 py-0.5 text-[10px] font-semibold text-destructive">
+                      {criticalCount} critical
+                    </span>
+                  )}
+                  {warningCount > 0 && (
+                    <span className="inline-flex items-center gap-1 rounded-full bg-warning/10 px-2 py-0.5 text-[10px] font-semibold text-warning">
+                      {warningCount} warnings
+                    </span>
+                  )}
+                </div>
+              </div>
+              <p className="text-[11px] text-muted-foreground mt-0.5">{notifications.length} updates from live data</p>
             </div>
-            <div className="max-h-96 overflow-y-auto">
+            <div className="max-h-[400px] overflow-y-auto">
               {notifications.map((n, i) => (
                 <motion.div key={n.id}
                   initial={{ opacity: 0, x: -8 }}
@@ -175,10 +194,20 @@ export default function NotificationDropdown({ clients, trends }: { clients: Cli
                   transition={{ delay: i * 0.03 }}
                   className="flex items-start gap-3 px-4 py-3 border-b border-border/50 last:border-0 hover:bg-accent/30 transition-colors"
                 >
-                  <div className={`mt-1 h-2 w-2 rounded-full shrink-0 ${variantDot[n.variant]}`} />
+                  <div className={`mt-0.5 h-6 w-6 rounded-lg flex items-center justify-center shrink-0 ${
+                    n.variant === "destructive" ? "bg-destructive/10" :
+                    n.variant === "warning" ? "bg-warning/10" :
+                    n.variant === "success" ? "bg-success/10" : "bg-muted"
+                  }`}>
+                    <n.icon className={`h-3.5 w-3.5 ${
+                      n.variant === "destructive" ? "text-destructive" :
+                      n.variant === "warning" ? "text-warning" :
+                      n.variant === "success" ? "text-success" : "text-muted-foreground"
+                    }`} />
+                  </div>
                   <div className="flex-1 min-w-0">
                     <p className="text-[12px] text-foreground leading-relaxed">{n.message}</p>
-                    {n.detail && <p className="text-[11px] text-muted-foreground mt-0.5 truncate">{n.detail}</p>}
+                    {n.detail && <p className="text-[11px] text-muted-foreground mt-0.5">{n.detail}</p>}
                   </div>
                   <span className="text-[10px] text-muted-foreground whitespace-nowrap shrink-0 mt-0.5">{n.time}</span>
                 </motion.div>

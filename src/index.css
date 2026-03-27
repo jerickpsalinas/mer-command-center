@@ -60,6 +60,62 @@
     --shadow-card-hover: 0 6px 20px -4px hsl(20 12% 3% / 0.6), 0 2px 6px -2px hsl(340 45% 55% / 0.05);
     --shadow-elevated: 0 12px 36px -6px hsl(20 12% 3% / 0.7), 0 4px 12px -2px hsl(340 45% 55% / 0.04);
   }
+
+  :root.light {
+    --background: 30 20% 96%;
+    --foreground: 20 15% 15%;
+
+    --card: 0 0% 100%;
+    --card-foreground: 20 15% 15%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 20 15% 15%;
+
+    --primary: 340 45% 50%;
+    --primary-foreground: 0 0% 100%;
+
+    --secondary: 20 10% 90%;
+    --secondary-foreground: 20 12% 35%;
+
+    --muted: 25 12% 92%;
+    --muted-foreground: 20 8% 45%;
+
+    --accent: 25 15% 93%;
+    --accent-foreground: 20 15% 15%;
+
+    --destructive: 0 65% 50%;
+    --destructive-foreground: 0 0% 100%;
+
+    --success: 160 55% 38%;
+    --success-foreground: 0 0% 100%;
+
+    --warning: 38 80% 48%;
+    --warning-foreground: 20 12% 7%;
+
+    --border: 25 12% 88%;
+    --input: 25 12% 88%;
+    --ring: 340 45% 50%;
+
+    --radius: 0.625rem;
+
+    --sidebar-background: 30 15% 97%;
+    --sidebar-foreground: 20 10% 40%;
+    --sidebar-primary: 340 45% 50%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 25 15% 94%;
+    --sidebar-accent-foreground: 20 15% 15%;
+    --sidebar-border: 25 12% 90%;
+    --sidebar-ring: 340 45% 50%;
+
+    --surface: 0 0% 100%;
+    --surface-alt: 25 12% 95%;
+
+    --rose-accent: 340 45% 50%;
+
+    --shadow-card: 0 1px 3px 0 hsl(0 0% 0% / 0.06), 0 1px 2px -1px hsl(0 0% 0% / 0.06);
+    --shadow-card-hover: 0 4px 12px -2px hsl(0 0% 0% / 0.1), 0 2px 4px -1px hsl(340 45% 50% / 0.04);
+    --shadow-elevated: 0 8px 24px -4px hsl(0 0% 0% / 0.12), 0 4px 8px -2px hsl(340 45% 50% / 0.03);
+  }
 }
 
 @layer base {
@@ -105,9 +161,9 @@
 
   /* Glass panel */
   .glass-panel {
-    background: hsl(20 10% 11% / 0.75);
+    background: hsl(var(--card) / 0.75);
     backdrop-filter: blur(16px) saturate(1.2);
-    border: 1px solid hsl(20 8% 18% / 0.6);
+    border: 1px solid hsl(var(--border) / 0.6);
   }
 
   /* Warm vignette overlay */
@@ -115,7 +171,7 @@
     content: '';
     position: fixed;
     inset: 0;
-    background: radial-gradient(ellipse at center, transparent 50%, hsl(20 12% 3% / 0.4) 100%);
+    background: radial-gradient(ellipse at center, transparent 50%, hsl(var(--background) / 0.4) 100%);
     pointer-events: none;
     z-index: 0;
   }
