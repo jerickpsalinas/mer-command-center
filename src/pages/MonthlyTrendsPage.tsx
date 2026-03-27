@@ -321,7 +321,7 @@ export default function MonthlyTrendsPage() {
                     <td className="px-3 sm:px-4 py-2.5 font-mono-data text-success">{t.compliant}</td>
                     <td className="px-3 sm:px-4 py-2.5 font-mono-data text-destructive">{t.nonCompliant}</td>
                     <td className="px-3 sm:px-4 py-2.5 font-mono-data text-foreground">{t.completionPct}%</td>
-                    <td className="px-4 py-2.5">
+                    <td className="px-3 sm:px-4 py-2.5">
                       <span className={`text-xs font-medium ${
                         t.trend === "Improving" ? "text-success" : t.trend === "Declining" ? "text-destructive" : "text-muted-foreground"
                       }`}>
