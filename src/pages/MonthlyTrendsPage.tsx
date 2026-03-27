@@ -49,10 +49,10 @@ export default function MonthlyTrendsPage() {
   const validTrends = validIndices.map(v => monthlyTrends[v.originalIndex]);
 
   // Resolve applied values
-  const idx = appliedMonth ?? validIndices.length - 1;
+  const idx = appliedMonth ?? Math.max(0, validTrends.length - 1);
   const compIdx = appliedCompare !== "-" ? Number(appliedCompare) : null;
-  const current = validTrends[idx];
-  const previous = compIdx !== null && compIdx !== idx ? validTrends[compIdx] : null;
+  const current = validTrends[idx] ?? { month: "", compliant: 0, nonCompliant: 0, completionPct: 0 };
+  const previous = compIdx !== null && compIdx !== idx ? validTrends[compIdx] ?? null : null;
 
   // Resolve pending for UI
   const pendingIdx = pendingMonth ?? validIndices.length - 1;
