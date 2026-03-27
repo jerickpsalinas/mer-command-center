@@ -163,8 +163,8 @@ function BookkeepersSection({ clients, bookkeepers }: { clients: Client[]; bookk
               className="flex items-center gap-3 p-2.5 rounded-lg hover:bg-accent/50 transition-colors -mx-2 cursor-default">
               <div className="h-9 w-9 rounded-lg bg-primary/8 flex items-center justify-center text-xs font-bold text-primary">#{i + 1}</div>
               <div className="flex-1 min-w-0">
-                <p className="text-[13px] font-semibold text-foreground">{bk.name}</p>
-                <p className="text-[11px] text-muted-foreground">{bk.totalClients} clients · <span className="text-success">{bk.compliant} compliant</span> · <span className="text-destructive">{nonCompliant} non-compliant</span></p>
+                <p className="text-[13px] font-semibold text-foreground break-words">{bk.name}</p>
+                <p className="text-[11px] text-muted-foreground break-words">{bk.totalClients} clients · <span className="text-success">{bk.compliant} compliant</span> · <span className="text-destructive">{nonCompliant} non-compliant</span></p>
               </div>
               <div className="text-right">
                 <span className="font-mono-data text-sm font-bold text-foreground">{bk.rate}%</span>
