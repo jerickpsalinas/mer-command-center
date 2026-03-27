@@ -104,30 +104,34 @@ export default function MonthlyTrendsPage() {
     <div className="space-y-6">
       {/* Current Month Section */}
       <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }}
-        className="rounded-xl border border-border bg-card p-4 shadow-card">
-        <div className="flex flex-wrap items-center justify-between gap-4">
+        className="rounded-xl border border-border bg-card p-4 sm:p-5 shadow-card">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div className="flex items-center gap-3">
-            <Calendar className="h-5 w-5 text-primary" />
+            <Calendar className="h-5 w-5 text-primary shrink-0" />
             <div>
               <h2 className="text-sm font-semibold text-foreground">Current Month: {currentMonthLabel}</h2>
               <p className="text-[11px] text-muted-foreground">Live data from your dashboard</p>
             </div>
           </div>
-          <motion.button
-            onClick={handleSaveSnapshot}
-            disabled={isSaving}
-            whileHover={{ scale: isSaving ? 1 : 1.03 }}
-            whileTap={{ scale: isSaving ? 1 : 0.97 }}
-            className={`inline-flex items-center gap-2 rounded-lg px-5 py-2.5 text-sm font-medium transition-all ${
-              isSaving
-                ? "bg-muted/30 text-muted-foreground cursor-not-allowed border border-border"
-                : "bg-primary text-primary-foreground shadow-md hover:shadow-lg"
-            }`}
-          >
-            <Save className="h-3.5 w-3.5" />
-            {isSaving ? "Saving…" : "Save Manual Snapshot"}
-          </motion.button>
-          <p className="text-[11px] text-muted-foreground/70 italic">Auto-snapshots are saved at the end of each month. Use manual snapshot to capture data anytime. All snapshots are stored in the Trends sheet of your Google Spreadsheet.</p>
+          <div className="flex flex-col sm:items-end gap-2">
+            <motion.button
+              onClick={handleSaveSnapshot}
+              disabled={isSaving}
+              whileHover={{ scale: isSaving ? 1 : 1.03 }}
+              whileTap={{ scale: isSaving ? 1 : 0.97 }}
+              className={`inline-flex items-center justify-center gap-2 rounded-lg px-5 py-2.5 text-sm font-medium transition-all w-full sm:w-auto ${
+                isSaving
+                  ? "bg-muted/30 text-muted-foreground cursor-not-allowed border border-border"
+                  : "bg-primary text-primary-foreground shadow-md hover:shadow-lg"
+              }`}
+            >
+              <Save className="h-3.5 w-3.5" />
+              {isSaving ? "Saving…" : "Save Manual Snapshot"}
+            </motion.button>
+            <p className="text-[11px] text-muted-foreground/70 italic max-w-sm text-left sm:text-right leading-relaxed">
+              Auto-snapshots save at month-end. Use manual snapshot to capture data anytime. All data is stored in the Trends sheet.
+            </p>
+          </div>
         </div>
       </motion.div>
 
