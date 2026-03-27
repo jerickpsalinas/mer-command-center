@@ -127,6 +127,7 @@ export default function MonthlyTrendsPage() {
             <Save className="h-3.5 w-3.5" />
             {isSaving ? "Saving…" : "Save Manual Snapshot"}
           </motion.button>
+          <p className="text-[11px] text-muted-foreground/70 italic">Auto-snapshots are saved at the end of each month</p>
         </div>
       </motion.div>
 
