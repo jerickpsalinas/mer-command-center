@@ -3,10 +3,11 @@ import { Outlet, useLocation } from "react-router-dom";
 import { useQueryClient, useIsFetching } from "@tanstack/react-query";
 import { NavLink } from "@/components/NavLink";
 import { useSheetData } from "@/hooks/useSheetData";
+import { useTheme } from "@/hooks/useTheme";
 import NotificationDropdown from "@/components/NotificationDropdown";
 import {
   LayoutDashboard, CalendarCheck, TrendingUp, Users, FileText, Settings,
-  Menu, X, ChevronLeft, RefreshCw,
+  Menu, X, ChevronLeft, RefreshCw, Sun, Moon,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import logo from "@/assets/logo.png";
