@@ -221,7 +221,7 @@ export default function MonthlyTrendsPage() {
                           }
                         </motion.div>
                       </div>
-                      <p className={`font-mono-data text-2xl font-bold ${
+                      <p className={`font-mono-data text-xl sm:text-2xl font-bold ${
                         !histPrevious ? "text-muted-foreground" : isImproving ? "text-success" : "text-destructive"
                       }`}>
                         {histPrevious ? (isImproving ? "Improving" : "Declining") : "—"}
