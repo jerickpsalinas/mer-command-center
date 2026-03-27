@@ -79,8 +79,9 @@ function formatMonthYear(raw: string): string {
 }
 
 function parseTrend(row: Record<string, unknown>): MonthlyTrend {
-  const pct = num(row["Completion %"]);
-  const rawMonth = String(row["Month End Date"] ?? "").trim();
+  const rawCompletion = String(row["Completion"] ?? row["Completion %"] ?? "0").replace("%", "");
+  const pct = num(rawCompletion);
+  const rawMonth = String(row["Month"] ?? row["Month End Date"] ?? "").trim();
   return {
     month: formatMonthYear(rawMonth),
     compliant: num(row["Compliant"]),
