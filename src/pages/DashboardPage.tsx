@@ -86,9 +86,9 @@ function NeedsAttentionSection({ clients }: { clients: Client[] }) {
             {section.items.length > 0 ? (
               <div className="space-y-0">
                 {section.items.map(item => (
-                  <div key={item.id} className="flex items-center justify-between text-sm py-2 border-b border-border/50 last:border-0 group cursor-pointer hover:bg-accent/30 -mx-2 px-2 rounded-md transition-colors">
-                    <span className="text-foreground truncate text-[13px]">{item.label}</span>
-                    <div className="flex items-center gap-1.5">{item.badge}<ChevronRight className="h-3 w-3 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" /></div>
+                  <div key={item.id} className="flex items-center justify-between text-sm py-2 border-b border-border/50 last:border-0 group cursor-pointer hover:bg-accent/30 -mx-2 px-2 rounded-md transition-colors gap-2">
+                    <span className="text-foreground text-[13px] break-words min-w-0">{item.label}</span>
+                    <div className="flex items-center gap-1.5 shrink-0">{item.badge}<ChevronRight className="h-3 w-3 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" /></div>
                   </div>
                 ))}
               </div>
