@@ -197,7 +197,7 @@ export default function MonthlyTrendsPage() {
                   exit={{ opacity: 0, scale: 0.95 }}
                   transition={{ type: "spring", stiffness: 300, damping: 25 }}
                 >
-                  <div className={`relative overflow-hidden rounded-xl border p-5 h-full transition-all duration-500 ${
+                  <div className={`relative overflow-hidden rounded-xl border p-4 sm:p-5 h-full transition-all duration-500 ${
                     !histPrevious ? "border-border bg-card" :
                     isImproving ? "border-success/30 bg-success/5" : "border-destructive/30 bg-destructive/5"
                   }`}>
