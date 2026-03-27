@@ -290,7 +290,7 @@ function ReportsSummarySection({ clients, bookkeepers }: { clients: Client[]; bo
           {highRisk.length > 0 && (
             <div className="mt-3 pt-3 border-t border-border">
               <p className="text-[11px] font-semibold text-muted-foreground mb-2">High-risk ({highRisk.length})</p>
-              <div className="space-y-1 max-h-28 overflow-y-auto">
+              <div className="space-y-1">
                 {highRisk.slice(0, 5).map(c => (
                   <div key={c.id} className="flex items-center justify-between text-xs py-1">
                     <span className="text-foreground truncate mr-2">{c.name}</span>
