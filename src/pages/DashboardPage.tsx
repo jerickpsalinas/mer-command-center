@@ -86,9 +86,9 @@ function NeedsAttentionSection({ clients }: { clients: Client[] }) {
             {section.items.length > 0 ? (
               <div className="space-y-0">
                 {section.items.map(item => (
-                  <div key={item.id} className="flex items-center justify-between text-sm py-2 border-b border-border/50 last:border-0 group cursor-pointer hover:bg-accent/30 -mx-2 px-2 rounded-md transition-colors">
-                    <span className="text-foreground truncate text-[13px]">{item.label}</span>
-                    <div className="flex items-center gap-1.5">{item.badge}<ChevronRight className="h-3 w-3 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" /></div>
+                  <div key={item.id} className="flex items-center justify-between text-sm py-2 border-b border-border/50 last:border-0 group cursor-pointer hover:bg-accent/30 -mx-2 px-2 rounded-md transition-colors gap-2">
+                    <span className="text-foreground text-[13px] break-words min-w-0">{item.label}</span>
+                    <div className="flex items-center gap-1.5 shrink-0">{item.badge}<ChevronRight className="h-3 w-3 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" /></div>
                   </div>
                 ))}
               </div>
@@ -163,8 +163,8 @@ function BookkeepersSection({ clients, bookkeepers }: { clients: Client[]; bookk
               className="flex items-center gap-3 p-2.5 rounded-lg hover:bg-accent/50 transition-colors -mx-2 cursor-default">
               <div className="h-9 w-9 rounded-lg bg-primary/8 flex items-center justify-center text-xs font-bold text-primary">#{i + 1}</div>
               <div className="flex-1 min-w-0">
-                <p className="text-[13px] font-semibold text-foreground">{bk.name}</p>
-                <p className="text-[11px] text-muted-foreground">{bk.totalClients} clients · <span className="text-success">{bk.compliant} compliant</span> · <span className="text-destructive">{nonCompliant} non-compliant</span></p>
+                <p className="text-[13px] font-semibold text-foreground break-words">{bk.name}</p>
+                <p className="text-[11px] text-muted-foreground break-words">{bk.totalClients} clients · <span className="text-success">{bk.compliant} compliant</span> · <span className="text-destructive">{nonCompliant} non-compliant</span></p>
               </div>
               <div className="text-right">
                 <span className="font-mono-data text-sm font-bold text-foreground">{bk.rate}%</span>
