@@ -148,8 +148,8 @@ export default function MonthlyTrendsPage() {
         <>
           {/* History selectors */}
           <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.15 }}
-            className="rounded-xl border border-border bg-card p-4 shadow-card">
-            <div className="flex flex-wrap items-end gap-5">
+            className="rounded-xl border border-border bg-card p-4 sm:p-5 shadow-card">
+            <div className="flex flex-col sm:flex-row sm:flex-wrap sm:items-end gap-4 sm:gap-5">
               <div className="flex flex-col gap-1.5">
                 <label className="text-[11px] font-medium text-muted-foreground uppercase tracking-wider">View Month</label>
                 <Select value={String(histIdx)} onValueChange={(v) => setSelectedHistoryIdx(Number(v))}>
