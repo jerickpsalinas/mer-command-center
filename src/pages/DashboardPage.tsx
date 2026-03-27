@@ -220,7 +220,7 @@ function KPIChartsSection({ kpi, breakdown }: { kpi: ReturnType<typeof getKPIMet
     const x = cx + radius * Math.cos(-midAngle * RADIAN);
     const y = cy + radius * Math.sin(-midAngle * RADIAN);
     return (
-      <text x={x} y={y} fill="hsl(30, 25%, 88%)" textAnchor={x > cx ? "start" : "end"} dominantBaseline="central" fontSize={11} fontWeight={500}>
+      <text x={x} y={y} fill="currentColor" className="fill-foreground" textAnchor={x > cx ? "start" : "end"} dominantBaseline="central" fontSize={11} fontWeight={500}>
         {name}: {value}
       </text>
     );
