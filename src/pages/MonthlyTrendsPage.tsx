@@ -347,7 +347,7 @@ export default function MonthlyTrendsPage() {
           <TrendingUp className="h-10 w-10 text-muted-foreground mx-auto mb-3" />
           <h3 className="text-sm font-semibold text-foreground mb-1">No Historical Data Yet</h3>
           <p className="text-xs text-muted-foreground max-w-md mx-auto">
-            Click <strong>"Save Monthly Snapshot"</strong> above to save this month's data. Over time, charts and comparisons will appear here as you save more snapshots.
+            Click <strong>"Save Manual Snapshot"</strong> to check current data anytime. Auto-snapshots are saved at the end of each month via your Google Apps Script trigger.
           </p>
         </motion.div>
       )}
