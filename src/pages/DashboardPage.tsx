@@ -14,20 +14,33 @@ import { toast } from "@/hooks/use-toast";
 import { motion } from "framer-motion";
 import type { Client } from "@/data/mockData";
 
-const CHART_COLORS = {
-  primary: "hsl(340, 45%, 55%)",
-  success: "hsl(160, 55%, 42%)",
-  warning: "hsl(38, 80%, 52%)",
-  destructive: "hsl(0, 65%, 50%)",
-  muted: "hsl(25, 10%, 50%)",
-  grid: "hsl(20, 8%, 16%)",
-  bg: "hsl(20, 10%, 11%)",
-};
+function getChartColors() {
+  const root = getComputedStyle(document.documentElement);
+  const get = (v: string) => `hsl(${root.getPropertyValue(v).trim()})`;
+  return {
+    primary: get("--primary"),
+    success: get("--success"),
+    warning: get("--warning"),
+    destructive: get("--destructive"),
+    muted: get("--muted-foreground"),
+    grid: get("--border"),
+    bg: get("--background"),
+    foreground: get("--foreground"),
+    card: get("--card"),
+  };
+}
 
-const tooltipStyle = {
-  background: "hsl(20, 10%, 13%)", border: "1px solid hsl(20, 8%, 20%)",
-  borderRadius: "10px", fontSize: "12px", color: "hsl(30, 25%, 88%)",
-  boxShadow: "0 8px 24px -6px hsl(20 12% 3% / 0.6)",
+const tooltipStyleFromTheme = () => {
+  const root = getComputedStyle(document.documentElement);
+  const get = (v: string) => `hsl(${root.getPropertyValue(v).trim()})`;
+  return {
+    background: get("--popover"),
+    border: `1px solid ${get("--border")}`,
+    borderRadius: "10px",
+    fontSize: "12px",
+    color: get("--foreground"),
+    boxShadow: "0 8px 24px -6px rgba(0,0,0,0.3)",
+  };
 };
 
 const CustomTooltip = ({ active, payload, label }: any) => {
