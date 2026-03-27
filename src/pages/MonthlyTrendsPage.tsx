@@ -331,7 +331,7 @@ export default function MonthlyTrendsPage() {
                         {t.trend || "-"}
                       </span>
                     </td>
-                    <td className="px-4 py-2.5">
+                    <td className="px-3 sm:px-4 py-2.5">
                       <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider ${
                         t.type === "manual"
                           ? "bg-accent/50 text-accent-foreground border border-border"
