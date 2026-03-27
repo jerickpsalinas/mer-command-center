@@ -139,6 +139,20 @@ export default function MonthlyTrendsPage() {
             <Play className="h-3.5 w-3.5" />
             Apply
           </motion.button>
+          <motion.button
+            onClick={handleSaveSnapshot}
+            disabled={isSaving}
+            whileHover={{ scale: isSaving ? 1 : 1.03 }}
+            whileTap={{ scale: isSaving ? 1 : 0.97 }}
+            className={`inline-flex items-center gap-2 rounded-lg px-5 py-2.5 text-sm font-medium transition-all border border-border ${
+              isSaving
+                ? "bg-muted/30 text-muted-foreground cursor-not-allowed"
+                : "bg-accent/50 text-foreground hover:bg-accent/80"
+            }`}
+          >
+            <Save className="h-3.5 w-3.5" />
+            {isSaving ? "Saving…" : "Save Monthly Snapshot"}
+          </motion.button>
           {previous && (
             <div className="ml-auto hidden sm:flex items-center gap-2 rounded-lg bg-muted/30 px-3 py-2">
               <span className="text-xs font-medium text-foreground">{previous.month}</span>
