@@ -317,10 +317,10 @@ export default function MonthlyTrendsPage() {
                 {validTrends.map((t, i) => (
                   <tr key={`${t.month}-${t.type}-${i}`} className={`border-b border-border hover:bg-accent/50 transition-colors cursor-pointer ${i === histIdx ? "bg-primary/5 border-l-2 border-l-primary" : ""} ${compIdxNum !== null && i === compIdxNum ? "bg-accent/30" : ""}`}
                     onClick={() => setSelectedHistoryIdx(i)}>
-                    <td className="px-4 py-2.5 font-medium text-foreground">{t.month}</td>
-                    <td className="px-4 py-2.5 font-mono-data text-success">{t.compliant}</td>
-                    <td className="px-4 py-2.5 font-mono-data text-destructive">{t.nonCompliant}</td>
-                    <td className="px-4 py-2.5 font-mono-data text-foreground">{t.completionPct}%</td>
+                    <td className="px-3 sm:px-4 py-2.5 font-medium text-foreground whitespace-nowrap">{t.month}</td>
+                    <td className="px-3 sm:px-4 py-2.5 font-mono-data text-success">{t.compliant}</td>
+                    <td className="px-3 sm:px-4 py-2.5 font-mono-data text-destructive">{t.nonCompliant}</td>
+                    <td className="px-3 sm:px-4 py-2.5 font-mono-data text-foreground">{t.completionPct}%</td>
                     <td className="px-4 py-2.5">
                       <span className={`text-xs font-medium ${
                         t.trend === "Improving" ? "text-success" : t.trend === "Declining" ? "text-destructive" : "text-muted-foreground"
