@@ -69,6 +69,13 @@ export default function MonthlyTrendsPage() {
   const trendDiff = histPrevious && histCurrent ? histCurrent.completionPct - histPrevious.completionPct : 0;
   const isImproving = histPrevious ? trendDiff >= 0 : false;
 
+  // Compute trend for manual save by comparing to last auto-snapshot
+  const lastAutoSnapshot = autoTrends.length > 0 ? autoTrends[autoTrends.length - 1] : null;
+  const manualTrend = lastAutoSnapshot
+    ? (kpi.avgCompletion > lastAutoSnapshot.completionPct ? "Improving"
+      : kpi.avgCompletion < lastAutoSnapshot.completionPct ? "Declining" : "Stable")
+    : "-";
+
   const handleSaveSnapshot = async () => {
     if (isSaving) return;
     setIsSaving(true);
@@ -78,13 +85,14 @@ export default function MonthlyTrendsPage() {
         compliant: kpi.compliant,
         nonCompliant: kpi.nonCompliant,
         completion: `${kpi.avgCompletion}%`,
-        trend: "-",
+        trend: manualTrend,
+        type: "manual",
       };
       await fetch(
         "https://script.google.com/macros/s/AKfycbx4pYcIhw6Q6KIfwl8Lpt2ydQ_2inlyzQcISJLTK1my1CXw09xrn-MRRKz611i4CqBv/exec",
         { method: "POST", mode: "no-cors", headers: { "Content-Type": "text/plain" }, body: JSON.stringify(payload) }
       );
-      toast({ title: "Monthly snapshot saved", description: `${currentMonthLabel} data sent to Google Sheets` });
+      toast({ title: "Manual snapshot saved", description: `${currentMonthLabel} data sent to Google Sheets (type: manual)` });
     } catch {
       toast({ title: "Failed to save snapshot", variant: "destructive" });
     } finally {
