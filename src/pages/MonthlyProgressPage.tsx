@@ -1,15 +1,31 @@
 import { useState, useMemo, useCallback } from "react";
 
 function formatDateToISO(dateStr: string): string {
-  // Handle MM/DD/YY format
-  const parts = dateStr.split("/");
-  if (parts.length === 3) {
-    const [mm, dd, yy] = parts;
+  if (!dateStr || dateStr.trim() === "") return "—";
+  const trimmed = dateStr.trim();
+
+  // Already YYYY-MM-DD
+  if (/^\d{4}-\d{2}-\d{2}$/.test(trimmed)) return trimmed;
+
+  // MM/DD/YYYY or MM/DD/YY
+  const slashParts = trimmed.split("/");
+  if (slashParts.length === 3) {
+    const [mm, dd, yy] = slashParts;
     const year = parseInt(yy, 10);
     const fullYear = year < 100 ? 2000 + year : year;
     return `${fullYear}-${mm.padStart(2, "0")}-${dd.padStart(2, "0")}`;
   }
-  return dateStr;
+
+  // Try Date parse as fallback (handles "July 31, 2025", etc.)
+  const parsed = new Date(trimmed);
+  if (!isNaN(parsed.getTime())) {
+    const y = parsed.getFullYear();
+    const m = String(parsed.getMonth() + 1).padStart(2, "0");
+    const d = String(parsed.getDate()).padStart(2, "0");
+    return `${y}-${m}-${d}`;
+  }
+
+  return trimmed;
 }
 import StatusBadge from "@/components/StatusBadge";
 import { Search, ArrowUpDown, Filter, ChevronDown } from "lucide-react";
