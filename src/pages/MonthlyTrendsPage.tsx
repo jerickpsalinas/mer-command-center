@@ -305,12 +305,12 @@ export default function MonthlyTrendsPage() {
             <table className="w-full text-sm min-w-[540px]">
               <thead>
                 <tr className="border-b border-border bg-muted/30">
-                  <th className="text-left text-xs font-medium text-muted-foreground uppercase tracking-wide px-4 py-2.5">Month</th>
-                  <th className="text-left text-xs font-medium text-muted-foreground uppercase tracking-wide px-4 py-2.5">Compliant</th>
-                  <th className="text-left text-xs font-medium text-muted-foreground uppercase tracking-wide px-4 py-2.5">Non-Compliant</th>
-                  <th className="text-left text-xs font-medium text-muted-foreground uppercase tracking-wide px-4 py-2.5">Completion %</th>
-                  <th className="text-left text-xs font-medium text-muted-foreground uppercase tracking-wide px-4 py-2.5">Trend</th>
-                  <th className="text-left text-xs font-medium text-muted-foreground uppercase tracking-wide px-4 py-2.5">Type</th>
+                  <th className="text-left text-xs font-medium text-muted-foreground uppercase tracking-wide px-3 sm:px-4 py-2.5">Month</th>
+                  <th className="text-left text-xs font-medium text-muted-foreground uppercase tracking-wide px-3 sm:px-4 py-2.5">Compliant</th>
+                  <th className="text-left text-xs font-medium text-muted-foreground uppercase tracking-wide px-3 sm:px-4 py-2.5">Non-Comp.</th>
+                  <th className="text-left text-xs font-medium text-muted-foreground uppercase tracking-wide px-3 sm:px-4 py-2.5">Completion</th>
+                  <th className="text-left text-xs font-medium text-muted-foreground uppercase tracking-wide px-3 sm:px-4 py-2.5">Trend</th>
+                  <th className="text-left text-xs font-medium text-muted-foreground uppercase tracking-wide px-3 sm:px-4 py-2.5">Type</th>
                 </tr>
               </thead>
               <tbody>
