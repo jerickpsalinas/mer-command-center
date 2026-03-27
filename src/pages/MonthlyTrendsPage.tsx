@@ -33,9 +33,9 @@ export default function MonthlyTrendsPage() {
   // Pending state (what user picks before clicking Apply)
   const [pendingMonth, setPendingMonth] = useState<number | null>(null);
   const [pendingCompare, setPendingCompare] = useState<string>("-");
-  // Applied state (what's actually shown)
   const [appliedMonth, setAppliedMonth] = useState<number | null>(null);
   const [appliedCompare, setAppliedCompare] = useState<string>("-");
+  const [isSaving, setIsSaving] = useState(false);
 
   if (isLoading) return <DataLoading />;
   if (error || !data) return <DataError message={error?.message} />;
