@@ -14,40 +14,21 @@ import { toast } from "@/hooks/use-toast";
 import { motion } from "framer-motion";
 import type { Client } from "@/data/mockData";
 
-function getChartColors() {
-  const root = getComputedStyle(document.documentElement);
-  const get = (v: string) => `hsl(${root.getPropertyValue(v).trim()})`;
-  return {
-    primary: get("--primary"),
-    success: get("--success"),
-    warning: get("--warning"),
-    destructive: get("--destructive"),
-    muted: get("--muted-foreground"),
-    grid: get("--border"),
-    bg: get("--background"),
-    foreground: get("--foreground"),
-    card: get("--card"),
-  };
-}
-
-const tooltipStyleFromTheme = () => {
-  const root = getComputedStyle(document.documentElement);
-  const get = (v: string) => `hsl(${root.getPropertyValue(v).trim()})`;
-  return {
-    background: get("--popover"),
-    border: `1px solid ${get("--border")}`,
-    borderRadius: "10px",
-    fontSize: "12px",
-    color: get("--foreground"),
-    boxShadow: "0 8px 24px -6px rgba(0,0,0,0.3)",
-  };
+const CHART_COLORS = {
+  primary: "hsl(340, 45%, 55%)",
+  success: "hsl(160, 55%, 42%)",
+  warning: "hsl(38, 80%, 52%)",
+  destructive: "hsl(0, 65%, 50%)",
+  muted: "hsl(25, 10%, 50%)",
+  grid: "hsl(20, 8%, 16%)",
+  bg: "hsl(20, 10%, 11%)",
 };
 
 const CustomTooltip = ({ active, payload, label }: any) => {
   if (!active || !payload?.length) return null;
   return (
-    <div style={tooltipStyle} className="px-3 py-2">
-      <p className="text-xs font-semibold text-foreground mb-1">{label}</p>
+    <div className="px-3 py-2 rounded-[10px] text-xs border border-border bg-popover text-foreground shadow-elevated">
+      <p className="font-semibold text-foreground mb-1">{label}</p>
       {payload.map((p: any, i: number) => (
         <p key={i} className="text-[11px]" style={{ color: p.color || p.fill }}>
           {p.name}: <span className="font-mono-data font-semibold">{p.value}{typeof p.value === 'number' && p.unit ? p.unit : ''}</span>
