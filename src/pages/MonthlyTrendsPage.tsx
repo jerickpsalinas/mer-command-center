@@ -301,8 +301,8 @@ export default function MonthlyTrendsPage() {
 
           {/* Data table */}
           <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.5 }}
-            className="rounded-xl border border-border bg-card shadow-card overflow-x-auto">
-            <table className="w-full text-sm">
+            className="rounded-xl border border-border bg-card shadow-card overflow-x-auto -mx-5 sm:mx-0">
+            <table className="w-full text-sm min-w-[540px]">
               <thead>
                 <tr className="border-b border-border bg-muted/30">
                   <th className="text-left text-xs font-medium text-muted-foreground uppercase tracking-wide px-4 py-2.5">Month</th>
