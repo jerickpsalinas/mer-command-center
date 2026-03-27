@@ -1,7 +1,8 @@
-import { useState, useCallback } from "react";
+import { useState } from "react";
 import KPICard from "@/components/KPICard";
 import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from "recharts";
-import { TrendingUp, TrendingDown, CheckCircle2, XCircle, ArrowRight, Play } from "lucide-react";
+import { TrendingUp, TrendingDown, CheckCircle2, XCircle, ArrowRight, Play, Save } from "lucide-react";
+import { toast } from "@/hooks/use-toast";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { motion, AnimatePresence } from "framer-motion";
 import { useSheetData } from "@/hooks/useSheetData";
@@ -32,9 +33,9 @@ export default function MonthlyTrendsPage() {
   // Pending state (what user picks before clicking Apply)
   const [pendingMonth, setPendingMonth] = useState<number | null>(null);
   const [pendingCompare, setPendingCompare] = useState<string>("-");
-  // Applied state (what's actually shown)
   const [appliedMonth, setAppliedMonth] = useState<number | null>(null);
   const [appliedCompare, setAppliedCompare] = useState<string>("-");
+  const [isSaving, setIsSaving] = useState(false);
 
   if (isLoading) return <DataLoading />;
   if (error || !data) return <DataError message={error?.message} />;
@@ -70,6 +71,30 @@ export default function MonthlyTrendsPage() {
   const handleApply = () => {
     setAppliedMonth(pendingIdx);
     setAppliedCompare(pendingCompare);
+  };
+
+  const handleSaveSnapshot = async () => {
+    if (isSaving || !current?.month || current.compliant == null || current.nonCompliant == null) return;
+    setIsSaving(true);
+    try {
+      const payload = {
+        month: current.month,
+        compliant: current.compliant,
+        nonCompliant: current.nonCompliant,
+        completion: `${current.completionPct}%`,
+        trend: previous ? (isImproving ? "Improving" : "Declining") : "-",
+      };
+      const res = await fetch(
+        "https://script.google.com/macros/s/AKfycbyvS5rAd82eeX4kom8ac_cepHs8a6B_RnORqfuSOU-AOP3aSwF9y9RzTq4xjQf46SNG/exec",
+        { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) }
+      );
+      if (!res.ok) throw new Error();
+      toast({ title: "Monthly snapshot saved" });
+    } catch {
+      toast({ title: "Failed to save snapshot", variant: "destructive" });
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   return (
@@ -113,6 +138,20 @@ export default function MonthlyTrendsPage() {
           >
             <Play className="h-3.5 w-3.5" />
             Apply
+          </motion.button>
+          <motion.button
+            onClick={handleSaveSnapshot}
+            disabled={isSaving}
+            whileHover={{ scale: isSaving ? 1 : 1.03 }}
+            whileTap={{ scale: isSaving ? 1 : 0.97 }}
+            className={`inline-flex items-center gap-2 rounded-lg px-5 py-2.5 text-sm font-medium transition-all border border-border ${
+              isSaving
+                ? "bg-muted/30 text-muted-foreground cursor-not-allowed"
+                : "bg-accent/50 text-foreground hover:bg-accent/80"
+            }`}
+          >
+            <Save className="h-3.5 w-3.5" />
+            {isSaving ? "Saving…" : "Save Monthly Snapshot"}
           </motion.button>
           {previous && (
             <div className="ml-auto hidden sm:flex items-center gap-2 rounded-lg bg-muted/30 px-3 py-2">
