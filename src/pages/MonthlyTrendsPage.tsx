@@ -164,7 +164,7 @@ export default function MonthlyTrendsPage() {
               <div className="flex flex-col gap-1.5">
                 <label className="text-[11px] font-medium text-muted-foreground uppercase tracking-wider">Compare To</label>
                 <Select value={compareIdx} onValueChange={(v) => setCompareIdx(v)}>
-                  <SelectTrigger className="min-w-[160px] bg-muted/30 border-border">
+                  <SelectTrigger className="w-full sm:min-w-[160px] bg-muted/30 border-border">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
