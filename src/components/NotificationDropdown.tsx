@@ -122,15 +122,9 @@ function generateNotifications(clients: Client[], trends: MonthlyTrend[]): Notif
   return notes;
 }
 
-const variantDot: Record<string, string> = {
-  success: "bg-success",
-  destructive: "bg-destructive",
-  warning: "bg-warning",
-  default: "bg-muted-foreground",
-};
-
 export default function NotificationDropdown({ clients, trends }: { clients: Client[]; trends: MonthlyTrend[] }) {
   const [open, setOpen] = useState(false);
+  const [filterVariant, setFilterVariant] = useState<string | null>(null);
   const ref = useRef<HTMLDivElement>(null);
   const notifications = generateNotifications(clients, trends);
 
@@ -144,6 +138,13 @@ export default function NotificationDropdown({ clients, trends }: { clients: Cli
 
   const criticalCount = notifications.filter(n => n.variant === "destructive").length;
   const warningCount = notifications.filter(n => n.variant === "warning").length;
+  const successCount = notifications.filter(n => n.variant === "success").length;
+
+  const displayed = filterVariant ? notifications.filter(n => n.variant === filterVariant) : notifications;
+
+  const toggleFilter = (variant: string) => {
+    setFilterVariant(prev => prev === variant ? null : variant);
+  };
 
   return (
     <div className="relative" ref={ref}>
@@ -166,28 +167,39 @@ export default function NotificationDropdown({ clients, trends }: { clients: Cli
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: -4, scale: 0.97 }}
             transition={{ duration: 0.15 }}
-            className="absolute right-0 top-11 w-[360px] sm:w-96 rounded-xl border border-border bg-card shadow-elevated z-50 overflow-hidden"
+            className="absolute right-0 top-11 w-[360px] sm:w-96 rounded-xl border border-border bg-card shadow-elevated z-50"
           >
             <div className="px-4 py-3 border-b border-border">
               <div className="flex items-center justify-between">
                 <p className="text-xs font-semibold text-foreground">Notifications</p>
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-1.5">
                   {criticalCount > 0 && (
-                    <span className="inline-flex items-center gap-1 rounded-full bg-destructive/10 px-2 py-0.5 text-[10px] font-semibold text-destructive">
+                    <button onClick={() => toggleFilter("destructive")}
+                      className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold transition-colors cursor-pointer ${filterVariant === "destructive" ? "bg-destructive text-destructive-foreground ring-1 ring-destructive" : "bg-destructive/10 text-destructive hover:bg-destructive/20"}`}>
                       {criticalCount} critical
-                    </span>
+                    </button>
                   )}
                   {warningCount > 0 && (
-                    <span className="inline-flex items-center gap-1 rounded-full bg-warning/10 px-2 py-0.5 text-[10px] font-semibold text-warning">
+                    <button onClick={() => toggleFilter("warning")}
+                      className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold transition-colors cursor-pointer ${filterVariant === "warning" ? "bg-warning text-warning-foreground ring-1 ring-warning" : "bg-warning/10 text-warning hover:bg-warning/20"}`}>
                       {warningCount} warnings
-                    </span>
+                    </button>
+                  )}
+                  {successCount > 0 && (
+                    <button onClick={() => toggleFilter("success")}
+                      className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold transition-colors cursor-pointer ${filterVariant === "success" ? "bg-success text-success-foreground ring-1 ring-success" : "bg-success/10 text-success hover:bg-success/20"}`}>
+                      {successCount} good
+                    </button>
                   )}
                 </div>
               </div>
-              <p className="text-[11px] text-muted-foreground mt-0.5">{notifications.length} updates from live data</p>
+              <p className="text-[11px] text-muted-foreground mt-0.5">
+                {filterVariant ? `${displayed.length} of ${notifications.length}` : notifications.length} updates from live data
+                {filterVariant && <button onClick={() => setFilterVariant(null)} className="ml-1.5 text-primary hover:underline cursor-pointer">clear</button>}
+              </p>
             </div>
-            <div className="max-h-[400px] overflow-y-auto">
-              {notifications.map((n, i) => (
+            <div>
+              {displayed.map((n, i) => (
                 <motion.div key={n.id}
                   initial={{ opacity: 0, x: -8 }}
                   animate={{ opacity: 1, x: 0 }}

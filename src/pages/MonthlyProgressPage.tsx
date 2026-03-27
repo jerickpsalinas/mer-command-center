@@ -1,4 +1,16 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useCallback } from "react";
+
+function formatDateToISO(dateStr: string): string {
+  // Handle MM/DD/YY format
+  const parts = dateStr.split("/");
+  if (parts.length === 3) {
+    const [mm, dd, yy] = parts;
+    const year = parseInt(yy, 10);
+    const fullYear = year < 100 ? 2000 + year : year;
+    return `${fullYear}-${mm.padStart(2, "0")}-${dd.padStart(2, "0")}`;
+  }
+  return dateStr;
+}
 import StatusBadge from "@/components/StatusBadge";
 import { Search, ArrowUpDown, Filter, ChevronDown } from "lucide-react";
 import { motion } from "framer-motion";
@@ -128,7 +140,7 @@ export default function MonthlyProgressPage() {
                     <td className="px-4 py-3 font-mono-data text-[13px] text-foreground">{c.undepositedFunds}</td>
                     <td className="px-4 py-3 font-mono-data text-[13px] text-foreground">{c.unappliedPayments}</td>
                     <td className="px-4 py-3 whitespace-nowrap"><StatusBadge status={c.statementRequestStatus === "Received" ? "Received" : "Not Received"} /></td>
-                    <td className="px-4 py-3 font-mono-data text-[13px] text-muted-foreground whitespace-nowrap">{c.lastReconciledDate}</td>
+                    <td className="px-4 py-3 font-mono-data text-[13px] text-muted-foreground whitespace-nowrap">{formatDateToISO(c.lastReconciledDate)}</td>
                     <td className="px-4 py-3 whitespace-nowrap"><StatusBadge status={c.prevMonthNotesApproved ? "Yes" : "No"} /></td>
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-2.5">
