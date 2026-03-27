@@ -1,13 +1,16 @@
+import { useRef, useCallback, useState as useLocalState } from "react";
 import {
   Users, CheckCircle2, XCircle, Pause, TrendingUp, AlertTriangle,
-  FileText, StickyNote, Award, Clock, AlertCircle, ChevronRight, ShieldAlert, BarChart3,
+  FileText, StickyNote, Award, Clock, AlertCircle, ChevronRight, ShieldAlert, BarChart3, Camera,
 } from "lucide-react";
 import { LineChart, Line, BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from "recharts";
+import html2canvas from "html2canvas";
 import KPICard from "@/components/KPICard";
 import ComplianceProgress from "@/components/ComplianceProgress";
 import StatusBadge from "@/components/StatusBadge";
 import { useSheetData, getKPIMetrics, getComplianceBreakdown, getNeedsAttention, getBookkeeperStats } from "@/hooks/useSheetData";
 import { DataLoading, DataError } from "@/components/DataStatus";
+import { toast } from "@/hooks/use-toast";
 import { motion } from "framer-motion";
 import type { Client } from "@/data/mockData";
 
