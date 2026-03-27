@@ -150,6 +150,8 @@ export default function AppLayout() {
 
           <div className="flex-1" />
 
+          <ThemeToggleButton />
+
           <button
             onClick={handleRefresh}
             disabled={isFetching > 0}
