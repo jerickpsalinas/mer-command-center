@@ -51,6 +51,7 @@ export default function MonthlyTrendsPage() {
 
   // Historical trends from the Monthly Trends sheet
   const validTrends = monthlyTrends.filter(t => t.compliant > 0 || t.nonCompliant > 0 || t.completionPct > 0);
+  const autoTrends = validTrends.filter(t => t.type !== "manual");
   const hasHistory = validTrends.length > 0;
 
   // Comparison logic for historical data
