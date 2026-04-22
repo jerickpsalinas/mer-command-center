@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { fetchSheetData, type SheetData } from "@/services/googleSheets";
+import { fetchSheetData, type SheetData, type MerHistoryRow } from "@/services/googleSheets";
 import type { Client, MonthlyTrend } from "@/data/mockData";
 
 export function useSheetData(autoRefresh = true) {
@@ -12,6 +12,69 @@ export function useSheetData(autoRefresh = true) {
     refetchInterval: autoRefresh ? 60_000 : false,
   });
 }
+
+/**
+ * Build a clients snapshot for a given month label (e.g. "May 2025").
+ * Returns the latest submission per client within that month.
+ */
+export function getClientsForMonth(merHistory: MerHistoryRow[], monthLabel: string): Client[] {
+  if (!monthLabel) return [];
+  const inMonth = merHistory.filter((r) => r.month === monthLabel);
+  const latestByClient = new Map<string, MerHistoryRow>();
+  for (const row of inMonth) {
+    const existing = latestByClient.get(row.name);
+    if (!existing || row.timestampMs >= existing.timestampMs) latestByClient.set(row.name, row);
+  }
+  return Array.from(latestByClient.values()).map((r, i) => ({ ...r, id: String(i + 1) }));
+}
+
+/**
+ * Filter merHistory by ISO date range (inclusive). Bounds are yyyy-mm-dd.
+ */
+export function filterHistoryByDateRange(
+  merHistory: MerHistoryRow[],
+  fromIso?: string,
+  toIso?: string
+): MerHistoryRow[] {
+  return merHistory.filter((r) => {
+    if (!r.monthDate) return false;
+    if (fromIso && r.monthDate < fromIso) return false;
+    if (toIso && r.monthDate > toIso) return false;
+    return true;
+  });
+}
+
+/**
+ * Group history rows by month label, latest submission per client per month.
+ */
+export function groupHistoryByMonth(rows: MerHistoryRow[]): Map<string, Client[]> {
+  const byMonth = new Map<string, Map<string, MerHistoryRow>>();
+  for (const r of rows) {
+    if (!byMonth.has(r.month)) byMonth.set(r.month, new Map());
+    const inner = byMonth.get(r.month)!;
+    const existing = inner.get(r.name);
+    if (!existing || r.timestampMs >= existing.timestampMs) inner.set(r.name, r);
+  }
+  const out = new Map<string, Client[]>();
+  for (const [month, inner] of byMonth) {
+    out.set(month, Array.from(inner.values()).map((r, i) => ({ ...r, id: String(i + 1) })));
+  }
+  return out;
+}
+
+/**
+ * For a single client name, return their row for every month they appear in (asc).
+ */
+export function getClientHistory(merHistory: MerHistoryRow[], clientName: string): MerHistoryRow[] {
+  const rows = merHistory.filter((r) => r.name === clientName);
+  const byMonth = new Map<string, MerHistoryRow>();
+  for (const r of rows) {
+    const existing = byMonth.get(r.month);
+    if (!existing || r.timestampMs >= existing.timestampMs) byMonth.set(r.month, r);
+  }
+  return Array.from(byMonth.values()).sort((a, b) => a.monthDate.localeCompare(b.monthDate));
+}
+
 
 // Derived helpers that mirror the old mockData functions
 export function getKPIMetrics(clients: Client[]) {
