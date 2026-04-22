@@ -125,10 +125,48 @@ export default function ClientsPage() {
   const clientTypes = Array.from(new Set(data.clients.map((c) => c.clientType))).sort();
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 density-space-y-6">
+      {/* Sticky sub-header (#3) — appears once user scrolls past the chart */}
+      <StickyPageHeader>
+        <span className="inline-flex items-center gap-1.5 rounded-full bg-card px-2.5 py-1 text-[11px] font-semibold text-foreground border border-border">
+          <Search className="h-3 w-3 text-muted-foreground" />
+          {filtered.length} of {data.clients.length}
+        </span>
+        {statusFilter !== "all" && (
+          <span className="inline-flex items-center gap-1 rounded-full bg-primary/10 text-primary px-2 py-0.5 text-[11px] font-medium border border-primary/20">
+            {statusFilter}
+            <button onClick={() => setStatusFilter("all")} className="hover:text-destructive"><X className="h-2.5 w-2.5" /></button>
+          </span>
+        )}
+        {bookkeeperFilter && (
+          <span className="inline-flex items-center gap-1 rounded-full bg-primary/10 text-primary px-2 py-0.5 text-[11px] font-medium border border-primary/20">
+            BK: {bookkeeperFilter}
+            <button onClick={() => setBookkeeperFilter("")} className="hover:text-destructive"><X className="h-2.5 w-2.5" /></button>
+          </span>
+        )}
+        {typeFilter && (
+          <span className="inline-flex items-center gap-1 rounded-full bg-primary/10 text-primary px-2 py-0.5 text-[11px] font-medium border border-primary/20">
+            {typeFilter}
+            <button onClick={() => setTypeFilter("")} className="hover:text-destructive"><X className="h-2.5 w-2.5" /></button>
+          </span>
+        )}
+        {minCompletion > 0 && (
+          <span className="inline-flex items-center gap-1 rounded-full bg-primary/10 text-primary px-2 py-0.5 text-[11px] font-medium border border-primary/20">
+            ≥ {minCompletion}%
+            <button onClick={() => setMinCompletion(0)} className="hover:text-destructive"><X className="h-2.5 w-2.5" /></button>
+          </span>
+        )}
+        {search && (
+          <span className="inline-flex items-center gap-1 rounded-full bg-primary/10 text-primary px-2 py-0.5 text-[11px] font-medium border border-primary/20 max-w-[160px] truncate">
+            "{search}"
+            <button onClick={() => setSearch("")} className="hover:text-destructive shrink-0"><X className="h-2.5 w-2.5" /></button>
+          </span>
+        )}
+      </StickyPageHeader>
+
       <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4 }}
         whileHover={{ scale: 1.003 }}
-        className="rounded-xl border border-border bg-card p-4 sm:p-6 shadow-card hover:shadow-card-hover transition-[box-shadow] duration-300">
+        className="rounded-xl border border-border bg-card p-4 sm:p-6 density-card shadow-card hover:shadow-card-hover transition-[box-shadow] duration-300">
         <h2 className="text-sm font-semibold text-foreground mb-1 flex items-center gap-2">
           <BarChart3 className="h-4 w-4 text-primary" />
           Lowest Completion % Clients
