@@ -4,10 +4,10 @@ import { createContext, useContext, useEffect, useMemo, useState, type ReactNode
 /*  At-Risk thresholds (configurable in Settings, used app-wide)      */
 /* ------------------------------------------------------------------ */
 export interface AtRiskThresholds {
-  consecutiveNonCompliantMonths: number; // ≥ N → at risk
-  completionDropMonths: number;          // dropping for ≥ N consecutive months → at risk
-  stuckInStageDays: number;              // days in same Master Cycle stage → at risk
-  lowCompletionPct: number;              // single-month low-completion threshold
+  consecutiveNonCompliantMonths: number;
+  completionDropMonths: number;
+  stuckInStageDays: number;
+  lowCompletionPct: number;
 }
 
 export const DEFAULT_THRESHOLDS: AtRiskThresholds = {
@@ -21,7 +21,7 @@ export const DEFAULT_THRESHOLDS: AtRiskThresholds = {
 /*  Notification preferences                                          */
 /* ------------------------------------------------------------------ */
 export interface NotificationPrefs {
-  bookkeeperFilter: string;       // "" = all, otherwise bookkeeper name
+  bookkeeperFilter: string;
   showCritical: boolean;
   showWarnings: boolean;
   showInfo: boolean;
@@ -44,19 +44,26 @@ export interface SavedFilter {
   name: string;
   search: string;
   status: "all" | "Compliant" | "Non-Compliant" | "On Hold";
-  bookkeeper: string;     // "" = any
-  clientType: string;     // "" = any
-  minCompletion: number;  // 0–100
+  bookkeeper: string;
+  clientType: string;
+  minCompletion: number;
 }
+
+/* ------------------------------------------------------------------ */
+/*  Density (#4)                                                      */
+/* ------------------------------------------------------------------ */
+export type Density = "comfortable" | "compact";
 
 interface UserSettings {
   thresholds: AtRiskThresholds;
   notifPrefs: NotificationPrefs;
   savedFilters: SavedFilter[];
+  density: Density;
   setThresholds: (t: AtRiskThresholds) => void;
   setNotifPrefs: (p: NotificationPrefs) => void;
   saveFilter: (f: Omit<SavedFilter, "id">) => void;
   deleteFilter: (id: string) => void;
+  setDensity: (d: Density) => void;
 }
 
 const KEY = "mer-user-settings-v1";
@@ -66,12 +73,13 @@ interface Persisted {
   thresholds?: Partial<AtRiskThresholds>;
   notifPrefs?: Partial<NotificationPrefs>;
   savedFilters?: SavedFilter[];
+  density?: Density;
 }
 
 function load(): Persisted {
   try {
     const raw = localStorage.getItem(KEY);
-    return raw ? JSON.parse(raw) as Persisted : {};
+    return raw ? (JSON.parse(raw) as Persisted) : {};
   } catch {
     return {};
   }
@@ -86,20 +94,28 @@ export function UserSettingsProvider({ children }: { children: ReactNode }) {
   const [thresholds, setThresholdsState] = useState<AtRiskThresholds>({ ...DEFAULT_THRESHOLDS, ...initial.thresholds });
   const [notifPrefs, setNotifPrefsState] = useState<NotificationPrefs>({ ...DEFAULT_NOTIF_PREFS, ...initial.notifPrefs });
   const [savedFilters, setSavedFilters] = useState<SavedFilter[]>(initial.savedFilters ?? []);
+  const [density, setDensityState] = useState<Density>(initial.density ?? "comfortable");
 
   useEffect(() => {
-    save({ thresholds, notifPrefs, savedFilters });
-  }, [thresholds, notifPrefs, savedFilters]);
+    save({ thresholds, notifPrefs, savedFilters, density });
+  }, [thresholds, notifPrefs, savedFilters, density]);
+
+  // Apply density to <html> for global CSS hooks
+  useEffect(() => {
+    document.documentElement.setAttribute("data-density", density);
+  }, [density]);
 
   const value = useMemo<UserSettings>(() => ({
     thresholds,
     notifPrefs,
     savedFilters,
+    density,
     setThresholds: setThresholdsState,
     setNotifPrefs: setNotifPrefsState,
     saveFilter: (f) => setSavedFilters((curr) => [...curr, { ...f, id: crypto.randomUUID() }]),
     deleteFilter: (id) => setSavedFilters((curr) => curr.filter((x) => x.id !== id)),
-  }), [thresholds, notifPrefs, savedFilters]);
+    setDensity: setDensityState,
+  }), [thresholds, notifPrefs, savedFilters, density]);
 
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
 }

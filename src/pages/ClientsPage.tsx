@@ -1,4 +1,7 @@
 import StatusBadge from "@/components/StatusBadge";
+import StickyPageHeader from "@/components/StickyPageHeader";
+import ClientSparkline from "@/components/ClientSparkline";
+import SwipeableCard from "@/components/SwipeableCard";
 import { useMemo, useState } from "react";
 import { Search, AlertTriangle, ArrowUpDown, BarChart3, History, TrendingUp, Bookmark, BookmarkPlus, X, Filter, ArrowUp, ArrowDown, Minus } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
@@ -122,10 +125,48 @@ export default function ClientsPage() {
   const clientTypes = Array.from(new Set(data.clients.map((c) => c.clientType))).sort();
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 density-space-y-6">
+      {/* Sticky sub-header (#3) — appears once user scrolls past the chart */}
+      <StickyPageHeader>
+        <span className="inline-flex items-center gap-1.5 rounded-full bg-card px-2.5 py-1 text-[11px] font-semibold text-foreground border border-border">
+          <Search className="h-3 w-3 text-muted-foreground" />
+          {filtered.length} of {data.clients.length}
+        </span>
+        {statusFilter !== "all" && (
+          <span className="inline-flex items-center gap-1 rounded-full bg-primary/10 text-primary px-2 py-0.5 text-[11px] font-medium border border-primary/20">
+            {statusFilter}
+            <button onClick={() => setStatusFilter("all")} className="hover:text-destructive"><X className="h-2.5 w-2.5" /></button>
+          </span>
+        )}
+        {bookkeeperFilter && (
+          <span className="inline-flex items-center gap-1 rounded-full bg-primary/10 text-primary px-2 py-0.5 text-[11px] font-medium border border-primary/20">
+            BK: {bookkeeperFilter}
+            <button onClick={() => setBookkeeperFilter("")} className="hover:text-destructive"><X className="h-2.5 w-2.5" /></button>
+          </span>
+        )}
+        {typeFilter && (
+          <span className="inline-flex items-center gap-1 rounded-full bg-primary/10 text-primary px-2 py-0.5 text-[11px] font-medium border border-primary/20">
+            {typeFilter}
+            <button onClick={() => setTypeFilter("")} className="hover:text-destructive"><X className="h-2.5 w-2.5" /></button>
+          </span>
+        )}
+        {minCompletion > 0 && (
+          <span className="inline-flex items-center gap-1 rounded-full bg-primary/10 text-primary px-2 py-0.5 text-[11px] font-medium border border-primary/20">
+            ≥ {minCompletion}%
+            <button onClick={() => setMinCompletion(0)} className="hover:text-destructive"><X className="h-2.5 w-2.5" /></button>
+          </span>
+        )}
+        {search && (
+          <span className="inline-flex items-center gap-1 rounded-full bg-primary/10 text-primary px-2 py-0.5 text-[11px] font-medium border border-primary/20 max-w-[160px] truncate">
+            "{search}"
+            <button onClick={() => setSearch("")} className="hover:text-destructive shrink-0"><X className="h-2.5 w-2.5" /></button>
+          </span>
+        )}
+      </StickyPageHeader>
+
       <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4 }}
         whileHover={{ scale: 1.003 }}
-        className="rounded-xl border border-border bg-card p-4 sm:p-6 shadow-card hover:shadow-card-hover transition-[box-shadow] duration-300">
+        className="rounded-xl border border-border bg-card p-4 sm:p-6 density-card shadow-card hover:shadow-card-hover transition-[box-shadow] duration-300">
         <h2 className="text-sm font-semibold text-foreground mb-1 flex items-center gap-2">
           <BarChart3 className="h-4 w-4 text-primary" />
           Lowest Completion % Clients
@@ -223,27 +264,25 @@ export default function ClientsPage() {
         </div>
       </motion.div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 density-gap-3">
         {filtered.map((c, i) => {
           const issues = getIssueDetails(c);
-          return (
-            <motion.button
-              key={c.id}
-              onClick={() => setHistoryClient(c.name)}
-              initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.05 + i * 0.015 }}
-              whileHover={{ scale: 1.01, y: -2 }}
-              className="text-left rounded-xl border border-border bg-card p-4 shadow-card hover:shadow-card-hover transition-[box-shadow] duration-300 group focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40">
-              <div className="flex items-start justify-between mb-3">
-                <div>
-                  <h3 className="text-sm font-semibold text-foreground leading-tight">{c.name}</h3>
-                  <p className="text-xs text-muted-foreground mt-0.5">{c.clientType} · {c.bookkeeper}</p>
+          const cardInner = (
+            <div className="text-left p-4 density-card group">
+              <div className="flex items-start justify-between mb-3 gap-2">
+                <div className="min-w-0">
+                  <h3 className="text-sm font-semibold text-foreground leading-tight truncate">{c.name}</h3>
+                  <p className="text-xs text-muted-foreground mt-0.5 truncate">{c.clientType} · {c.bookkeeper}</p>
                 </div>
                 <StatusBadge status={c.complianceStatus} />
               </div>
               <div className="mb-2">
-                <div className="flex items-center justify-between text-[11px] mb-1">
+                <div className="flex items-center justify-between text-[11px] mb-1 gap-2">
                   <span className="text-muted-foreground">Completion</span>
-                  <span className="font-mono-data font-semibold text-foreground">{c.completionPct}%</span>
+                  <span className="inline-flex items-center gap-2">
+                    <ClientSparkline clientName={c.name} history={data.merHistory} />
+                    <span className="font-mono-data font-semibold text-foreground tabular-nums">{c.completionPct}%</span>
+                  </span>
                 </div>
                 <div className="h-1.5 rounded-full bg-muted overflow-hidden">
                   <div className="h-full rounded-full transition-all duration-500"
@@ -270,10 +309,33 @@ export default function ClientsPage() {
                 </div>
               )}
               <div className="mt-3 pt-2 border-t border-border/50 flex items-center justify-between text-[10px] text-muted-foreground/70 group-hover:text-primary transition-colors">
-                <span className="flex items-center gap-1"><History className="h-3 w-3" /> View history</span>
+                <span className="flex items-center gap-1"><History className="h-3 w-3" /> Tap to view history <span className="hidden sm:inline">· swipe ←</span></span>
                 <span>›</span>
               </div>
-            </motion.button>
+            </div>
+          );
+
+          return (
+            <motion.div
+              key={c.id}
+              initial={{ opacity: 0, y: 12 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.05 + i * 0.015 }}
+              whileHover={{ scale: 1.01, y: -2 }}
+              className="rounded-xl border border-border bg-card shadow-card hover:shadow-card-hover transition-[box-shadow] duration-300"
+            >
+              <SwipeableCard
+                onTap={() => setHistoryClient(c.name)}
+                leftAction={{
+                  label: "History",
+                  icon: History,
+                  color: "bg-primary text-primary-foreground",
+                  onAction: () => setHistoryClient(c.name),
+                }}
+              >
+                {cardInner}
+              </SwipeableCard>
+            </motion.div>
           );
         })}
       </div>

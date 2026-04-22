@@ -8,10 +8,9 @@ import { useUserSettings, DEFAULT_THRESHOLDS, DEFAULT_NOTIF_PREFS } from "@/hook
 export default function SettingsPage() {
   const [autoRefresh, setAutoRefresh] = useState(true);
   const [refreshInterval, setRefreshInterval] = useState(60);
-  const [compactMode, setCompactMode] = useState(false);
   const { data } = useSheetData();
   const { theme, toggle } = useTheme();
-  const { thresholds, setThresholds, notifPrefs, setNotifPrefs } = useUserSettings();
+  const { thresholds, setThresholds, notifPrefs, setNotifPrefs, density, setDensity } = useUserSettings();
   const allBookkeepers = data?.bookkeepers ?? [];
 
   // Derive review period from data
@@ -289,21 +288,24 @@ export default function SettingsPage() {
               />
             </button>
           </div>
-          <div className="flex items-center justify-between px-6 py-4">
-            <div>
-              <p className="text-sm font-medium text-foreground">Compact Mode</p>
-              <p className="text-xs text-muted-foreground">Reduce card spacing and padding</p>
+          <div className="flex items-center justify-between gap-3 px-6 py-4">
+            <div className="min-w-0">
+              <p className="text-sm font-medium text-foreground">Density</p>
+              <p className="text-xs text-muted-foreground">Comfortable spacing or tighter, more data on screen</p>
             </div>
-            <button
-              onClick={() => setCompactMode(!compactMode)}
-              className={`relative h-6 w-11 rounded-full transition-colors duration-200 ${compactMode ? "bg-primary" : "bg-muted"}`}
-            >
-              <motion.div
-                animate={{ x: compactMode ? 20 : 2 }}
-                transition={{ type: "spring", stiffness: 500, damping: 30 }}
-                className="absolute top-1 h-4 w-4 rounded-full bg-primary-foreground shadow-sm"
-              />
-            </button>
+            <div className="inline-flex rounded-lg border border-border bg-muted p-0.5 shrink-0">
+              {(["comfortable", "compact"] as const).map((d) => (
+                <button
+                  key={d}
+                  onClick={() => setDensity(d)}
+                  className={`px-3 py-1 text-[11px] font-semibold rounded-md transition-colors capitalize ${
+                    density === d ? "bg-card text-foreground shadow-card" : "text-muted-foreground hover:text-foreground"
+                  }`}
+                >
+                  {d}
+                </button>
+              ))}
+            </div>
           </div>
           <div className="flex items-center justify-between px-6 py-4">
             <div>

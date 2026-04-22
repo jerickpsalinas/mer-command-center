@@ -177,6 +177,22 @@
   }
 }
 
+/* ── Density mode (#4) ─────────────────────────────────────────────
+   Toggled by setting data-density="compact" on <html>.
+   Tightens padding inside common surfaces and slightly shrinks gaps. */
+:root[data-density="compact"] .density-card { padding: 0.75rem !important; }
+:root[data-density="compact"] .density-gap-3 { gap: 0.5rem !important; }
+:root[data-density="compact"] .density-gap-6 { gap: 0.875rem !important; }
+:root[data-density="compact"] .density-space-y-6 > * + * { margin-top: 0.875rem !important; }
+:root[data-density="compact"] .density-text { font-size: 0.78rem; }
+
+/* ── Print-friendly (light bonus) ──────────────────────────────── */
+@media print {
+  aside, header, footer, nav, .glass-panel { display: none !important; }
+  main { padding: 0 !important; max-width: 100% !important; }
+  .shadow-card, .shadow-card-hover, .shadow-elevated { box-shadow: none !important; }
+}
+
 /* Custom scrollbar styles */
 .scrollbar-thin {
   scrollbar-width: thin;

@@ -1,6 +1,7 @@
 import * as React from "react";
 
 import type { ToastActionElement, ToastProps } from "@/components/ui/toast";
+import { logToast, type ToastVariant } from "@/lib/toastLog";
 
 const TOAST_LIMIT = 1;
 const TOAST_REMOVE_DELAY = 1000000;
@@ -154,6 +155,17 @@ function toast({ ...props }: Toast) {
         if (!open) dismiss();
       },
     },
+  });
+
+  // #14 — pipe toasts into the persistent notification log
+  const variant: ToastVariant =
+    props.variant === "destructive" ? "destructive" :
+    (props as { variant?: string }).variant === "success" ? "success" :
+    (props as { variant?: string }).variant === "warning" ? "warning" : "default";
+  logToast({
+    title: typeof props.title === "string" ? props.title : undefined,
+    description: typeof props.description === "string" ? props.description : undefined,
+    variant,
   });
 
   return {

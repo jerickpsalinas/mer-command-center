@@ -26,3 +26,4 @@
 - [Theme Management](mem://features/theme-management) — Dark/light mode switching
 - [Master Bookkeeping Cycle](mem://features/master-cycle) — /master-cycle page from Bookkeeping Log tab: grouped cycles, stage timeline, escalation
 - [MER history & exports](mem://features/mer-history-exports) — Dashboard month picker, per-client history dialog, Export Center (XLSX/PDF/CSV) for any month or range
+- [UX Enhancements Batch 2](mem://features/ux-enhancements-batch-2) — Sticky sub-header, density toggle, sparklines, optimistic refresh, animated KPIs, toast→notif bridge, mobile bottom tab bar, swipe gestures
