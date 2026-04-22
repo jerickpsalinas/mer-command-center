@@ -5,6 +5,7 @@ import { NavLink } from "@/components/NavLink";
 import { useSheetData } from "@/hooks/useSheetData";
 import { useTheme } from "@/hooks/useTheme";
 import NotificationDropdown from "@/components/NotificationDropdown";
+import MobileTabBar from "@/components/MobileTabBar";
 import {
   LayoutDashboard, CalendarCheck, TrendingUp, Users, FileText, Settings,
   Menu, X, ChevronLeft, RefreshCw, Sun, Moon, Workflow, UserCheck,
@@ -196,16 +197,22 @@ export default function AppLayout() {
           </div>
         </header>
 
-        <main className="flex-1 px-3 py-4 sm:px-5 sm:py-5 lg:p-8 w-full max-w-[1600px] mx-auto overflow-x-hidden">
+        <main
+          className="flex-1 px-3 py-4 sm:px-5 sm:py-5 lg:p-8 w-full max-w-[1600px] mx-auto overflow-x-hidden pb-[72px] lg:pb-8 transition-opacity duration-200"
+          style={{ opacity: isFetching > 0 ? 0.6 : 1 }}
+        >
           <Outlet />
         </main>
 
-        <footer className="border-t border-border px-4 sm:px-8 py-3 glass-panel">
+        <footer className="hidden sm:block border-t border-border px-4 sm:px-8 py-3 glass-panel">
           <p className="text-[10px] sm:text-[11px] text-muted-foreground font-medium leading-relaxed break-words">
             Last synced: <span className="text-foreground">{timeSince}</span> · Auto-refresh: 60s · <span className="hidden sm:inline">System Status: </span><span className="text-success">● Operational</span>
           </p>
         </footer>
       </div>
+
+      {/* Mobile bottom tab bar (#16) */}
+      <MobileTabBar onMore={() => setMobileOpen(true)} />
     </div>
   );
 }
