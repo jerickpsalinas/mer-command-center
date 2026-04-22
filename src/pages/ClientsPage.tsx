@@ -125,17 +125,17 @@ export default function ClientsPage() {
     <div className="space-y-6">
       <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4 }}
         whileHover={{ scale: 1.003 }}
-        className="rounded-xl border border-border bg-card p-6 shadow-card hover:shadow-card-hover transition-[box-shadow] duration-300">
+        className="rounded-xl border border-border bg-card p-4 sm:p-6 shadow-card hover:shadow-card-hover transition-[box-shadow] duration-300">
         <h2 className="text-sm font-semibold text-foreground mb-1 flex items-center gap-2">
           <BarChart3 className="h-4 w-4 text-primary" />
           Lowest Completion % Clients
         </h2>
         <p className="text-[11px] text-muted-foreground mb-4">Bottom {chartData.length} clients by completion percentage</p>
         <ResponsiveContainer width="100%" height={280}>
-          <BarChart data={chartData} layout="vertical" margin={{ left: 10, right: 20 }}>
+          <BarChart data={chartData} layout="vertical" margin={{ left: 0, right: 16 }}>
             <CartesianGrid strokeDasharray="3 3" stroke="hsl(20, 8%, 16%)" horizontal={false} />
             <XAxis type="number" domain={[0, 100]} tick={{ fontSize: 10, fill: "hsl(25, 10%, 50%)" }} unit="%" />
-            <YAxis type="category" dataKey="name" width={130} tick={{ fontSize: 10, fill: "hsl(25, 10%, 50%)" }} />
+            <YAxis type="category" dataKey="name" width={100} tick={{ fontSize: 9, fill: "hsl(25, 10%, 50%)" }} />
             <Tooltip content={<CustomTooltip />} cursor={{ fill: "hsl(20, 8%, 14%)" }} />
             <Bar dataKey="pct" radius={[0, 4, 4, 0]} name="Completion %">
               {chartData.map((entry, i) => (
