@@ -9,6 +9,7 @@ import DashboardPage from "@/pages/DashboardPage";
 import MonthlyProgressPage from "@/pages/MonthlyProgressPage";
 import MonthlyTrendsPage from "@/pages/MonthlyTrendsPage";
 import ClientsPage from "@/pages/ClientsPage";
+import MasterCyclePage from "@/pages/MasterCyclePage";
 import ReportsPage from "@/pages/ReportsPage";
 import SettingsPage from "@/pages/SettingsPage";
 import NotFound from "@/pages/NotFound";
@@ -28,6 +29,7 @@ const App = () => (
               <Route path="/monthly-progress" element={<MonthlyProgressPage />} />
               <Route path="/monthly-trends" element={<MonthlyTrendsPage />} />
               <Route path="/clients" element={<ClientsPage />} />
+              <Route path="/master-cycle" element={<MasterCyclePage />} />
               <Route path="/reports" element={<ReportsPage />} />
               <Route path="/settings" element={<SettingsPage />} />
             </Route>

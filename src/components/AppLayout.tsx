@@ -7,7 +7,7 @@ import { useTheme } from "@/hooks/useTheme";
 import NotificationDropdown from "@/components/NotificationDropdown";
 import {
   LayoutDashboard, CalendarCheck, TrendingUp, Users, FileText, Settings,
-  Menu, X, ChevronLeft, RefreshCw, Sun, Moon,
+  Menu, X, ChevronLeft, RefreshCw, Sun, Moon, Workflow,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import logo from "@/assets/logo.png";
@@ -17,6 +17,7 @@ const navItems = [
   { title: "Monthly Progress", url: "/monthly-progress", icon: CalendarCheck },
   { title: "Monthly Trends", url: "/monthly-trends", icon: TrendingUp },
   { title: "Clients", url: "/clients", icon: Users },
+  { title: "Master Bookkeeping Cycle", url: "/master-cycle", icon: Workflow },
   { title: "Reports", url: "/reports", icon: FileText },
   { title: "Settings", url: "/settings", icon: Settings },
 ];
