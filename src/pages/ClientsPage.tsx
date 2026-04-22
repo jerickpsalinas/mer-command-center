@@ -166,47 +166,49 @@ export default function ClientsPage() {
 
       {/* Filters */}
       <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}
-        className="flex flex-wrap items-center gap-3">
-        <div className="flex items-center gap-2 rounded-lg border border-border bg-card px-3 py-1.5 text-sm w-64">
-          <Search className="h-3.5 w-3.5 text-muted-foreground" />
-          <input type="text" placeholder="Search clients…" value={search} onChange={(e) => setSearch(e.target.value)}
-            className="bg-transparent outline-none text-sm text-foreground placeholder:text-muted-foreground w-full" />
+        className="flex flex-col gap-3">
+        <div className="flex flex-wrap items-center gap-2 sm:gap-3">
+          <div className="flex items-center gap-2 rounded-lg border border-border bg-card px-3 py-1.5 text-sm w-full sm:w-64">
+            <Search className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+            <input type="text" placeholder="Search clients…" value={search} onChange={(e) => setSearch(e.target.value)}
+              className="bg-transparent outline-none text-sm text-foreground placeholder:text-muted-foreground w-full min-w-0" />
+          </div>
+
+          <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value as SavedFilter["status"])}
+            className="rounded-lg border border-border bg-card px-2.5 py-1.5 text-xs font-medium text-foreground flex-1 sm:flex-none min-w-0">
+            <option value="all">All statuses</option>
+            <option value="Compliant">Compliant</option>
+            <option value="Non-Compliant">Non-Compliant</option>
+            <option value="On Hold">On Hold</option>
+          </select>
+
+          <select value={bookkeeperFilter} onChange={(e) => setBookkeeperFilter(e.target.value)}
+            className="rounded-lg border border-border bg-card px-2.5 py-1.5 text-xs font-medium text-foreground flex-1 sm:flex-none min-w-0 max-w-[50%] sm:max-w-none">
+            <option value="">All bookkeepers</option>
+            {data.bookkeepers.map((b) => <option key={b} value={b}>{b}</option>)}
+          </select>
+
+          <select value={typeFilter} onChange={(e) => setTypeFilter(e.target.value)}
+            className="rounded-lg border border-border bg-card px-2.5 py-1.5 text-xs font-medium text-foreground flex-1 sm:flex-none min-w-0 max-w-[50%] sm:max-w-none">
+            <option value="">All types</option>
+            {clientTypes.map((t) => <option key={t} value={t}>{t}</option>)}
+          </select>
+
+          <label className="inline-flex items-center gap-2 text-[11px] text-muted-foreground">
+            Min %
+            <input type="number" min={0} max={100} value={minCompletion} onChange={(e) => setMinCompletion(Number(e.target.value))}
+              className="w-14 rounded-md border border-border bg-card px-1.5 py-1 text-xs font-mono-data text-foreground" />
+          </label>
+
+          {hasActiveFilter && (
+            <button onClick={() => setShowSaveDialog(true)}
+              className="inline-flex items-center gap-1 text-[11px] font-semibold px-2.5 py-1.5 rounded-md bg-primary/10 text-primary border border-primary/20 hover:bg-primary/15 transition-colors">
+              <BookmarkPlus className="h-3 w-3" />Save view
+            </button>
+          )}
         </div>
 
-        <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value as SavedFilter["status"])}
-          className="rounded-lg border border-border bg-card px-2.5 py-1.5 text-xs font-medium text-foreground">
-          <option value="all">All statuses</option>
-          <option value="Compliant">Compliant</option>
-          <option value="Non-Compliant">Non-Compliant</option>
-          <option value="On Hold">On Hold</option>
-        </select>
-
-        <select value={bookkeeperFilter} onChange={(e) => setBookkeeperFilter(e.target.value)}
-          className="rounded-lg border border-border bg-card px-2.5 py-1.5 text-xs font-medium text-foreground">
-          <option value="">All bookkeepers</option>
-          {data.bookkeepers.map((b) => <option key={b} value={b}>{b}</option>)}
-        </select>
-
-        <select value={typeFilter} onChange={(e) => setTypeFilter(e.target.value)}
-          className="rounded-lg border border-border bg-card px-2.5 py-1.5 text-xs font-medium text-foreground">
-          <option value="">All types</option>
-          {clientTypes.map((t) => <option key={t} value={t}>{t}</option>)}
-        </select>
-
-        <label className="inline-flex items-center gap-2 text-[11px] text-muted-foreground">
-          Min %
-          <input type="number" min={0} max={100} value={minCompletion} onChange={(e) => setMinCompletion(Number(e.target.value))}
-            className="w-14 rounded-md border border-border bg-card px-1.5 py-1 text-xs font-mono-data text-foreground" />
-        </label>
-
-        {hasActiveFilter && (
-          <button onClick={() => setShowSaveDialog(true)}
-            className="inline-flex items-center gap-1 text-[11px] font-semibold px-2.5 py-1.5 rounded-md bg-primary/10 text-primary border border-primary/20 hover:bg-primary/15 transition-colors">
-            <BookmarkPlus className="h-3 w-3" />Save view
-          </button>
-        )}
-
-        <div className="flex items-center gap-1.5 ml-auto">
+        <div className="flex flex-wrap items-center gap-1.5">
           <span className="text-[11px] text-muted-foreground uppercase tracking-wider font-semibold mr-1">Sort:</span>
           {sortButtons.map((s) => (
             <button key={s.key} onClick={() => toggleSort(s.key)}
@@ -217,8 +219,8 @@ export default function ClientsPage() {
               {sortKey === s.key && <ArrowUpDown className="h-3 w-3" />}
             </button>
           ))}
+          <span className="text-[11px] text-muted-foreground sm:ml-auto">{filtered.length} clients</span>
         </div>
-        <span className="text-[11px] text-muted-foreground">{filtered.length} clients</span>
       </motion.div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
