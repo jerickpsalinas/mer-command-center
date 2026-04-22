@@ -1,10 +1,11 @@
 import StatusBadge from "@/components/StatusBadge";
 import { useState } from "react";
-import { Search, AlertTriangle, ArrowUpDown, BarChart3 } from "lucide-react";
-import { motion } from "framer-motion";
-import { useSheetData } from "@/hooks/useSheetData";
+import { Search, AlertTriangle, ArrowUpDown, BarChart3, History, X, TrendingUp } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
+import { useSheetData, getClientHistory } from "@/hooks/useSheetData";
 import { DataLoading, DataError } from "@/components/DataStatus";
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from "recharts";
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell, LineChart, Line } from "recharts";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
 type SortKey = "name" | "completionPct" | "complianceStatus" | "uncategorizedTransactions";
 type SortDir = "asc" | "desc";
