@@ -21,6 +21,15 @@ export interface CycleEntry {
   cycleKey: string;
 }
 
+export interface MerHistoryRow extends Client {
+  month: string;          // e.g. "May 2025"
+  monthRaw: string;       // raw value from sheet (used for sorting / month-end date)
+  monthDate: string;      // ISO yyyy-mm-01 (for date-range filtering)
+  timestamp: string;      // raw submission timestamp
+  timestampMs: number;    // parsed
+  submittedBy: string;
+}
+
 export interface SheetData {
   clients: Client[];
   monthlyTrends: MonthlyTrend[];
@@ -28,6 +37,9 @@ export interface SheetData {
   cycleEntries: CycleEntry[];
   submittedBy: Record<string, string>; // clientName -> latest submitter
   clientMonths: Record<string, string>; // clientName -> latest reporting month
+  merHistory: MerHistoryRow[];         // every MER row parsed
+  availableMonths: string[];           // sorted "Mon YYYY" labels (asc)
+  latestMonth: string;                 // most recent available month label
 }
 
 function yesNo(val: unknown): boolean {
