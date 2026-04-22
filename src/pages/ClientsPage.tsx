@@ -1,11 +1,14 @@
 import StatusBadge from "@/components/StatusBadge";
-import { useState } from "react";
-import { Search, AlertTriangle, ArrowUpDown, BarChart3, History, X, TrendingUp } from "lucide-react";
+import { useMemo, useState } from "react";
+import { Search, AlertTriangle, ArrowUpDown, BarChart3, History, TrendingUp, Bookmark, BookmarkPlus, X, Filter, ArrowUp, ArrowDown, Minus } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useSheetData, getClientHistory } from "@/hooks/useSheetData";
+import { useUserSettings, type SavedFilter } from "@/hooks/useUserSettings";
 import { DataLoading, DataError } from "@/components/DataStatus";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell, LineChart, Line } from "recharts";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { diffClientMonths } from "@/lib/insights";
+import { toast } from "@/hooks/use-toast";
 
 type SortKey = "name" | "completionPct" | "complianceStatus" | "uncategorizedTransactions";
 type SortDir = "asc" | "desc";
@@ -35,23 +38,36 @@ function getIssueDetails(c: { uncategorizedTransactions: number; bankTransaction
 
 export default function ClientsPage() {
   const { data, isLoading, error } = useSheetData();
+  const { savedFilters, saveFilter, deleteFilter } = useUserSettings();
+
   const [search, setSearch] = useState("");
+  const [statusFilter, setStatusFilter] = useState<SavedFilter["status"]>("all");
+  const [bookkeeperFilter, setBookkeeperFilter] = useState("");
+  const [typeFilter, setTypeFilter] = useState("");
+  const [minCompletion, setMinCompletion] = useState(0);
   const [sortKey, setSortKey] = useState<SortKey>("completionPct");
   const [sortDir, setSortDir] = useState<SortDir>("asc");
   const [historyClient, setHistoryClient] = useState<string | null>(null);
+  const [showSaveDialog, setShowSaveDialog] = useState(false);
+  const [newFilterName, setNewFilterName] = useState("");
 
   if (isLoading) return <DataLoading />;
   if (error || !data) return <DataError message={error?.message} />;
 
   const history = historyClient ? getClientHistory(data.merHistory, historyClient) : [];
+  const monthDiff = history.length >= 2 ? diffClientMonths(history[history.length - 2], history[history.length - 1]) : [];
 
   const toggleSort = (key: SortKey) => {
-    if (sortKey === key) setSortDir(d => d === "asc" ? "desc" : "asc");
+    if (sortKey === key) setSortDir((d) => (d === "asc" ? "desc" : "asc"));
     else { setSortKey(key); setSortDir(key === "completionPct" ? "asc" : "desc"); }
   };
 
   const filtered = data.clients
-    .filter(c => c.name.toLowerCase().includes(search.toLowerCase()))
+    .filter((c) => c.name.toLowerCase().includes(search.toLowerCase()))
+    .filter((c) => statusFilter === "all" || c.complianceStatus === statusFilter)
+    .filter((c) => !bookkeeperFilter || c.bookkeeper === bookkeeperFilter)
+    .filter((c) => !typeFilter || c.clientType === typeFilter)
+    .filter((c) => c.completionPct >= minCompletion)
     .sort((a, b) => {
       const mul = sortDir === "asc" ? 1 : -1;
       if (sortKey === "name") return mul * a.name.localeCompare(b.name);
@@ -64,7 +80,7 @@ export default function ClientsPage() {
   const chartData = [...data.clients]
     .sort((a, b) => a.completionPct - b.completionPct)
     .slice(0, 15)
-    .map(c => ({ name: c.name.length > 18 ? c.name.slice(0, 16) + "…" : c.name, pct: c.completionPct, full: c.name }));
+    .map((c) => ({ name: c.name.length > 18 ? c.name.slice(0, 16) + "…" : c.name, pct: c.completionPct, full: c.name }));
 
   const getBarColor = (pct: number) => {
     if (pct >= 80) return "hsl(160, 55%, 42%)";
@@ -78,6 +94,32 @@ export default function ClientsPage() {
     { key: "complianceStatus", label: "Status" },
     { key: "uncategorizedTransactions", label: "Uncat. Txns" },
   ];
+
+  const applyFilter = (f: SavedFilter) => {
+    setSearch(f.search);
+    setStatusFilter(f.status);
+    setBookkeeperFilter(f.bookkeeper);
+    setTypeFilter(f.clientType);
+    setMinCompletion(f.minCompletion);
+  };
+
+  const handleSaveFilter = () => {
+    if (!newFilterName.trim()) return;
+    saveFilter({
+      name: newFilterName.trim(),
+      search,
+      status: statusFilter,
+      bookkeeper: bookkeeperFilter,
+      clientType: typeFilter,
+      minCompletion,
+    });
+    toast({ title: "Filter saved", description: `"${newFilterName.trim()}" available in your saved views.` });
+    setNewFilterName("");
+    setShowSaveDialog(false);
+  };
+
+  const hasActiveFilter = search || statusFilter !== "all" || bookkeeperFilter || typeFilter || minCompletion > 0;
+  const clientTypes = Array.from(new Set(data.clients.map((c) => c.clientType))).sort();
 
   return (
     <div className="space-y-6">
@@ -104,6 +146,25 @@ export default function ClientsPage() {
         </ResponsiveContainer>
       </motion.div>
 
+      {/* Saved filter chips */}
+      {savedFilters.length > 0 && (
+        <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}
+          className="flex flex-wrap items-center gap-2">
+          <span className="text-[11px] text-muted-foreground uppercase tracking-wider font-semibold mr-1 inline-flex items-center gap-1">
+            <Bookmark className="h-3 w-3" />Saved:
+          </span>
+          {savedFilters.map((f) => (
+            <span key={f.id} className="inline-flex items-center gap-1 rounded-full border border-border bg-card pl-3 pr-1.5 py-1 text-[11px] font-medium text-foreground hover:border-primary/30 transition-colors">
+              <button onClick={() => applyFilter(f)} className="hover:text-primary">{f.name}</button>
+              <button onClick={() => deleteFilter(f.id)} className="h-4 w-4 rounded-full hover:bg-destructive/10 text-muted-foreground hover:text-destructive flex items-center justify-center">
+                <X className="h-2.5 w-2.5" />
+              </button>
+            </span>
+          ))}
+        </motion.div>
+      )}
+
+      {/* Filters */}
       <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}
         className="flex flex-wrap items-center gap-3">
         <div className="flex items-center gap-2 rounded-lg border border-border bg-card px-3 py-1.5 text-sm w-64">
@@ -111,21 +172,53 @@ export default function ClientsPage() {
           <input type="text" placeholder="Search clients…" value={search} onChange={(e) => setSearch(e.target.value)}
             className="bg-transparent outline-none text-sm text-foreground placeholder:text-muted-foreground w-full" />
         </div>
-        <div className="flex items-center gap-1.5">
+
+        <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value as SavedFilter["status"])}
+          className="rounded-lg border border-border bg-card px-2.5 py-1.5 text-xs font-medium text-foreground">
+          <option value="all">All statuses</option>
+          <option value="Compliant">Compliant</option>
+          <option value="Non-Compliant">Non-Compliant</option>
+          <option value="On Hold">On Hold</option>
+        </select>
+
+        <select value={bookkeeperFilter} onChange={(e) => setBookkeeperFilter(e.target.value)}
+          className="rounded-lg border border-border bg-card px-2.5 py-1.5 text-xs font-medium text-foreground">
+          <option value="">All bookkeepers</option>
+          {data.bookkeepers.map((b) => <option key={b} value={b}>{b}</option>)}
+        </select>
+
+        <select value={typeFilter} onChange={(e) => setTypeFilter(e.target.value)}
+          className="rounded-lg border border-border bg-card px-2.5 py-1.5 text-xs font-medium text-foreground">
+          <option value="">All types</option>
+          {clientTypes.map((t) => <option key={t} value={t}>{t}</option>)}
+        </select>
+
+        <label className="inline-flex items-center gap-2 text-[11px] text-muted-foreground">
+          Min %
+          <input type="number" min={0} max={100} value={minCompletion} onChange={(e) => setMinCompletion(Number(e.target.value))}
+            className="w-14 rounded-md border border-border bg-card px-1.5 py-1 text-xs font-mono-data text-foreground" />
+        </label>
+
+        {hasActiveFilter && (
+          <button onClick={() => setShowSaveDialog(true)}
+            className="inline-flex items-center gap-1 text-[11px] font-semibold px-2.5 py-1.5 rounded-md bg-primary/10 text-primary border border-primary/20 hover:bg-primary/15 transition-colors">
+            <BookmarkPlus className="h-3 w-3" />Save view
+          </button>
+        )}
+
+        <div className="flex items-center gap-1.5 ml-auto">
           <span className="text-[11px] text-muted-foreground uppercase tracking-wider font-semibold mr-1">Sort:</span>
-          {sortButtons.map(s => (
+          {sortButtons.map((s) => (
             <button key={s.key} onClick={() => toggleSort(s.key)}
               className={`inline-flex items-center gap-1 text-[11px] font-medium px-2.5 py-1.5 rounded-md border transition-colors ${
-                sortKey === s.key
-                  ? "bg-primary/10 border-primary/30 text-primary"
-                  : "bg-card border-border text-muted-foreground hover:text-foreground"
+                sortKey === s.key ? "bg-primary/10 border-primary/30 text-primary" : "bg-card border-border text-muted-foreground hover:text-foreground"
               }`}>
               {s.label}
               {sortKey === s.key && <ArrowUpDown className="h-3 w-3" />}
             </button>
           ))}
         </div>
-        <span className="text-[11px] text-muted-foreground ml-auto">{filtered.length} clients</span>
+        <span className="text-[11px] text-muted-foreground">{filtered.length} clients</span>
       </motion.div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
@@ -183,7 +276,7 @@ export default function ClientsPage() {
         })}
       </div>
 
-      {/* Per-client history dialog */}
+      {/* Per-client history dialog with MoM diff */}
       <Dialog open={!!historyClient} onOpenChange={(open) => !open && setHistoryClient(null)}>
         <DialogContent className="max-w-3xl max-h-[85vh] overflow-y-auto">
           <DialogHeader>
@@ -198,6 +291,33 @@ export default function ClientsPage() {
             <p className="text-sm text-muted-foreground py-8 text-center">No history found.</p>
           ) : (
             <div className="space-y-5">
+              {/* Month-over-month diff */}
+              {monthDiff.length > 0 && (
+                <div className="rounded-lg border border-primary/20 bg-primary/[0.04] p-4">
+                  <div className="flex items-center gap-2 mb-3">
+                    <Filter className="h-3.5 w-3.5 text-primary" />
+                    <span className="text-xs font-semibold text-foreground">
+                      What changed: {history[history.length - 2].month} → {history[history.length - 1].month}
+                    </span>
+                  </div>
+                  <ul className="space-y-1.5">
+                    {monthDiff.map((d, i) => {
+                      const Icon = d.direction === "improved" ? ArrowUp : d.direction === "regressed" ? ArrowDown : Minus;
+                      const color = d.direction === "improved" ? "text-success" : d.direction === "regressed" ? "text-destructive" : "text-muted-foreground";
+                      return (
+                        <li key={i} className="flex items-center gap-2 text-[12px]">
+                          <Icon className={`h-3 w-3 ${color}`} />
+                          <span className="text-foreground font-medium min-w-[140px]">{d.field}:</span>
+                          <span className="font-mono-data text-muted-foreground">{d.prev}</span>
+                          <span className="text-muted-foreground">→</span>
+                          <span className={`font-mono-data font-semibold ${color}`}>{d.curr}</span>
+                        </li>
+                      );
+                    })}
+                  </ul>
+                </div>
+              )}
+
               {/* Sparkline */}
               <div className="rounded-lg border border-border bg-muted/20 p-4">
                 <div className="flex items-center gap-2 mb-2">
@@ -246,6 +366,46 @@ export default function ClientsPage() {
               </div>
             </div>
           )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Save filter dialog */}
+      <Dialog open={showSaveDialog} onOpenChange={setShowSaveDialog}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <BookmarkPlus className="h-4 w-4 text-primary" />
+              Save Filter View
+            </DialogTitle>
+            <p className="text-xs text-muted-foreground">Give your current filter combination a name.</p>
+          </DialogHeader>
+          <div className="space-y-4">
+            <input
+              autoFocus
+              type="text"
+              value={newFilterName}
+              onChange={(e) => setNewFilterName(e.target.value)}
+              onKeyDown={(e) => e.key === "Enter" && handleSaveFilter()}
+              placeholder="e.g. My non-compliant clients"
+              className="w-full rounded-lg border border-border bg-card px-3 py-2 text-sm text-foreground outline-none focus:border-primary/40"
+            />
+            <div className="rounded-lg bg-muted/30 p-3 text-[11px] text-muted-foreground space-y-1">
+              <p><span className="font-semibold text-foreground">Search:</span> {search || "—"}</p>
+              <p><span className="font-semibold text-foreground">Status:</span> {statusFilter}</p>
+              <p><span className="font-semibold text-foreground">Bookkeeper:</span> {bookkeeperFilter || "any"}</p>
+              <p><span className="font-semibold text-foreground">Type:</span> {typeFilter || "any"}</p>
+              <p><span className="font-semibold text-foreground">Min completion:</span> {minCompletion}%</p>
+            </div>
+            <div className="flex justify-end gap-2">
+              <button onClick={() => setShowSaveDialog(false)} className="text-xs px-3 py-1.5 rounded-md text-muted-foreground hover:text-foreground">
+                Cancel
+              </button>
+              <button onClick={handleSaveFilter} disabled={!newFilterName.trim()}
+                className="text-xs px-3 py-1.5 rounded-md bg-primary text-primary-foreground font-semibold hover:bg-primary/90 disabled:opacity-50 transition-colors">
+                Save
+              </button>
+            </div>
+          </div>
         </DialogContent>
       </Dialog>
     </div>
