@@ -1,5 +1,6 @@
 import { useState } from "react";
 import KPICard from "@/components/KPICard";
+import ExportCenter from "@/components/ExportCenter";
 import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from "recharts";
 import { TrendingUp, TrendingDown, CheckCircle2, XCircle, ArrowRight, Save, Calendar, Minus } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
@@ -356,6 +357,13 @@ export default function MonthlyTrendsPage() {
           </p>
         </motion.div>
       )}
+
+      {/* Download / Export Center */}
+      <ExportCenter
+        history={data.merHistory}
+        availableMonths={data.availableMonths}
+        defaultMonth={data.latestMonth}
+      />
     </div>
   );
 }
