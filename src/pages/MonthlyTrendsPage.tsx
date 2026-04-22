@@ -1,6 +1,7 @@
 import { useState } from "react";
 import KPICard from "@/components/KPICard";
 import ExportCenter from "@/components/ExportCenter";
+import ComplianceHeatmap from "@/components/ComplianceHeatmap";
 import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from "recharts";
 import { TrendingUp, TrendingDown, CheckCircle2, XCircle, ArrowRight, Calendar, Minus, Sparkles } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -302,6 +303,9 @@ export default function MonthlyTrendsPage() {
           </p>
         </motion.div>
       )}
+
+      {/* Compliance Heatmap (clients × months) */}
+      {data.merHistory.length > 0 && <ComplianceHeatmap history={data.merHistory} />}
 
       {/* Download / Export Center */}
       <ExportCenter
