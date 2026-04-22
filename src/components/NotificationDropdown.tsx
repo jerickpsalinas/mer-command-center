@@ -1,8 +1,9 @@
-import { useState, useRef, useEffect } from "react";
-import { Bell, CheckCircle2, XCircle, AlertTriangle, FileText, TrendingUp, TrendingDown, Clock, Users, Filter as FilterIcon, X } from "lucide-react";
+import { useState, useRef, useEffect, useSyncExternalStore } from "react";
+import { Bell, CheckCircle2, XCircle, AlertTriangle, FileText, TrendingUp, TrendingDown, Clock, Users, Filter as FilterIcon, X, Activity, Trash2 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import type { Client, MonthlyTrend } from "@/data/mockData";
 import { useUserSettings } from "@/hooks/useUserSettings";
+import { getToastLog, subscribeToastLog, clearToastLog, markAllRead, relativeTime } from "@/lib/toastLog";
 
 interface Notification {
   id: string;
@@ -143,6 +144,10 @@ export default function NotificationDropdown({ clients, trends }: { clients: Cli
   const ref = useRef<HTMLDivElement>(null);
   const { notifPrefs, setNotifPrefs } = useUserSettings();
   const allBookkeepers = Array.from(new Set(clients.map((c) => c.bookkeeper).filter(Boolean))).sort();
+
+  // #14 — subscribe to the toast log so dismissed toasts remain reviewable here
+  const toastLog = useSyncExternalStore(subscribeToastLog, getToastLog, getToastLog);
+  const unreadToastCount = toastLog.filter((t) => !t.read).length;
 
   const allNotifications = generateNotifications(clients, trends);
 
