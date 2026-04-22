@@ -1,14 +1,16 @@
 import { useRef, useCallback, useState as useLocalState } from "react";
 import {
   Users, CheckCircle2, XCircle, Pause, TrendingUp, AlertTriangle,
-  FileText, StickyNote, Award, Clock, AlertCircle, ChevronRight, ShieldAlert, BarChart3, Camera,
+  FileText, StickyNote, Award, Clock, AlertCircle, ChevronRight, ShieldAlert, BarChart3, Camera, Calendar,
 } from "lucide-react";
 import { LineChart, Line, BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from "recharts";
 import html2canvas from "html2canvas";
 import KPICard from "@/components/KPICard";
 import ComplianceProgress from "@/components/ComplianceProgress";
 import StatusBadge from "@/components/StatusBadge";
-import { useSheetData, getKPIMetrics, getComplianceBreakdown, getNeedsAttention, getBookkeeperStats } from "@/hooks/useSheetData";
+import ExportCenter from "@/components/ExportCenter";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { useSheetData, getKPIMetrics, getComplianceBreakdown, getNeedsAttention, getBookkeeperStats, getClientsForMonth } from "@/hooks/useSheetData";
 import { DataLoading, DataError } from "@/components/DataStatus";
 import { toast } from "@/hooks/use-toast";
 import { motion } from "framer-motion";
@@ -341,6 +343,7 @@ export default function DashboardPage() {
   const { data, isLoading, error } = useSheetData();
   const dashRef = useRef<HTMLDivElement>(null);
   const [capturing, setCapturing] = useLocalState(false);
+  const [selectedMonth, setSelectedMonth] = useLocalState<string>("");
 
   const handleCapture = useCallback(async () => {
     if (!dashRef.current || capturing) return;
@@ -368,14 +371,55 @@ export default function DashboardPage() {
   if (isLoading) return <DataLoading />;
   if (error || !data) return <DataError message={error?.message} />;
 
-  const { clients, monthlyTrends, bookkeepers } = data;
+  const { monthlyTrends, bookkeepers, merHistory, availableMonths, latestMonth } = data;
+
+  // Active month: explicit pick OR latest with data
+  const activeMonth = selectedMonth || latestMonth;
+  const isLatest = activeMonth === latestMonth;
+
+  // Derive clients snapshot for the chosen month (falls back to live latest)
+  const clients = activeMonth
+    ? getClientsForMonth(merHistory, activeMonth)
+    : data.clients;
+
   const kpi = getKPIMetrics(clients);
   const breakdown = getComplianceBreakdown(clients);
 
   return (
     <div ref={dashRef} className="space-y-7">
-      {/* Capture Button */}
-      <div className="flex justify-end">
+      {/* Top bar: Month picker + Capture */}
+      <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-3">
+        <div className="flex items-end gap-3 flex-wrap">
+          <div>
+            <label className="text-[11px] font-medium text-muted-foreground uppercase tracking-wider flex items-center gap-1.5 mb-1.5">
+              <Calendar className="h-3 w-3" /> Reporting Month
+            </label>
+            <Select value={activeMonth} onValueChange={(v) => setSelectedMonth(v)}>
+              <SelectTrigger className="w-full sm:w-[220px] bg-card border-border">
+                <SelectValue placeholder="Select month" />
+              </SelectTrigger>
+              <SelectContent>
+                {[...availableMonths].reverse().map((m) => (
+                  <SelectItem key={m} value={m}>
+                    {m}{m === latestMonth ? "  · Latest" : ""}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          {!isLatest && (
+            <button
+              onClick={() => setSelectedMonth("")}
+              className="text-[11px] text-muted-foreground hover:text-foreground underline-offset-2 hover:underline pb-2.5"
+            >
+              Reset to latest
+            </button>
+          )}
+          <div className="pb-2.5 text-[11px] text-muted-foreground">
+            <span className="font-mono-data text-foreground font-semibold">{clients.length}</span> clients ·{" "}
+            {isLatest ? <span className="text-success">live</span> : <span className="text-warning">historical view</span>}
+          </div>
+        </div>
         <button
           onClick={handleCapture}
           disabled={capturing}
@@ -385,6 +429,7 @@ export default function DashboardPage() {
           {capturing ? "Capturing…" : "Capture Snapshot"}
         </button>
       </div>
+
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <KPICard title="Total Clients" value={kpi.total} icon={Users} index={0} />
         <KPICard title="Compliant" value={kpi.compliant} icon={CheckCircle2} variant="success" index={1} />
