@@ -1,16 +1,18 @@
 import { useState } from "react";
-import { Settings as SettingsIcon, RefreshCw, Bell, Moon, Sun, Shield, Clock, Download, Users, ChevronRight, AlertTriangle, FileText, TrendingDown, CheckCircle2 } from "lucide-react";
+import { Settings as SettingsIcon, RefreshCw, Bell, Moon, Sun, Shield, AlertTriangle, FileText, TrendingDown, CheckCircle2, ShieldAlert, RotateCcw } from "lucide-react";
 import { motion } from "framer-motion";
 import { useSheetData } from "@/hooks/useSheetData";
 import { useTheme } from "@/hooks/useTheme";
+import { useUserSettings, DEFAULT_THRESHOLDS, DEFAULT_NOTIF_PREFS } from "@/hooks/useUserSettings";
 
 export default function SettingsPage() {
   const [autoRefresh, setAutoRefresh] = useState(true);
   const [refreshInterval, setRefreshInterval] = useState(60);
-  const [notifications, setNotifications] = useState(true);
   const [compactMode, setCompactMode] = useState(false);
   const { data } = useSheetData();
   const { theme, toggle } = useTheme();
+  const { thresholds, setThresholds, notifPrefs, setNotifPrefs } = useUserSettings();
+  const allBookkeepers = data?.bookkeepers ?? [];
 
   // Derive review period from data
   const reviewPeriod = (() => {
@@ -142,40 +144,107 @@ export default function SettingsPage() {
         </div>
       </motion.div>
 
-      {/* Notifications - Enhanced */}
+      {/* At-Risk Thresholds (#3) */}
       <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.16 }}
+        className="rounded-xl border border-border bg-card shadow-card overflow-hidden">
+        <div className="flex items-center gap-3 px-6 py-4 border-b border-border">
+          <div className="h-7 w-7 rounded-lg bg-destructive/10 flex items-center justify-center">
+            <ShieldAlert className="h-4 w-4 text-destructive" />
+          </div>
+          <h2 className="text-sm font-semibold text-foreground">At-Risk Thresholds</h2>
+          <button
+            onClick={() => setThresholds(DEFAULT_THRESHOLDS)}
+            className="ml-auto inline-flex items-center gap-1 text-[10px] text-muted-foreground hover:text-primary transition-colors"
+          >
+            <RotateCcw className="h-3 w-3" />Reset
+          </button>
+        </div>
+        <div className="divide-y divide-border">
+          {[
+            { key: "consecutiveNonCompliantMonths" as const, label: "Consecutive non-compliant months", help: "Flag if a client is non-compliant ≥ this many months in a row", min: 1, max: 12 },
+            { key: "completionDropMonths" as const, label: "Declining completion (months)", help: "Flag if completion drops every month for ≥ this many consecutive months", min: 2, max: 12 },
+            { key: "stuckInStageDays" as const, label: "Stuck in cycle stage (days)", help: "Flag clients sitting in the same Master Cycle stage longer than this", min: 1, max: 90 },
+            { key: "lowCompletionPct" as const, label: "Low completion threshold (%)", help: "Flag clients whose current month completion falls below this percentage", min: 0, max: 100 },
+          ].map((row) => (
+            <div key={row.key} className="flex items-center justify-between px-6 py-4">
+              <div>
+                <p className="text-sm font-medium text-foreground">{row.label}</p>
+                <p className="text-xs text-muted-foreground">{row.help}</p>
+              </div>
+              <input
+                type="number"
+                min={row.min}
+                max={row.max}
+                value={thresholds[row.key]}
+                onChange={(e) => setThresholds({ ...thresholds, [row.key]: Math.max(row.min, Math.min(row.max, Number(e.target.value))) })}
+                className="w-20 rounded-md border border-border bg-muted px-3 py-1.5 text-sm font-mono-data text-foreground text-right"
+              />
+            </div>
+          ))}
+        </div>
+      </motion.div>
+
+      {/* Notification Preferences (#13) */}
+      <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}
         className="rounded-xl border border-border bg-card shadow-card overflow-hidden">
         <div className="flex items-center gap-3 px-6 py-4 border-b border-border">
           <div className="h-7 w-7 rounded-lg bg-warning/10 flex items-center justify-center">
             <Bell className="h-4 w-4 text-warning" />
           </div>
-          <h2 className="text-sm font-semibold text-foreground">Notifications</h2>
+          <h2 className="text-sm font-semibold text-foreground">Notification Preferences</h2>
           {notifStats.total > 0 && (
             <span className="ml-auto inline-flex items-center gap-1 rounded-full bg-primary/10 px-2.5 py-0.5 text-[11px] font-semibold text-primary">
               {notifStats.total} active
             </span>
           )}
+          <button
+            onClick={() => setNotifPrefs(DEFAULT_NOTIF_PREFS)}
+            className="inline-flex items-center gap-1 text-[10px] text-muted-foreground hover:text-primary transition-colors"
+          >
+            <RotateCcw className="h-3 w-3" />Reset
+          </button>
         </div>
         <div className="divide-y divide-border">
           <div className="flex items-center justify-between px-6 py-4">
             <div>
-              <p className="text-sm font-medium text-foreground">Enable Notifications</p>
-              <p className="text-xs text-muted-foreground">Show alerts for compliance changes</p>
+              <p className="text-sm font-medium text-foreground">Filter by Bookkeeper</p>
+              <p className="text-xs text-muted-foreground">Only show alerts tied to this bookkeeper's clients</p>
             </div>
-            <button
-              onClick={() => setNotifications(!notifications)}
-              className={`relative h-6 w-11 rounded-full transition-colors duration-200 ${notifications ? "bg-primary" : "bg-muted"}`}
+            <select
+              value={notifPrefs.bookkeeperFilter}
+              onChange={(e) => setNotifPrefs({ ...notifPrefs, bookkeeperFilter: e.target.value })}
+              className="rounded-md border border-border bg-muted px-3 py-1.5 text-sm text-foreground"
             >
-              <motion.div
-                animate={{ x: notifications ? 20 : 2 }}
-                transition={{ type: "spring", stiffness: 500, damping: 30 }}
-                className="absolute top-1 h-4 w-4 rounded-full bg-primary-foreground shadow-sm"
-              />
-            </button>
+              <option value="">All bookkeepers</option>
+              {allBookkeepers.map((b) => <option key={b} value={b}>Only {b}</option>)}
+            </select>
           </div>
-          {/* Alert breakdown */}
+          {([
+            { key: "showCritical" as const, label: "Critical alerts", help: "Missing statements, low completion, stuck stages", color: "text-destructive" },
+            { key: "showWarnings" as const, label: "Warning alerts", help: "Uncategorized txns, unapplied payments, missing notes", color: "text-warning" },
+            { key: "showSuccess" as const, label: "Positive alerts", help: "Compliance improvements and trend ups", color: "text-success" },
+            { key: "showInfo" as const, label: "Info alerts", help: "Summary updates and other context", color: "text-muted-foreground" },
+          ]).map((row) => (
+            <div key={row.key} className="flex items-center justify-between px-6 py-4">
+              <div>
+                <p className={`text-sm font-medium ${row.color}`}>{row.label}</p>
+                <p className="text-xs text-muted-foreground">{row.help}</p>
+              </div>
+              <button
+                onClick={() => setNotifPrefs({ ...notifPrefs, [row.key]: !notifPrefs[row.key] })}
+                className={`relative h-6 w-11 rounded-full transition-colors duration-200 ${notifPrefs[row.key] ? "bg-primary" : "bg-muted"}`}
+              >
+                <motion.div
+                  animate={{ x: notifPrefs[row.key] ? 20 : 2 }}
+                  transition={{ type: "spring", stiffness: 500, damping: 30 }}
+                  className="absolute top-1 h-4 w-4 rounded-full bg-primary-foreground shadow-sm"
+                />
+              </button>
+            </div>
+          ))}
+          {/* Live alert breakdown (read-only) */}
           <div className="px-6 py-4">
-            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">Alert Breakdown</p>
+            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">Live Alert Volume</p>
             <div className="grid grid-cols-3 gap-3">
               <div className="rounded-lg bg-destructive/8 border border-destructive/15 p-3 text-center">
                 <p className="text-lg font-mono-data font-bold text-destructive">{notifStats.critical}</p>
@@ -189,22 +258,6 @@ export default function SettingsPage() {
                 <p className="text-lg font-mono-data font-bold text-foreground">{notifStats.info}</p>
                 <p className="text-[10px] text-muted-foreground mt-0.5">Info</p>
               </div>
-            </div>
-          </div>
-          <div className="px-6 py-4">
-            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">Alert Types Monitored</p>
-            <div className="grid grid-cols-2 gap-2">
-              {[
-                { label: "Missing statements", icon: AlertTriangle, color: "text-destructive" },
-                { label: "Low completion", icon: TrendingDown, color: "text-destructive" },
-                { label: "Uncategorized txns", icon: FileText, color: "text-warning" },
-                { label: "Compliance shifts", icon: CheckCircle2, color: "text-success" },
-              ].map((t) => (
-                <div key={t.label} className="flex items-center gap-2 text-xs text-muted-foreground">
-                  <t.icon className={`h-3 w-3 ${t.color}`} />
-                  <span>{t.label}</span>
-                </div>
-              ))}
             </div>
           </div>
         </div>

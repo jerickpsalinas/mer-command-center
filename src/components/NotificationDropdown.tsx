@@ -1,7 +1,8 @@
 import { useState, useRef, useEffect } from "react";
-import { Bell, CheckCircle2, XCircle, AlertTriangle, FileText, TrendingUp, TrendingDown, Clock, Users } from "lucide-react";
+import { Bell, CheckCircle2, XCircle, AlertTriangle, FileText, TrendingUp, TrendingDown, Clock, Users, Filter as FilterIcon, X } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import type { Client, MonthlyTrend } from "@/data/mockData";
+import { useUserSettings } from "@/hooks/useUserSettings";
 
 interface Notification {
   id: string;
@@ -10,6 +11,7 @@ interface Notification {
   variant: "success" | "destructive" | "warning" | "default";
   time: string;
   detail?: string;
+  bookkeeper?: string;     // optional — present when alert ties to a single bookkeeper's clients
 }
 
 function generateNotifications(clients: Client[], trends: MonthlyTrend[]): Notification[] {
@@ -23,6 +25,15 @@ function generateNotifications(clients: Client[], trends: MonthlyTrend[]): Notif
   const noNotes = clients.filter(c => !c.prevMonthNotesApproved).length;
   const lowCompletion = clients.filter(c => c.completionPct < 40);
   const highUnapplied = clients.filter(c => c.unappliedPayments > 0);
+
+  const dominantBookkeeper = (group: Client[]): string | undefined => {
+    if (!group.length) return undefined;
+    const counts = new Map<string, number>();
+    for (const c of group) counts.set(c.bookkeeper, (counts.get(c.bookkeeper) ?? 0) + 1);
+    const sorted = Array.from(counts.entries()).sort((a, b) => b[1] - a[1]);
+    // Tag only when one bookkeeper accounts for >50% of the group
+    return sorted[0][1] / group.length > 0.5 ? sorted[0][0] : undefined;
+  };
 
   notes.push({
     id: "summary",
@@ -41,6 +52,7 @@ function generateNotifications(clients: Client[], trends: MonthlyTrend[]): Notif
       variant: "destructive",
       time: "5m ago",
       detail: missing.slice(0, 3).map(c => c.name).join(", ") + (missing.length > 3 ? ` +${missing.length - 3} more` : ""),
+      bookkeeper: dominantBookkeeper(missing),
     });
   }
 
@@ -53,6 +65,7 @@ function generateNotifications(clients: Client[], trends: MonthlyTrend[]): Notif
       variant: "warning",
       time: "8m ago",
       detail: uncat.sort((a, b) => b.uncategorizedTransactions - a.uncategorizedTransactions).slice(0, 3).map(c => `${c.name} (${c.uncategorizedTransactions})`).join(", "),
+      bookkeeper: dominantBookkeeper(uncat),
     });
   }
 
@@ -88,6 +101,7 @@ function generateNotifications(clients: Client[], trends: MonthlyTrend[]): Notif
       variant: "destructive",
       time: "20m ago",
       detail: lowCompletion.sort((a, b) => a.completionPct - b.completionPct).slice(0, 3).map(c => `${c.name} (${c.completionPct}%)`).join(", "),
+      bookkeeper: dominantBookkeeper(lowCompletion),
     });
   }
 
@@ -100,6 +114,7 @@ function generateNotifications(clients: Client[], trends: MonthlyTrend[]): Notif
       variant: "warning",
       time: "25m ago",
       detail: highUnapplied.slice(0, 2).map(c => `${c.name} (${c.unappliedPayments})`).join(", "),
+      bookkeeper: dominantBookkeeper(highUnapplied),
     });
   }
 
@@ -126,7 +141,20 @@ export default function NotificationDropdown({ clients, trends }: { clients: Cli
   const [open, setOpen] = useState(false);
   const [filterVariant, setFilterVariant] = useState<string | null>(null);
   const ref = useRef<HTMLDivElement>(null);
-  const notifications = generateNotifications(clients, trends);
+  const { notifPrefs, setNotifPrefs } = useUserSettings();
+  const allBookkeepers = Array.from(new Set(clients.map((c) => c.bookkeeper).filter(Boolean))).sort();
+
+  const allNotifications = generateNotifications(clients, trends);
+
+  // Apply user preferences
+  const notifications = allNotifications.filter((n) => {
+    if (n.variant === "destructive" && !notifPrefs.showCritical) return false;
+    if (n.variant === "warning" && !notifPrefs.showWarnings) return false;
+    if (n.variant === "default" && !notifPrefs.showInfo) return false;
+    if (n.variant === "success" && !notifPrefs.showSuccess) return false;
+    if (notifPrefs.bookkeeperFilter && n.bookkeeper && n.bookkeeper !== notifPrefs.bookkeeperFilter) return false;
+    return true;
+  });
 
   useEffect(() => {
     function handleClick(e: MouseEvent) {
@@ -141,6 +169,7 @@ export default function NotificationDropdown({ clients, trends }: { clients: Cli
   const successCount = notifications.filter(n => n.variant === "success").length;
 
   const displayed = filterVariant ? notifications.filter(n => n.variant === filterVariant) : notifications;
+  const hasPrefFilter = !!notifPrefs.bookkeeperFilter;
 
   const toggleFilter = (variant: string) => {
     setFilterVariant(prev => prev === variant ? null : variant);
@@ -167,7 +196,7 @@ export default function NotificationDropdown({ clients, trends }: { clients: Cli
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: -4, scale: 0.97 }}
             transition={{ duration: 0.15 }}
-            className="absolute right-0 top-11 w-[360px] sm:w-96 rounded-xl border border-border bg-card shadow-elevated z-50"
+            className="absolute right-0 top-11 w-[380px] sm:w-[420px] rounded-xl border border-border bg-card shadow-elevated z-50"
           >
             <div className="px-4 py-3 border-b border-border">
               <div className="flex items-center justify-between">
@@ -197,9 +226,32 @@ export default function NotificationDropdown({ clients, trends }: { clients: Cli
                 {filterVariant ? `${displayed.length} of ${notifications.length}` : notifications.length} updates from live data
                 {filterVariant && <button onClick={() => setFilterVariant(null)} className="ml-1.5 text-primary hover:underline cursor-pointer">clear</button>}
               </p>
+
+              {/* Bookkeeper preference quick filter */}
+              <div className="mt-2.5 flex items-center gap-2 rounded-md bg-muted/30 px-2 py-1.5">
+                <FilterIcon className="h-3 w-3 text-muted-foreground shrink-0" />
+                <select
+                  value={notifPrefs.bookkeeperFilter}
+                  onChange={(e) => setNotifPrefs({ ...notifPrefs, bookkeeperFilter: e.target.value })}
+                  className="bg-transparent text-[11px] text-foreground outline-none flex-1"
+                >
+                  <option value="">All bookkeepers</option>
+                  {allBookkeepers.map((b) => <option key={b} value={b}>Only {b}</option>)}
+                </select>
+                {hasPrefFilter && (
+                  <button onClick={() => setNotifPrefs({ ...notifPrefs, bookkeeperFilter: "" })}
+                    className="h-4 w-4 rounded hover:bg-accent flex items-center justify-center text-muted-foreground hover:text-foreground">
+                    <X className="h-2.5 w-2.5" />
+                  </button>
+                )}
+              </div>
             </div>
-            <div>
-              {displayed.map((n, i) => (
+            <div className="max-h-[420px] overflow-y-auto">
+              {displayed.length === 0 ? (
+                <p className="text-xs text-muted-foreground text-center py-8">
+                  No notifications match your filters.
+                </p>
+              ) : displayed.map((n, i) => (
                 <motion.div key={n.id}
                   initial={{ opacity: 0, x: -8 }}
                   animate={{ opacity: 1, x: 0 }}
@@ -220,6 +272,11 @@ export default function NotificationDropdown({ clients, trends }: { clients: Cli
                   <div className="flex-1 min-w-0">
                     <p className="text-[12px] text-foreground leading-relaxed">{n.message}</p>
                     {n.detail && <p className="text-[11px] text-muted-foreground mt-0.5">{n.detail}</p>}
+                    {n.bookkeeper && (
+                      <span className="inline-block mt-1 text-[9px] font-semibold uppercase tracking-wider text-primary bg-primary/10 px-1.5 py-0.5 rounded">
+                        {n.bookkeeper}
+                      </span>
+                    )}
                   </div>
                   <span className="text-[10px] text-muted-foreground whitespace-nowrap shrink-0 mt-0.5">{n.time}</span>
                 </motion.div>

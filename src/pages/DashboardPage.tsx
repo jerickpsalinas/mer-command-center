@@ -9,6 +9,7 @@ import KPICard from "@/components/KPICard";
 import ComplianceProgress from "@/components/ComplianceProgress";
 import StatusBadge from "@/components/StatusBadge";
 import ExportCenter from "@/components/ExportCenter";
+import AtRiskAlerts from "@/components/AtRiskAlerts";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useSheetData, getKPIMetrics, getComplianceBreakdown, getNeedsAttention, getBookkeeperStats, getClientsForMonth } from "@/hooks/useSheetData";
 import { DataLoading, DataError } from "@/components/DataStatus";
@@ -486,6 +487,9 @@ export default function DashboardPage() {
           </ResponsiveContainer>
         </motion.div>
       </div>
+
+      {/* At-Risk Alerts (configurable in Settings) */}
+      <AtRiskAlerts />
 
       {/* Needs Attention + Bookkeepers */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
