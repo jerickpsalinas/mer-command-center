@@ -264,6 +264,50 @@ export default function NotificationDropdown({ clients, trends }: { clients: Cli
               </div>
             </div>
             <div className="max-h-[420px] overflow-y-auto">
+              {/* Recent activity from toast log (#14) */}
+              {toastLog.length > 0 && (
+                <div className="border-b border-border/50">
+                  <div className="flex items-center justify-between px-4 pt-3 pb-1.5">
+                    <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground inline-flex items-center gap-1.5">
+                      <Activity className="h-3 w-3" /> Recent activity
+                    </p>
+                    <button
+                      onClick={() => clearToastLog()}
+                      className="text-[10px] text-muted-foreground hover:text-destructive inline-flex items-center gap-1 transition-colors"
+                      title="Clear recent activity"
+                    >
+                      <Trash2 className="h-2.5 w-2.5" /> Clear
+                    </button>
+                  </div>
+                  {toastLog.slice(0, 5).map((t) => (
+                    <div
+                      key={t.id}
+                      className={`flex items-start gap-3 px-4 py-2 hover:bg-accent/30 transition-colors ${!t.read ? "bg-primary/[0.04]" : ""}`}
+                    >
+                      <div className={`mt-0.5 h-6 w-6 rounded-lg flex items-center justify-center shrink-0 ${
+                        t.variant === "destructive" ? "bg-destructive/10" :
+                        t.variant === "warning" ? "bg-warning/10" :
+                        t.variant === "success" ? "bg-success/10" : "bg-primary/10"
+                      }`}>
+                        <Activity className={`h-3 w-3 ${
+                          t.variant === "destructive" ? "text-destructive" :
+                          t.variant === "warning" ? "text-warning" :
+                          t.variant === "success" ? "text-success" : "text-primary"
+                        }`} />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        {t.title && <p className="text-[12px] text-foreground leading-tight font-medium">{t.title}</p>}
+                        {t.description && <p className="text-[11px] text-muted-foreground mt-0.5 leading-snug">{t.description}</p>}
+                      </div>
+                      <span className="text-[10px] text-muted-foreground whitespace-nowrap shrink-0 mt-0.5">{relativeTime(t.at)}</span>
+                    </div>
+                  ))}
+                  <div className="px-4 pb-1.5 pt-2">
+                    <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Live data alerts</p>
+                  </div>
+                </div>
+              )}
+
               {displayed.length === 0 ? (
                 <p className="text-xs text-muted-foreground text-center py-8">
                   No notifications match your filters.
