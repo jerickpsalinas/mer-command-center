@@ -1,12 +1,33 @@
 import type { Client, MonthlyTrend } from "@/data/mockData";
 
 const SHEET_URL =
-  "https://script.google.com/macros/s/AKfycbx33oNiGud15mBaGx24U8A-HMGqqrbPrL_QxnP94D_HCQB9lEqV6MOsPjVm3o3Hqo_A/exec";
+  "https://script.google.com/macros/s/AKfycbwtoATJXBCb-Yxmim2wWVh5d5baB9Dg1UMQOmhoQiCR1Z-7nFR1fEzM3IbBIpkUq2bj/exec";
+
+export interface CycleEntry {
+  id: string;
+  clientName: string;
+  companyName: string;
+  clientEmail: string;
+  ghlContactId: string;
+  stageNumber: number;
+  stageName: string;
+  month: string;
+  timestamp: string;
+  categoryTags: string;
+  cycleStatus: string;
+  daysInStage: number;
+  escalated: boolean;
+  notes: string;
+  cycleKey: string;
+}
 
 export interface SheetData {
   clients: Client[];
   monthlyTrends: MonthlyTrend[];
   bookkeepers: string[];
+  cycleEntries: CycleEntry[];
+  submittedBy: Record<string, string>; // clientName -> latest submitter
+  clientMonths: Record<string, string>; // clientName -> latest reporting month
 }
 
 function yesNo(val: unknown): boolean {
@@ -14,7 +35,7 @@ function yesNo(val: unknown): boolean {
 }
 
 function num(val: unknown): number {
-  const n = Number(val);
+  const n = Number(String(val).replace(/,/g, ""));
   return isNaN(n) ? 0 : n;
 }
 
@@ -68,29 +89,78 @@ function parseClient(row: Record<string, unknown>, index: number): Client {
 }
 
 function formatMonthYear(raw: string): string {
-  // Try parsing as a date and return "Mon YYYY"
-  const d = new Date(raw);
+  const trimmed = raw.trim();
+  if (!trimmed) return trimmed;
+  // Try parsing directly
+  const d = new Date(trimmed);
   if (!isNaN(d.getTime())) {
     const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
     return `${months[d.getMonth()]} ${d.getFullYear()}`;
   }
-  // Already in "Mon YYYY" format or similar, return as-is
-  return raw;
+  // Handle "March 2026" → "Mar 2026"
+  const m = trimmed.match(/^([A-Za-z]+)\s+(\d{4})$/);
+  if (m) {
+    const monthMap: Record<string, string> = {
+      january: "Jan", february: "Feb", march: "Mar", april: "Apr",
+      may: "May", june: "Jun", july: "Jul", august: "Aug",
+      september: "Sep", october: "Oct", november: "Nov", december: "Dec",
+    };
+    const short = monthMap[m[1].toLowerCase()] ?? m[1].slice(0, 3);
+    return `${short} ${m[2]}`;
+  }
+  return trimmed;
 }
 
-function parseTrend(row: Record<string, unknown>): MonthlyTrend {
-  const rawCompletion = String(row["Completion"] ?? row["Completion %"] ?? "0").replace("%", "");
-  const pct = num(rawCompletion);
-  const rawMonth = String(row["Month"] ?? row["Month End Date"] ?? "").trim();
-  const rawType = String(row["Type"] ?? "auto").trim().toLowerCase();
+function parseCycleEntry(row: Record<string, unknown>, index: number): CycleEntry {
   return {
-    month: formatMonthYear(rawMonth),
-    compliant: num(row["Compliant"]),
-    nonCompliant: num(row["Non-Compliant"]),
-    completionPct: pct <= 1 ? Math.round(pct * 100) : Math.round(pct),
-    trend: String(row["Trend"] ?? "-").trim(),
-    type: rawType === "manual" ? "manual" : "auto",
+    id: String(index + 1),
+    clientName: String(row["Client Name"] ?? "").trim(),
+    companyName: String(row["Company Name"] ?? "").trim(),
+    clientEmail: String(row["Client Email"] ?? "").trim(),
+    ghlContactId: String(row["GHL Contact ID"] ?? "").trim(),
+    stageNumber: num(row["Stage Number"]),
+    stageName: String(row["Stage Name"] ?? "").trim(),
+    month: String(row["Month"] ?? "").trim(),
+    timestamp: String(row["Timestamp"] ?? "").trim(),
+    categoryTags: String(row["Category Tags"] ?? "").trim(),
+    cycleStatus: String(row["Cycle Status"] ?? "").trim(),
+    daysInStage: num(row["Days in Stage"]),
+    escalated: yesNo(row["Escalated"]),
+    notes: String(row["Notes"] ?? "").trim(),
+    cycleKey: String(row["Cycle Key"] ?? "").trim(),
   };
+}
+
+function deriveMonthlyTrendsFromMER(rows: Record<string, unknown>[]): MonthlyTrend[] {
+  // Group rows by month, compute compliant/non-compliant + avg completion
+  const buckets = new Map<string, { compliant: number; nonCompliant: number; pctSum: number; count: number; raw: string }>();
+  for (const row of rows) {
+    const rawMonth = String(row["Month"] ?? "").trim();
+    if (!rawMonth) continue;
+    const key = formatMonthYear(rawMonth);
+    const status = deriveComplianceStatus(row);
+    const pct = deriveCompletionPct(row);
+    const b = buckets.get(key) ?? { compliant: 0, nonCompliant: 0, pctSum: 0, count: 0, raw: rawMonth };
+    if (status === "Compliant") b.compliant++;
+    else b.nonCompliant++;
+    b.pctSum += pct;
+    b.count++;
+    buckets.set(key, b);
+  }
+  const trends: MonthlyTrend[] = [];
+  for (const [month, b] of buckets) {
+    trends.push({
+      month,
+      compliant: b.compliant,
+      nonCompliant: b.nonCompliant,
+      completionPct: b.count ? Math.round(b.pctSum / b.count) : 0,
+      trend: "-",
+      type: "auto",
+    });
+  }
+  // Sort chronologically
+  trends.sort((a, b) => new Date(a.month).getTime() - new Date(b.month).getTime());
+  return trends;
 }
 
 export async function fetchSheetData(): Promise<SheetData> {
@@ -99,21 +169,45 @@ export async function fetchSheetData(): Promise<SheetData> {
   if (!res.ok) throw new Error(`Sheet fetch failed: ${res.status}`);
   const raw = await res.json();
 
-  const clientRows: Record<string, unknown>[] = raw["Monthly Progress"] ?? [];
-  const trendRows: Record<string, unknown>[] = raw["Monthly Trends"] ?? [];
-  const bkRows: Record<string, unknown>[] = raw["Bookkeepers"] ?? [];
+  const merRows: Record<string, unknown>[] = raw["MER Dashboard Data"] ?? [];
+  const logRows: Record<string, unknown>[] = raw["Bookkeeping Log"] ?? [];
 
-  const clients = clientRows
+  // For the Clients/Progress views, we want one row per client (latest month).
+  // Group by client name, keep the row with the most recent timestamp.
+  const latestByClient = new Map<string, Record<string, unknown>>();
+  for (const row of merRows) {
+    const name = String(row["Client Name"] ?? "").trim();
+    if (!name) continue;
+    const ts = Date.parse(String(row["Timestamp"] ?? "")) || 0;
+    const existing = latestByClient.get(name);
+    const existingTs = existing ? Date.parse(String(existing["Timestamp"] ?? "")) || 0 : -1;
+    if (!existing || ts >= existingTs) latestByClient.set(name, row);
+  }
+
+  const clientRowsLatest = Array.from(latestByClient.values());
+  const clients = clientRowsLatest.map((r, i) => parseClient(r, i));
+
+  const submittedBy: Record<string, string> = {};
+  const clientMonths: Record<string, string> = {};
+  for (const r of clientRowsLatest) {
+    const name = String(r["Client Name"] ?? "").trim();
+    submittedBy[name] = String(r["Submitted By"] ?? "").trim();
+    clientMonths[name] = formatMonthYear(String(r["Month"] ?? ""));
+  }
+
+  // Monthly trends derived from ALL MER rows (every month present)
+  const monthlyTrends = deriveMonthlyTrendsFromMER(merRows);
+
+  // Bookkeepers derived from unique values
+  const bookkeepers = Array.from(
+    new Set(clients.map((c) => c.bookkeeper).filter(Boolean))
+  ).sort();
+
+  // Cycle entries: full log (sorted by timestamp desc)
+  const cycleEntries = logRows
     .filter((r) => String(r["Client Name"] ?? "").trim() !== "")
-    .map((r, i) => parseClient(r, i));
+    .map((r, i) => parseCycleEntry(r, i))
+    .sort((a, b) => (Date.parse(b.timestamp) || 0) - (Date.parse(a.timestamp) || 0));
 
-  const monthlyTrends = trendRows
-    .filter((r) => String(r["Month"] ?? r["Month End Date"] ?? "").trim() !== "")
-    .map(parseTrend);
-
-  const bookkeepers = bkRows
-    .map((r) => String(r["Bookkeeper Name"] ?? "").trim())
-    .filter(Boolean);
-
-  return { clients, monthlyTrends, bookkeepers };
+  return { clients, monthlyTrends, bookkeepers, cycleEntries, submittedBy, clientMonths };
 }
