@@ -63,16 +63,16 @@ function NeedsAttentionSection({ clients }: { clients: Client[] }) {
   return (
     <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4, delay: 0.8 }}
       className="lg:col-span-2 rounded-xl border border-destructive/15 bg-card shadow-card overflow-hidden">
-      <div className="px-6 py-4 border-b border-border bg-destructive/[0.02]">
-        <h2 className="text-sm font-semibold text-foreground flex items-center gap-2">
-          <div className="h-7 w-7 rounded-lg bg-destructive/10 flex items-center justify-center"><AlertTriangle className="h-4 w-4 text-destructive" /></div>
+      <div className="px-4 sm:px-6 py-4 border-b border-border bg-destructive/[0.02]">
+        <h2 className="text-sm font-semibold text-foreground flex items-center gap-2 flex-wrap">
+          <div className="h-7 w-7 rounded-lg bg-destructive/10 flex items-center justify-center shrink-0"><AlertTriangle className="h-4 w-4 text-destructive" /></div>
           Needs Attention
           <span className="ml-auto text-xs font-mono-data text-destructive font-semibold">{sections.reduce((sum, s) => sum + s.count, 0)} issues</span>
         </h2>
       </div>
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-0 divide-y sm:divide-y-0 sm:divide-x divide-border">
         {sections.map((section) => (
-          <div key={section.title} className="p-5">
+          <div key={section.title} className="p-4 sm:p-5">
             <div className="flex items-center gap-2 mb-3">
               <span className={`inline-flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wider px-2 py-1 rounded-md border ${priorityStyles[section.priority]}`}>
                 <section.icon className="h-3 w-3" />{section.priority === "critical" ? "Critical" : section.priority === "high" ? "High" : "Medium"}
@@ -156,24 +156,24 @@ function BookkeepersSection({ clients, bookkeepers }: { clients: Client[]; bookk
   return (
     <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4, delay: 0.9 }}
       className="rounded-xl border border-border bg-card shadow-card">
-      <div className="px-6 py-4 border-b border-border">
+      <div className="px-4 sm:px-6 py-4 border-b border-border">
         <h2 className="text-sm font-semibold text-foreground flex items-center gap-2">
           <div className="h-7 w-7 rounded-lg bg-primary/10 flex items-center justify-center"><Award className="h-4 w-4 text-primary" /></div>
           Top Bookkeepers
         </h2>
       </div>
-      <div className="p-5 space-y-3">
+      <div className="p-4 sm:p-5 space-y-3">
         {bkStats.map((bk, i) => {
           const nonCompliant = bk.totalClients - bk.compliant;
           return (
             <motion.div key={bk.name} whileHover={{ scale: 1.01 }} transition={{ type: "spring", stiffness: 400, damping: 25 }}
               className="flex items-center gap-3 p-2.5 rounded-lg hover:bg-accent/50 transition-colors -mx-2 cursor-default">
-              <div className="h-9 w-9 rounded-lg bg-primary/8 flex items-center justify-center text-xs font-bold text-primary">#{i + 1}</div>
+              <div className="h-9 w-9 rounded-lg bg-primary/8 flex items-center justify-center text-xs font-bold text-primary shrink-0">#{i + 1}</div>
               <div className="flex-1 min-w-0">
                 <p className="text-[13px] font-semibold text-foreground break-words">{bk.name}</p>
                 <p className="text-[11px] text-muted-foreground break-words">{bk.totalClients} clients · <span className="text-success">{bk.compliant} compliant</span> · <span className="text-destructive">{nonCompliant} non-compliant</span></p>
               </div>
-              <div className="text-right">
+              <div className="text-right shrink-0">
                 <span className="font-mono-data text-sm font-bold text-foreground">{bk.rate}%</span>
                 <p className="text-[10px] text-muted-foreground">rate</p>
               </div>
@@ -181,18 +181,18 @@ function BookkeepersSection({ clients, bookkeepers }: { clients: Client[]; bookk
           );
         })}
       </div>
-      <div className="border-t border-border px-6 py-4">
+      <div className="border-t border-border px-4 sm:px-6 py-4">
         <h3 className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider mb-3 flex items-center gap-1.5"><Clock className="h-3.5 w-3.5" /> Recent Activity</h3>
         <div className="space-y-2.5">
           {recentActivity.slice(0, 7).map(a => (
             <div key={a.id} className="flex items-start gap-2.5 py-1.5 rounded-md hover:bg-accent/20 -mx-1 px-1 transition-colors">
               <div className={`mt-1.5 h-1.5 w-1.5 rounded-full shrink-0 ${dotColor[a.type] || "bg-muted-foreground"}`} />
               <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2 mb-0.5">
+                <div className="flex items-center gap-2 mb-0.5 flex-wrap">
                   <span className={`text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded ${catColor[a.category] || "text-muted-foreground bg-muted"}`}>{a.category}</span>
                   <span className="text-[10px] text-muted-foreground">{a.time}</span>
                 </div>
-                <p className="text-[12px] text-muted-foreground leading-relaxed">{a.message}</p>
+                <p className="text-[12px] text-muted-foreground leading-relaxed break-words">{a.message}</p>
               </div>
             </div>
           ))}
@@ -279,14 +279,14 @@ function ReportsSummarySection({ clients, bookkeepers }: { clients: Client[]; bo
   return (
     <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4, delay: 1.0 }}
       className="rounded-xl border border-border bg-card shadow-card overflow-hidden">
-      <div className="px-6 py-4 border-b border-border">
+      <div className="px-4 sm:px-6 py-4 border-b border-border">
         <h2 className="text-sm font-semibold text-foreground flex items-center gap-2">
           <div className="h-7 w-7 rounded-lg bg-primary/10 flex items-center justify-center"><BarChart3 className="h-4 w-4 text-primary" /></div>
           Reports Summary
         </h2>
       </div>
       <div className="grid grid-cols-1 sm:grid-cols-2 divide-y sm:divide-y-0 sm:divide-x divide-border">
-        <div className="p-5">
+        <div className="p-4 sm:p-5">
           <div className="flex items-center gap-2 mb-3">
             <ShieldAlert className="h-4 w-4 text-destructive" />
             <span className="text-xs font-semibold text-foreground">Risk Overview</span>
@@ -312,7 +312,7 @@ function ReportsSummarySection({ clients, bookkeepers }: { clients: Client[]; bo
           )}
         </div>
 
-        <div className="p-5">
+        <div className="p-4 sm:p-5">
           <div className="flex items-center gap-2 mb-3">
             <FileText className="h-4 w-4 text-primary" />
             <span className="text-xs font-semibold text-foreground">Performance</span>
@@ -492,7 +492,7 @@ export default function DashboardPage() {
       <AtRiskAlerts />
 
       {/* Needs Attention + Bookkeepers */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-5">
         <NeedsAttentionSection clients={clients} />
         <BookkeepersSection clients={clients} bookkeepers={bookkeepers} />
       </div>
