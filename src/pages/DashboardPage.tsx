@@ -495,6 +495,13 @@ export default function DashboardPage() {
 
       {/* Reports Summary */}
       <ReportsSummarySection clients={clients} bookkeepers={bookkeepers} />
+
+      {/* Download / Export Center */}
+      <ExportCenter
+        history={merHistory}
+        availableMonths={availableMonths}
+        defaultMonth={activeMonth}
+      />
     </div>
   );
 }
