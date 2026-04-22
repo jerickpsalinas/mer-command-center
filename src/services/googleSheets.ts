@@ -184,8 +184,38 @@ export async function fetchSheetData(): Promise<SheetData> {
   const merRows: Record<string, unknown>[] = raw["MER Dashboard Data"] ?? [];
   const logRows: Record<string, unknown>[] = raw["Bookkeeping Log"] ?? [];
 
+  // Build full MER history (one parsed Client per row, with month metadata)
+  const merHistory: MerHistoryRow[] = [];
+  const monthDateMap = new Map<string, string>(); // label -> first ISO seen (for sorting)
+  for (let i = 0; i < merRows.length; i++) {
+    const row = merRows[i];
+    const name = String(row["Client Name"] ?? "").trim();
+    if (!name) continue;
+    const rawMonth = String(row["Month"] ?? "").trim();
+    if (!rawMonth) continue;
+    const monthLabel = formatMonthYear(rawMonth);
+    // Convert "Mon YYYY" → ISO "YYYY-MM-01"
+    const d = new Date(rawMonth);
+    const iso = !isNaN(d.getTime())
+      ? `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-01`
+      : "";
+    if (iso && !monthDateMap.has(monthLabel)) monthDateMap.set(monthLabel, iso);
+
+    const ts = String(row["Timestamp"] ?? "").trim();
+    const tsMs = Date.parse(ts) || 0;
+    const parsed = parseClient(row, i);
+    merHistory.push({
+      ...parsed,
+      month: monthLabel,
+      monthRaw: rawMonth,
+      monthDate: iso,
+      timestamp: ts,
+      timestampMs: tsMs,
+      submittedBy: String(row["Submitted By"] ?? "").trim(),
+    });
+  }
+
   // For the Clients/Progress views, we want one row per client (latest month).
-  // Group by client name, keep the row with the most recent timestamp.
   const latestByClient = new Map<string, Record<string, unknown>>();
   for (const row of merRows) {
     const name = String(row["Client Name"] ?? "").trim();
@@ -221,5 +251,21 @@ export async function fetchSheetData(): Promise<SheetData> {
     .map((r, i) => parseCycleEntry(r, i))
     .sort((a, b) => (Date.parse(b.timestamp) || 0) - (Date.parse(a.timestamp) || 0));
 
-  return { clients, monthlyTrends, bookkeepers, cycleEntries, submittedBy, clientMonths };
+  // Available months sorted chronologically (asc)
+  const availableMonths = Array.from(monthDateMap.entries())
+    .sort((a, b) => a[1].localeCompare(b[1]))
+    .map(([label]) => label);
+  const latestMonth = availableMonths[availableMonths.length - 1] ?? "";
+
+  return {
+    clients,
+    monthlyTrends,
+    bookkeepers,
+    cycleEntries,
+    submittedBy,
+    clientMonths,
+    merHistory,
+    availableMonths,
+    latestMonth,
+  };
 }
