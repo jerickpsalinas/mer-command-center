@@ -180,19 +180,31 @@ export default function NotificationDropdown({ clients, trends }: { clients: Cli
     setFilterVariant(prev => prev === variant ? null : variant);
   };
 
+  // Mark recent toasts as read once user opens the dropdown
+  useEffect(() => {
+    if (open && unreadToastCount > 0) {
+      const t = setTimeout(() => markAllRead(), 600);
+      return () => clearTimeout(t);
+    }
+  }, [open, unreadToastCount]);
+
+  const totalBadge = notifications.length + unreadToastCount;
+
   return (
     <div className="relative" ref={ref}>
       <button
         onClick={() => setOpen(!open)}
         className="relative h-9 w-9 flex items-center justify-center rounded-lg text-muted-foreground hover:bg-accent hover:text-foreground transition-colors"
+        aria-label="Notifications"
       >
         <Bell className="h-[18px] w-[18px]" />
-        {notifications.length > 0 && (
-          <span className="absolute top-1 right-1 h-4 w-4 rounded-full bg-primary text-[9px] font-bold text-primary-foreground flex items-center justify-center ring-2 ring-card">
-            {notifications.length}
+        {totalBadge > 0 && (
+          <span className="absolute top-1 right-1 min-w-4 h-4 px-1 rounded-full bg-primary text-[9px] font-bold text-primary-foreground flex items-center justify-center ring-2 ring-card tabular-nums">
+            {totalBadge > 99 ? "99+" : totalBadge}
           </span>
         )}
       </button>
+
 
       <AnimatePresence>
         {open && (
