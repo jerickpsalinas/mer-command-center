@@ -280,7 +280,7 @@ export default function ClientsPage() {
 
       {/* Per-client history dialog with MoM diff */}
       <Dialog open={!!historyClient} onOpenChange={(open) => !open && setHistoryClient(null)}>
-        <DialogContent className="max-w-3xl max-h-[85vh] overflow-y-auto">
+        <DialogContent className="max-w-3xl w-[calc(100vw-1rem)] sm:w-auto max-h-[85vh] overflow-y-auto p-4 sm:p-6">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <History className="h-4 w-4 text-primary" />
@@ -307,12 +307,12 @@ export default function ClientsPage() {
                       const Icon = d.direction === "improved" ? ArrowUp : d.direction === "regressed" ? ArrowDown : Minus;
                       const color = d.direction === "improved" ? "text-success" : d.direction === "regressed" ? "text-destructive" : "text-muted-foreground";
                       return (
-                        <li key={i} className="flex items-center gap-2 text-[12px]">
-                          <Icon className={`h-3 w-3 ${color}`} />
-                          <span className="text-foreground font-medium min-w-[140px]">{d.field}:</span>
-                          <span className="font-mono-data text-muted-foreground">{d.prev}</span>
+                        <li key={i} className="flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[12px]">
+                          <Icon className={`h-3 w-3 ${color} shrink-0`} />
+                          <span className="text-foreground font-medium min-w-[120px] sm:min-w-[140px]">{d.field}:</span>
+                          <span className="font-mono-data text-muted-foreground break-all">{d.prev}</span>
                           <span className="text-muted-foreground">→</span>
-                          <span className={`font-mono-data font-semibold ${color}`}>{d.curr}</span>
+                          <span className={`font-mono-data font-semibold ${color} break-all`}>{d.curr}</span>
                         </li>
                       );
                     })}
@@ -373,7 +373,7 @@ export default function ClientsPage() {
 
       {/* Save filter dialog */}
       <Dialog open={showSaveDialog} onOpenChange={setShowSaveDialog}>
-        <DialogContent className="max-w-md">
+        <DialogContent className="max-w-md w-[calc(100vw-1rem)] sm:w-auto p-4 sm:p-6">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <BookmarkPlus className="h-4 w-4 text-primary" />
