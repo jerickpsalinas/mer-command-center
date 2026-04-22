@@ -2,8 +2,7 @@ import { useState } from "react";
 import KPICard from "@/components/KPICard";
 import ExportCenter from "@/components/ExportCenter";
 import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from "recharts";
-import { TrendingUp, TrendingDown, CheckCircle2, XCircle, ArrowRight, Save, Calendar, Minus } from "lucide-react";
-import { toast } from "@/hooks/use-toast";
+import { TrendingUp, TrendingDown, CheckCircle2, XCircle, ArrowRight, Calendar, Minus, Sparkles } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { motion, AnimatePresence } from "framer-motion";
 import { useSheetData, getKPIMetrics } from "@/hooks/useSheetData";
@@ -37,7 +36,6 @@ function getCurrentMonthLabel() {
 
 export default function MonthlyTrendsPage() {
   const { data, isLoading, error } = useSheetData();
-  const [isSaving, setIsSaving] = useState(false);
   const [selectedHistoryIdx, setSelectedHistoryIdx] = useState<number | null>(null);
   const [compareIdx, setCompareIdx] = useState<string>("-");
 
@@ -50,9 +48,9 @@ export default function MonthlyTrendsPage() {
   const kpi = getKPIMetrics(clients);
   const currentMonthLabel = getCurrentMonthLabel();
 
-  // Historical trends from the Monthly Trends sheet
+  // Historical trends derived live from every MER submission
   const validTrends = monthlyTrends.filter(t => t.compliant > 0 || t.nonCompliant > 0 || t.completionPct > 0);
-  const autoTrends = validTrends.filter(t => t.type !== "manual");
+  const autoTrends = validTrends;
   const hasHistory = validTrends.length > 0;
 
   // Comparison logic for historical data
@@ -70,67 +68,24 @@ export default function MonthlyTrendsPage() {
   const trendDiff = histPrevious && histCurrent ? histCurrent.completionPct - histPrevious.completionPct : 0;
   const isImproving = histPrevious ? trendDiff >= 0 : false;
 
-  // Compute trend for manual save by comparing to last auto-snapshot
-  const lastAutoSnapshot = autoTrends.length > 0 ? autoTrends[autoTrends.length - 1] : null;
-  const manualTrend = lastAutoSnapshot
-    ? (kpi.avgCompletion > lastAutoSnapshot.completionPct ? "Improving"
-      : kpi.avgCompletion < lastAutoSnapshot.completionPct ? "Declining" : "Stable")
-    : "-";
-
-  const handleSaveSnapshot = async () => {
-    if (isSaving) return;
-    setIsSaving(true);
-    try {
-      const payload = {
-        month: currentMonthLabel,
-        compliant: kpi.compliant,
-        nonCompliant: kpi.nonCompliant,
-        completion: `${kpi.avgCompletion}%`,
-        trend: manualTrend,
-        type: "manual",
-      };
-      await fetch(
-        "https://script.google.com/macros/s/AKfycbx33oNiGud15mBaGx24U8A-HMGqqrbPrL_QxnP94D_HCQB9lEqV6MOsPjVm3o3Hqo_A/exec",
-        { method: "POST", mode: "no-cors", headers: { "Content-Type": "text/plain" }, body: JSON.stringify(payload) }
-      );
-      toast({ title: "Manual snapshot saved", description: `${currentMonthLabel} data sent to Google Sheets (type: manual)` });
-    } catch {
-      toast({ title: "Failed to save snapshot", variant: "destructive" });
-    } finally {
-      setIsSaving(false);
-    }
-  };
-
   return (
     <div className="space-y-6">
       {/* Current Month Section */}
       <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }}
         className="rounded-xl border border-border bg-card p-4 sm:p-5 shadow-card">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <div className="flex items-center gap-3">
-            <Calendar className="h-5 w-5 text-primary shrink-0" />
+        <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
+          <div className="flex items-start gap-3">
+            <Calendar className="h-5 w-5 text-primary shrink-0 mt-0.5" />
             <div>
               <h2 className="text-sm font-semibold text-foreground">Current Month: {currentMonthLabel}</h2>
               <p className="text-[11px] text-muted-foreground">Live data from your dashboard</p>
             </div>
           </div>
-          <div className="flex flex-col sm:items-end gap-2">
-            <motion.button
-              onClick={handleSaveSnapshot}
-              disabled={isSaving}
-              whileHover={{ scale: isSaving ? 1 : 1.03 }}
-              whileTap={{ scale: isSaving ? 1 : 0.97 }}
-              className={`inline-flex items-center justify-center gap-2 rounded-lg px-5 py-2.5 text-sm font-medium transition-all w-full sm:w-auto ${
-                isSaving
-                  ? "bg-muted/30 text-muted-foreground cursor-not-allowed border border-border"
-                  : "bg-primary text-primary-foreground shadow-md hover:shadow-lg"
-              }`}
-            >
-              <Save className="h-3.5 w-3.5" />
-              {isSaving ? "Saving…" : "Save Manual Snapshot"}
-            </motion.button>
-            <p className="text-[11px] text-muted-foreground/70 italic max-w-sm text-left sm:text-right leading-relaxed">
-              Auto-snapshots save at month-end. Use manual snapshot to capture data anytime. All data is stored in the Trends sheet.
+          <div className="flex items-start gap-2 rounded-lg border border-primary/20 bg-primary/5 px-3 py-2 max-w-md">
+            <Sparkles className="h-3.5 w-3.5 text-primary shrink-0 mt-0.5" />
+            <p className="text-[11px] text-muted-foreground leading-relaxed">
+              Trends update <strong className="text-foreground">live</strong> from every MER submission — no snapshots needed.
+              Use the <strong className="text-foreground">Export Center</strong> below to download any month or date range.
             </p>
           </div>
         </div>
@@ -311,12 +266,11 @@ export default function MonthlyTrendsPage() {
                   <th className="text-left text-xs font-medium text-muted-foreground uppercase tracking-wide px-3 sm:px-4 py-2.5">Non-Comp.</th>
                   <th className="text-left text-xs font-medium text-muted-foreground uppercase tracking-wide px-3 sm:px-4 py-2.5">Completion</th>
                   <th className="text-left text-xs font-medium text-muted-foreground uppercase tracking-wide px-3 sm:px-4 py-2.5">Trend</th>
-                  <th className="text-left text-xs font-medium text-muted-foreground uppercase tracking-wide px-3 sm:px-4 py-2.5">Type</th>
                 </tr>
               </thead>
               <tbody>
                 {validTrends.map((t, i) => (
-                  <tr key={`${t.month}-${t.type}-${i}`} className={`border-b border-border hover:bg-accent/50 transition-colors cursor-pointer ${i === histIdx ? "bg-primary/5 border-l-2 border-l-primary" : ""} ${compIdxNum !== null && i === compIdxNum ? "bg-accent/30" : ""}`}
+                  <tr key={`${t.month}-${i}`} className={`border-b border-border hover:bg-accent/50 transition-colors cursor-pointer ${i === histIdx ? "bg-primary/5 border-l-2 border-l-primary" : ""} ${compIdxNum !== null && i === compIdxNum ? "bg-accent/30" : ""}`}
                     onClick={() => setSelectedHistoryIdx(i)}>
                     <td className="px-3 sm:px-4 py-2.5 font-medium text-foreground whitespace-nowrap">{t.month}</td>
                     <td className="px-3 sm:px-4 py-2.5 font-mono-data text-success">{t.compliant}</td>
@@ -332,15 +286,6 @@ export default function MonthlyTrendsPage() {
                         {t.trend || "-"}
                       </span>
                     </td>
-                    <td className="px-3 sm:px-4 py-2.5">
-                      <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider ${
-                        t.type === "manual"
-                          ? "bg-accent/50 text-accent-foreground border border-border"
-                          : "bg-primary/10 text-primary border border-primary/20"
-                      }`}>
-                        {t.type || "auto"}
-                      </span>
-                    </td>
                   </tr>
                 ))}
               </tbody>
@@ -353,7 +298,7 @@ export default function MonthlyTrendsPage() {
           <TrendingUp className="h-10 w-10 text-muted-foreground mx-auto mb-3" />
           <h3 className="text-sm font-semibold text-foreground mb-1">No Historical Data Yet</h3>
           <p className="text-xs text-muted-foreground max-w-md mx-auto">
-            Click <strong>"Save Manual Snapshot"</strong> to check current data anytime. Auto-snapshots are saved at the end of each month via your Google Apps Script trigger.
+            Trends populate automatically as bookkeepers submit MER rows. Once submissions arrive in the <strong>MER Dashboard Data</strong> sheet, this view will fill in instantly.
           </p>
         </motion.div>
       )}
