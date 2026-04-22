@@ -264,27 +264,25 @@ export default function ClientsPage() {
         </div>
       </motion.div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 density-gap-3">
         {filtered.map((c, i) => {
           const issues = getIssueDetails(c);
-          return (
-            <motion.button
-              key={c.id}
-              onClick={() => setHistoryClient(c.name)}
-              initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.05 + i * 0.015 }}
-              whileHover={{ scale: 1.01, y: -2 }}
-              className="text-left rounded-xl border border-border bg-card p-4 shadow-card hover:shadow-card-hover transition-[box-shadow] duration-300 group focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40">
-              <div className="flex items-start justify-between mb-3">
-                <div>
-                  <h3 className="text-sm font-semibold text-foreground leading-tight">{c.name}</h3>
-                  <p className="text-xs text-muted-foreground mt-0.5">{c.clientType} · {c.bookkeeper}</p>
+          const cardInner = (
+            <div className="text-left p-4 density-card group">
+              <div className="flex items-start justify-between mb-3 gap-2">
+                <div className="min-w-0">
+                  <h3 className="text-sm font-semibold text-foreground leading-tight truncate">{c.name}</h3>
+                  <p className="text-xs text-muted-foreground mt-0.5 truncate">{c.clientType} · {c.bookkeeper}</p>
                 </div>
                 <StatusBadge status={c.complianceStatus} />
               </div>
               <div className="mb-2">
-                <div className="flex items-center justify-between text-[11px] mb-1">
+                <div className="flex items-center justify-between text-[11px] mb-1 gap-2">
                   <span className="text-muted-foreground">Completion</span>
-                  <span className="font-mono-data font-semibold text-foreground">{c.completionPct}%</span>
+                  <span className="inline-flex items-center gap-2">
+                    <ClientSparkline clientName={c.name} history={data.merHistory} />
+                    <span className="font-mono-data font-semibold text-foreground tabular-nums">{c.completionPct}%</span>
+                  </span>
                 </div>
                 <div className="h-1.5 rounded-full bg-muted overflow-hidden">
                   <div className="h-full rounded-full transition-all duration-500"
@@ -311,10 +309,33 @@ export default function ClientsPage() {
                 </div>
               )}
               <div className="mt-3 pt-2 border-t border-border/50 flex items-center justify-between text-[10px] text-muted-foreground/70 group-hover:text-primary transition-colors">
-                <span className="flex items-center gap-1"><History className="h-3 w-3" /> View history</span>
+                <span className="flex items-center gap-1"><History className="h-3 w-3" /> Tap to view history <span className="hidden sm:inline">· swipe ←</span></span>
                 <span>›</span>
               </div>
-            </motion.button>
+            </div>
+          );
+
+          return (
+            <motion.div
+              key={c.id}
+              initial={{ opacity: 0, y: 12 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.05 + i * 0.015 }}
+              whileHover={{ scale: 1.01, y: -2 }}
+              className="rounded-xl border border-border bg-card shadow-card hover:shadow-card-hover transition-[box-shadow] duration-300"
+            >
+              <SwipeableCard
+                onTap={() => setHistoryClient(c.name)}
+                leftAction={{
+                  label: "History",
+                  icon: History,
+                  color: "bg-primary text-primary-foreground",
+                  onAction: () => setHistoryClient(c.name),
+                }}
+              >
+                {cardInner}
+              </SwipeableCard>
+            </motion.div>
           );
         })}
       </div>
