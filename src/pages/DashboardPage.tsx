@@ -219,11 +219,11 @@ function KPIChartsSection({ kpi, breakdown }: { kpi: ReturnType<typeof getKPIMet
 
   const renderCustomLabel = ({ cx, cy, midAngle, innerRadius, outerRadius, name, value }: any) => {
     const RADIAN = Math.PI / 180;
-    const radius = outerRadius + 28;
+    const radius = outerRadius + 18;
     const x = cx + radius * Math.cos(-midAngle * RADIAN);
     const y = cy + radius * Math.sin(-midAngle * RADIAN);
     return (
-      <text x={x} y={y} fill="currentColor" className="fill-foreground" textAnchor={x > cx ? "start" : "end"} dominantBaseline="central" fontSize={11} fontWeight={500}>
+      <text x={x} y={y} fill="currentColor" className="fill-foreground" textAnchor={x > cx ? "start" : "end"} dominantBaseline="central" fontSize={10} fontWeight={500}>
         {name}: {value}
       </text>
     );
@@ -234,12 +234,12 @@ function KPIChartsSection({ kpi, breakdown }: { kpi: ReturnType<typeof getKPIMet
       className="grid grid-cols-1 lg:grid-cols-2 gap-5">
       {/* Compliance Distribution - Donut */}
       <motion.div whileHover={{ scale: 1.005 }} transition={{ type: "spring", stiffness: 300, damping: 25 }}
-        className="rounded-xl border border-border bg-card p-6 shadow-card hover:shadow-card-hover transition-[box-shadow] duration-300">
+        className="rounded-xl border border-border bg-card p-4 sm:p-6 shadow-card hover:shadow-card-hover transition-[box-shadow] duration-300">
         <h2 className="text-sm font-semibold text-foreground mb-1">Compliance Distribution</h2>
         <p className="text-[11px] text-muted-foreground mb-3">{kpi.total} total clients</p>
         <ResponsiveContainer width="100%" height={260}>
-          <PieChart>
-            <Pie data={pieData} cx="50%" cy="50%" innerRadius={55} outerRadius={88} dataKey="value" paddingAngle={3} strokeWidth={0}
+          <PieChart margin={{ top: 10, right: 20, bottom: 10, left: 20 }}>
+            <Pie data={pieData} cx="50%" cy="50%" innerRadius="40%" outerRadius="62%" dataKey="value" paddingAngle={3} strokeWidth={0}
               label={renderCustomLabel} labelLine={false}>
               {pieData.map((entry, i) => <Cell key={i} fill={entry.color} />)}
             </Pie>
@@ -251,14 +251,14 @@ function KPIChartsSection({ kpi, breakdown }: { kpi: ReturnType<typeof getKPIMet
 
       {/* Compliance Breakdown % - Bar */}
       <motion.div whileHover={{ scale: 1.005 }} transition={{ type: "spring", stiffness: 300, damping: 25 }}
-        className="rounded-xl border border-border bg-card p-6 shadow-card hover:shadow-card-hover transition-[box-shadow] duration-300">
+        className="rounded-xl border border-border bg-card p-4 sm:p-6 shadow-card hover:shadow-card-hover transition-[box-shadow] duration-300">
         <h2 className="text-sm font-semibold text-foreground mb-1">Compliance Breakdown %</h2>
         <p className="text-[11px] text-muted-foreground mb-3">Percentage of clients meeting each criteria</p>
         <ResponsiveContainer width="100%" height={260}>
-          <BarChart data={breakdownData} layout="vertical" margin={{ left: 5, right: 20 }}>
+          <BarChart data={breakdownData} layout="vertical" margin={{ left: 0, right: 16 }}>
             <CartesianGrid strokeDasharray="3 3" stroke={CHART_COLORS.grid} horizontal={false} />
             <XAxis type="number" domain={[0, 100]} tick={{ fontSize: 10, fill: CHART_COLORS.muted }} unit="%" />
-            <YAxis type="category" dataKey="name" width={80} tick={{ fontSize: 10, fill: CHART_COLORS.muted }} />
+            <YAxis type="category" dataKey="name" width={70} tick={{ fontSize: 10, fill: CHART_COLORS.muted }} />
             <Tooltip content={<CustomTooltip />} cursor={{ fill: "hsl(20, 8%, 14%)" }} />
             <Bar dataKey="value" radius={[0, 6, 6, 0]} name="% Compliant">
               {breakdownData.map((entry, i) => <Cell key={i} fill={entry.fill} />)}
