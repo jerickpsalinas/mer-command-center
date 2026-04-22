@@ -1,4 +1,7 @@
 import StatusBadge from "@/components/StatusBadge";
+import StickyPageHeader from "@/components/StickyPageHeader";
+import ClientSparkline from "@/components/ClientSparkline";
+import SwipeableCard from "@/components/SwipeableCard";
 import { useMemo, useState } from "react";
 import { Search, AlertTriangle, ArrowUpDown, BarChart3, History, TrendingUp, Bookmark, BookmarkPlus, X, Filter, ArrowUp, ArrowDown, Minus } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
