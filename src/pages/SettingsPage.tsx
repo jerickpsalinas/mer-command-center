@@ -1,16 +1,18 @@
 import { useState } from "react";
-import { Settings as SettingsIcon, RefreshCw, Bell, Moon, Sun, Shield, Clock, Download, Users, ChevronRight, AlertTriangle, FileText, TrendingDown, CheckCircle2 } from "lucide-react";
+import { Settings as SettingsIcon, RefreshCw, Bell, Moon, Sun, Shield, AlertTriangle, FileText, TrendingDown, CheckCircle2, ShieldAlert, RotateCcw } from "lucide-react";
 import { motion } from "framer-motion";
 import { useSheetData } from "@/hooks/useSheetData";
 import { useTheme } from "@/hooks/useTheme";
+import { useUserSettings, DEFAULT_THRESHOLDS, DEFAULT_NOTIF_PREFS } from "@/hooks/useUserSettings";
 
 export default function SettingsPage() {
   const [autoRefresh, setAutoRefresh] = useState(true);
   const [refreshInterval, setRefreshInterval] = useState(60);
-  const [notifications, setNotifications] = useState(true);
   const [compactMode, setCompactMode] = useState(false);
   const { data } = useSheetData();
   const { theme, toggle } = useTheme();
+  const { thresholds, setThresholds, notifPrefs, setNotifPrefs } = useUserSettings();
+  const allBookkeepers = data?.bookkeepers ?? [];
 
   // Derive review period from data
   const reviewPeriod = (() => {
