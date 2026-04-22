@@ -38,9 +38,12 @@ export default function ClientsPage() {
   const [search, setSearch] = useState("");
   const [sortKey, setSortKey] = useState<SortKey>("completionPct");
   const [sortDir, setSortDir] = useState<SortDir>("asc");
+  const [historyClient, setHistoryClient] = useState<string | null>(null);
 
   if (isLoading) return <DataLoading />;
   if (error || !data) return <DataError message={error?.message} />;
+
+  const history = historyClient ? getClientHistory(data.merHistory, historyClient) : [];
 
   const toggleSort = (key: SortKey) => {
     if (sortKey === key) setSortDir(d => d === "asc" ? "desc" : "asc");
