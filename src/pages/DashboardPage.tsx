@@ -488,6 +488,9 @@ export default function DashboardPage() {
         </motion.div>
       </div>
 
+      {/* At-Risk Alerts (configurable in Settings) */}
+      <AtRiskAlerts />
+
       {/* Needs Attention + Bookkeepers */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
         <NeedsAttentionSection clients={clients} />
