@@ -387,11 +387,11 @@ export default function DashboardPage() {
   const breakdown = getComplianceBreakdown(clients);
 
   return (
-    <div ref={dashRef} className="space-y-7">
+    <div ref={dashRef} className="space-y-6 sm:space-y-7">
       {/* Top bar: Month picker + Capture */}
       <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-3">
         <div className="flex items-end gap-3 flex-wrap">
-          <div>
+          <div className="w-full sm:w-auto">
             <label className="text-[11px] font-medium text-muted-foreground uppercase tracking-wider flex items-center gap-1.5 mb-1.5">
               <Calendar className="h-3 w-3" /> Reporting Month
             </label>
@@ -424,14 +424,14 @@ export default function DashboardPage() {
         <button
           onClick={handleCapture}
           disabled={capturing}
-          className="inline-flex items-center gap-2 rounded-lg border border-border bg-card px-4 py-2 text-xs font-semibold text-muted-foreground shadow-card hover:bg-accent hover:text-foreground transition-colors disabled:opacity-50"
+          className="inline-flex items-center justify-center gap-2 rounded-lg border border-border bg-card px-4 py-2 text-xs font-semibold text-muted-foreground shadow-card hover:bg-accent hover:text-foreground transition-colors disabled:opacity-50 w-full sm:w-auto"
         >
           <Camera className={`h-3.5 w-3.5 ${capturing ? "animate-pulse" : ""}`} />
           {capturing ? "Capturing…" : "Capture as PNG"}
         </button>
       </div>
 
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4">
         <KPICard title="Total Clients" value={kpi.total} icon={Users} index={0} />
         <KPICard title="Compliant" value={kpi.compliant} icon={CheckCircle2} variant="success" index={1} />
         <KPICard title="Non-Compliant" value={kpi.nonCompliant} icon={XCircle} variant="destructive" index={2} />
@@ -447,9 +447,9 @@ export default function DashboardPage() {
 
       {/* Compliance Breakdown Progress Bars */}
       <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4, delay: 0.5 }}
-        className="rounded-xl border border-border bg-card p-6 shadow-card">
-        <h2 className="text-sm font-semibold text-foreground mb-5">Compliance Breakdown</h2>
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+        className="rounded-xl border border-border bg-card p-4 sm:p-6 shadow-card">
+        <h2 className="text-sm font-semibold text-foreground mb-4 sm:mb-5">Compliance Breakdown</h2>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-5">
           <ComplianceProgress label="Bank Transactions" value={breakdown.bankPct} index={0} />
           <ComplianceProgress label="Uncategorized Transactions" value={breakdown.uncatPct} index={1} />
           <ComplianceProgress label="Unapplied Payments" value={breakdown.unappliedPct} index={2} />
@@ -458,15 +458,15 @@ export default function DashboardPage() {
       </motion.div>
 
       {/* Trend Charts */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-5">
         <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4, delay: 0.6 }}
-          whileHover={{ scale: 1.005 }} className="rounded-xl border border-border bg-card p-6 shadow-card hover:shadow-card-hover transition-[box-shadow] duration-300">
-          <h2 className="text-sm font-semibold text-foreground mb-5">Compliance Trend</h2>
+          whileHover={{ scale: 1.005 }} className="rounded-xl border border-border bg-card p-4 sm:p-6 shadow-card hover:shadow-card-hover transition-[box-shadow] duration-300">
+          <h2 className="text-sm font-semibold text-foreground mb-4 sm:mb-5">Compliance Trend</h2>
           <ResponsiveContainer width="100%" height={240}>
-            <LineChart data={monthlyTrends}>
+            <LineChart data={monthlyTrends} margin={{ left: -10, right: 10 }}>
               <CartesianGrid strokeDasharray="3 3" stroke={CHART_COLORS.grid} />
-              <XAxis dataKey="month" tick={{ fontSize: 11, fill: CHART_COLORS.muted }} />
-              <YAxis tick={{ fontSize: 11, fill: CHART_COLORS.muted }} />
+              <XAxis dataKey="month" tick={{ fontSize: 10, fill: CHART_COLORS.muted }} />
+              <YAxis tick={{ fontSize: 10, fill: CHART_COLORS.muted }} />
               <Tooltip content={<CustomTooltip />} />
               <Line type="monotone" dataKey="compliant" stroke={CHART_COLORS.success} strokeWidth={2.5} dot={{ r: 3.5, strokeWidth: 2, fill: CHART_COLORS.bg }} name="Compliant" />
               <Line type="monotone" dataKey="nonCompliant" stroke={CHART_COLORS.destructive} strokeWidth={2.5} dot={{ r: 3.5, strokeWidth: 2, fill: CHART_COLORS.bg }} name="Non-Compliant" />
@@ -474,13 +474,13 @@ export default function DashboardPage() {
           </ResponsiveContainer>
         </motion.div>
         <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4, delay: 0.7 }}
-          whileHover={{ scale: 1.005 }} className="rounded-xl border border-border bg-card p-6 shadow-card hover:shadow-card-hover transition-[box-shadow] duration-300">
-          <h2 className="text-sm font-semibold text-foreground mb-5">Completion % by Month</h2>
+          whileHover={{ scale: 1.005 }} className="rounded-xl border border-border bg-card p-4 sm:p-6 shadow-card hover:shadow-card-hover transition-[box-shadow] duration-300">
+          <h2 className="text-sm font-semibold text-foreground mb-4 sm:mb-5">Completion % by Month</h2>
           <ResponsiveContainer width="100%" height={240}>
-            <BarChart data={monthlyTrends}>
+            <BarChart data={monthlyTrends} margin={{ left: -10, right: 10 }}>
               <CartesianGrid strokeDasharray="3 3" stroke={CHART_COLORS.grid} />
-              <XAxis dataKey="month" tick={{ fontSize: 11, fill: CHART_COLORS.muted }} />
-              <YAxis tick={{ fontSize: 11, fill: CHART_COLORS.muted }} />
+              <XAxis dataKey="month" tick={{ fontSize: 10, fill: CHART_COLORS.muted }} />
+              <YAxis tick={{ fontSize: 10, fill: CHART_COLORS.muted }} />
               <Tooltip content={<CustomTooltip />} cursor={{ fill: "hsl(20, 8%, 14%)" }} />
               <Bar dataKey="completionPct" fill={CHART_COLORS.primary} radius={[6, 6, 0, 0]} name="Completion %" />
             </BarChart>
