@@ -197,10 +197,7 @@ export default function AppLayout() {
           </div>
         </header>
 
-        <main
-          className="flex-1 px-3 py-4 sm:px-5 sm:py-5 lg:p-8 w-full max-w-[1600px] mx-auto overflow-x-hidden pb-[72px] lg:pb-8 transition-opacity duration-200"
-          style={{ opacity: isFetching > 0 ? 0.6 : 1 }}
-        >
+        <main className="flex-1 px-3 py-4 sm:px-5 sm:py-5 lg:p-8 w-full max-w-[1600px] mx-auto overflow-x-hidden pb-[72px] lg:pb-8">
           <Outlet />
         </main>
 
