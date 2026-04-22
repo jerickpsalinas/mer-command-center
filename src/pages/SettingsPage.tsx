@@ -41,7 +41,7 @@ export default function SettingsPage() {
   })();
 
   return (
-    <div className="max-w-2xl space-y-5">
+    <div className="max-w-2xl mx-auto space-y-5">
       {/* General */}
       <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0 }}
         className="rounded-xl border border-border bg-card shadow-card overflow-hidden">
@@ -205,7 +205,7 @@ export default function SettingsPage() {
           </button>
         </div>
         <div className="divide-y divide-border">
-          <div className="flex items-center justify-between px-6 py-4">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 px-4 sm:px-6 py-4">
             <div>
               <p className="text-sm font-medium text-foreground">Filter by Bookkeeper</p>
               <p className="text-xs text-muted-foreground">Only show alerts tied to this bookkeeper's clients</p>
@@ -213,7 +213,7 @@ export default function SettingsPage() {
             <select
               value={notifPrefs.bookkeeperFilter}
               onChange={(e) => setNotifPrefs({ ...notifPrefs, bookkeeperFilter: e.target.value })}
-              className="rounded-md border border-border bg-muted px-3 py-1.5 text-sm text-foreground"
+              className="rounded-md border border-border bg-muted px-3 py-1.5 text-sm text-foreground w-full sm:w-auto sm:max-w-[200px] truncate"
             >
               <option value="">All bookkeepers</option>
               {allBookkeepers.map((b) => <option key={b} value={b}>Only {b}</option>)}
