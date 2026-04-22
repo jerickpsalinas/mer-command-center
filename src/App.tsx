@@ -4,11 +4,13 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { ThemeProvider } from "@/hooks/useTheme";
+import { UserSettingsProvider } from "@/hooks/useUserSettings";
 import AppLayout from "@/components/AppLayout";
 import DashboardPage from "@/pages/DashboardPage";
 import MonthlyProgressPage from "@/pages/MonthlyProgressPage";
 import MonthlyTrendsPage from "@/pages/MonthlyTrendsPage";
 import ClientsPage from "@/pages/ClientsPage";
+import BookkeepersPage from "@/pages/BookkeepersPage";
 import MasterCyclePage from "@/pages/MasterCyclePage";
 import ReportsPage from "@/pages/ReportsPage";
 import SettingsPage from "@/pages/SettingsPage";
@@ -19,24 +21,27 @@ const queryClient = new QueryClient();
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <ThemeProvider>
-      <TooltipProvider>
-        <Toaster />
-        <Sonner />
-        <BrowserRouter>
-          <Routes>
-            <Route element={<AppLayout />}>
-              <Route path="/" element={<DashboardPage />} />
-              <Route path="/monthly-progress" element={<MonthlyProgressPage />} />
-              <Route path="/monthly-trends" element={<MonthlyTrendsPage />} />
-              <Route path="/clients" element={<ClientsPage />} />
-              <Route path="/master-cycle" element={<MasterCyclePage />} />
-              <Route path="/reports" element={<ReportsPage />} />
-              <Route path="/settings" element={<SettingsPage />} />
-            </Route>
-            <Route path="*" element={<NotFound />} />
-          </Routes>
-        </BrowserRouter>
-      </TooltipProvider>
+      <UserSettingsProvider>
+        <TooltipProvider>
+          <Toaster />
+          <Sonner />
+          <BrowserRouter>
+            <Routes>
+              <Route element={<AppLayout />}>
+                <Route path="/" element={<DashboardPage />} />
+                <Route path="/monthly-progress" element={<MonthlyProgressPage />} />
+                <Route path="/monthly-trends" element={<MonthlyTrendsPage />} />
+                <Route path="/clients" element={<ClientsPage />} />
+                <Route path="/bookkeepers" element={<BookkeepersPage />} />
+                <Route path="/master-cycle" element={<MasterCyclePage />} />
+                <Route path="/reports" element={<ReportsPage />} />
+                <Route path="/settings" element={<SettingsPage />} />
+              </Route>
+              <Route path="*" element={<NotFound />} />
+            </Routes>
+          </BrowserRouter>
+        </TooltipProvider>
+      </UserSettingsProvider>
     </ThemeProvider>
   </QueryClientProvider>
 );
