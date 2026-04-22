@@ -132,9 +132,12 @@ export default function ClientsPage() {
         {filtered.map((c, i) => {
           const issues = getIssueDetails(c);
           return (
-            <motion.div key={c.id} initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.05 + i * 0.015 }}
+            <motion.button
+              key={c.id}
+              onClick={() => setHistoryClient(c.name)}
+              initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.05 + i * 0.015 }}
               whileHover={{ scale: 1.01, y: -2 }}
-              className="rounded-xl border border-border bg-card p-4 shadow-card hover:shadow-card-hover transition-[box-shadow] duration-300">
+              className="text-left rounded-xl border border-border bg-card p-4 shadow-card hover:shadow-card-hover transition-[box-shadow] duration-300 group focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40">
               <div className="flex items-start justify-between mb-3">
                 <div>
                   <h3 className="text-sm font-semibold text-foreground leading-tight">{c.name}</h3>
@@ -171,10 +174,80 @@ export default function ClientsPage() {
                   </ul>
                 </div>
               )}
-            </motion.div>
+              <div className="mt-3 pt-2 border-t border-border/50 flex items-center justify-between text-[10px] text-muted-foreground/70 group-hover:text-primary transition-colors">
+                <span className="flex items-center gap-1"><History className="h-3 w-3" /> View history</span>
+                <span>›</span>
+              </div>
+            </motion.button>
           );
         })}
       </div>
+
+      {/* Per-client history dialog */}
+      <Dialog open={!!historyClient} onOpenChange={(open) => !open && setHistoryClient(null)}>
+        <DialogContent className="max-w-3xl max-h-[85vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <History className="h-4 w-4 text-primary" />
+              {historyClient} – Monthly History
+            </DialogTitle>
+            <p className="text-xs text-muted-foreground">{history.length} month{history.length === 1 ? "" : "s"} on record</p>
+          </DialogHeader>
+
+          {history.length === 0 ? (
+            <p className="text-sm text-muted-foreground py-8 text-center">No history found.</p>
+          ) : (
+            <div className="space-y-5">
+              {/* Sparkline */}
+              <div className="rounded-lg border border-border bg-muted/20 p-4">
+                <div className="flex items-center gap-2 mb-2">
+                  <TrendingUp className="h-3.5 w-3.5 text-primary" />
+                  <span className="text-xs font-semibold text-foreground">Completion % over time</span>
+                </div>
+                <ResponsiveContainer width="100%" height={140}>
+                  <LineChart data={history.map((h) => ({ month: h.month, pct: h.completionPct }))}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="hsl(20, 8%, 16%)" />
+                    <XAxis dataKey="month" tick={{ fontSize: 10, fill: "hsl(25, 10%, 50%)" }} />
+                    <YAxis domain={[0, 100]} tick={{ fontSize: 10, fill: "hsl(25, 10%, 50%)" }} unit="%" />
+                    <Tooltip contentStyle={{ background: "hsl(20, 10%, 13%)", border: "1px solid hsl(20, 8%, 20%)", borderRadius: 8, fontSize: 11 }} />
+                    <Line type="monotone" dataKey="pct" stroke="hsl(340, 45%, 55%)" strokeWidth={2.5} dot={{ r: 3.5 }} name="Completion %" />
+                  </LineChart>
+                </ResponsiveContainer>
+              </div>
+
+              {/* Per-month table */}
+              <div className="overflow-x-auto rounded-lg border border-border">
+                <table className="w-full text-sm min-w-[640px]">
+                  <thead>
+                    <tr className="border-b border-border bg-muted/30">
+                      <th className="text-left text-[11px] font-semibold text-muted-foreground uppercase tracking-wide px-3 py-2">Month</th>
+                      <th className="text-left text-[11px] font-semibold text-muted-foreground uppercase tracking-wide px-3 py-2">Status</th>
+                      <th className="text-right text-[11px] font-semibold text-muted-foreground uppercase tracking-wide px-3 py-2">%</th>
+                      <th className="text-right text-[11px] font-semibold text-muted-foreground uppercase tracking-wide px-3 py-2">Uncat.</th>
+                      <th className="text-right text-[11px] font-semibold text-muted-foreground uppercase tracking-wide px-3 py-2">Unapp.</th>
+                      <th className="text-left text-[11px] font-semibold text-muted-foreground uppercase tracking-wide px-3 py-2">Stmt</th>
+                      <th className="text-left text-[11px] font-semibold text-muted-foreground uppercase tracking-wide px-3 py-2">Reconciled</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {[...history].reverse().map((h) => (
+                      <tr key={h.month} className="border-b border-border/50 last:border-0 hover:bg-accent/20 transition-colors">
+                        <td className="px-3 py-2 font-medium text-foreground text-xs">{h.month}</td>
+                        <td className="px-3 py-2"><StatusBadge status={h.complianceStatus} /></td>
+                        <td className="px-3 py-2 text-right font-mono-data text-xs text-foreground">{h.completionPct}%</td>
+                        <td className="px-3 py-2 text-right font-mono-data text-xs text-muted-foreground">{h.uncategorizedTransactions || "-"}</td>
+                        <td className="px-3 py-2 text-right font-mono-data text-xs text-muted-foreground">{h.unappliedPayments || "-"}</td>
+                        <td className="px-3 py-2 text-xs text-muted-foreground">{h.statementRequestStatus || "-"}</td>
+                        <td className="px-3 py-2 font-mono-data text-xs text-muted-foreground">{h.lastReconciledDate || "-"}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
