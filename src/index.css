@@ -6,59 +6,59 @@
 
 @layer base {
   :root {
-    --background: 20 12% 7%;
-    --foreground: 30 25% 88%;
+    --background: 22 14% 12%;
+    --foreground: 30 28% 92%;
 
-    --card: 20 10% 11%;
-    --card-foreground: 30 25% 88%;
+    --card: 22 12% 16%;
+    --card-foreground: 30 28% 92%;
 
-    --popover: 20 10% 13%;
-    --popover-foreground: 30 25% 88%;
+    --popover: 22 12% 18%;
+    --popover-foreground: 30 28% 92%;
 
-    --primary: 340 45% 55%;
+    --primary: 340 55% 62%;
     --primary-foreground: 0 0% 100%;
 
-    --secondary: 20 8% 28%;
-    --secondary-foreground: 30 18% 78%;
+    --secondary: 22 10% 32%;
+    --secondary-foreground: 30 22% 84%;
 
-    --muted: 20 8% 15%;
-    --muted-foreground: 25 10% 50%;
+    --muted: 22 10% 20%;
+    --muted-foreground: 28 14% 62%;
 
-    --accent: 20 8% 16%;
-    --accent-foreground: 30 25% 88%;
+    --accent: 22 10% 22%;
+    --accent-foreground: 30 28% 92%;
 
-    --destructive: 0 65% 50%;
+    --destructive: 0 68% 58%;
     --destructive-foreground: 0 0% 100%;
 
-    --success: 160 55% 42%;
+    --success: 160 52% 50%;
     --success-foreground: 0 0% 100%;
 
-    --warning: 38 80% 52%;
-    --warning-foreground: 20 12% 7%;
+    --warning: 38 82% 60%;
+    --warning-foreground: 22 14% 10%;
 
-    --border: 20 8% 16%;
-    --input: 20 8% 16%;
-    --ring: 340 45% 55%;
+    --border: 22 10% 24%;
+    --input: 22 10% 24%;
+    --ring: 340 55% 62%;
 
     --radius: 0.625rem;
 
-    --sidebar-background: 20 12% 5%;
-    --sidebar-foreground: 30 15% 70%;
-    --sidebar-primary: 340 45% 55%;
+    --sidebar-background: 22 14% 10%;
+    --sidebar-foreground: 30 18% 76%;
+    --sidebar-primary: 340 55% 62%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 20 8% 13%;
-    --sidebar-accent-foreground: 30 25% 88%;
-    --sidebar-border: 20 8% 14%;
-    --sidebar-ring: 340 45% 55%;
+    --sidebar-accent: 22 10% 18%;
+    --sidebar-accent-foreground: 30 28% 92%;
+    --sidebar-border: 22 10% 20%;
+    --sidebar-ring: 340 55% 62%;
 
-    --surface: 20 10% 11%;
-    --surface-alt: 20 8% 15%;
+    --surface: 22 12% 16%;
+    --surface-alt: 22 10% 20%;
 
-    --rose-accent: 340 45% 55%;
+    --rose-accent: 340 55% 62%;
 
-    --shadow-card: 0 2px 8px -2px hsl(20 12% 3% / 0.5), 0 1px 3px -1px hsl(20 12% 3% / 0.3);
-    --shadow-card-hover: 0 6px 20px -4px hsl(20 12% 3% / 0.6), 0 2px 6px -2px hsl(340 45% 55% / 0.05);
-    --shadow-elevated: 0 12px 36px -6px hsl(20 12% 3% / 0.7), 0 4px 12px -2px hsl(340 45% 55% / 0.04);
+    --shadow-card: 0 2px 8px -2px hsl(22 14% 6% / 0.45), 0 1px 3px -1px hsl(22 14% 6% / 0.25);
+    --shadow-card-hover: 0 6px 20px -4px hsl(22 14% 6% / 0.55), 0 2px 6px -2px hsl(340 55% 62% / 0.08);
+    --shadow-elevated: 0 12px 36px -6px hsl(22 14% 6% / 0.6), 0 4px 12px -2px hsl(340 55% 62% / 0.06);
   }
 
   :root.light {
