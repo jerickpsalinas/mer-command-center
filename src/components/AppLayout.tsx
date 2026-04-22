@@ -163,15 +163,15 @@ export default function AppLayout() {
 
       {/* Main */}
       <div className="flex-1 flex flex-col min-w-0 relative z-10">
-        <header className="sticky top-0 z-30 flex h-[56px] items-center gap-4 border-b border-border glass-panel px-5 lg:px-8">
+        <header className="sticky top-0 z-30 flex h-[56px] items-center gap-2 sm:gap-4 border-b border-border glass-panel px-3 sm:px-5 lg:px-8">
           <button
             onClick={() => setMobileOpen(true)}
-            className="lg:hidden h-8 w-8 flex items-center justify-center rounded-md text-muted-foreground hover:bg-accent"
+            className="lg:hidden h-8 w-8 flex items-center justify-center rounded-md text-muted-foreground hover:bg-accent shrink-0"
           >
             <Menu className="h-5 w-5" />
           </button>
 
-          <h1 className="text-[15px] font-semibold tracking-tight text-foreground">{currentTitle}</h1>
+          <h1 className="text-[14px] sm:text-[15px] font-semibold tracking-tight text-foreground truncate min-w-0">{currentTitle}</h1>
 
           <div className="flex-1" />
 
@@ -196,13 +196,13 @@ export default function AppLayout() {
           </div>
         </header>
 
-        <main className="flex-1 p-5 lg:p-8 max-w-[1600px]">
+        <main className="flex-1 px-3 py-4 sm:px-5 sm:py-5 lg:p-8 w-full max-w-[1600px] mx-auto overflow-x-hidden">
           <Outlet />
         </main>
 
-        <footer className="border-t border-border px-8 py-3 glass-panel">
-          <p className="text-[11px] text-muted-foreground font-medium">
-            Last synced: <span className="text-foreground">{timeSince}</span> · Auto-refresh: 60s · System Status: <span className="text-success">● Operational</span>
+        <footer className="border-t border-border px-4 sm:px-8 py-3 glass-panel">
+          <p className="text-[10px] sm:text-[11px] text-muted-foreground font-medium leading-relaxed break-words">
+            Last synced: <span className="text-foreground">{timeSince}</span> · Auto-refresh: 60s · <span className="hidden sm:inline">System Status: </span><span className="text-success">● Operational</span>
           </p>
         </footer>
       </div>
