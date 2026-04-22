@@ -8,10 +8,11 @@ import { getBookkeeperPerformance, type BookkeeperPerformance } from "@/lib/insi
 import KPICard from "@/components/KPICard";
 
 const tooltipStyle = {
-  background: "hsl(20, 10%, 13%)",
-  border: "1px solid hsl(20, 8%, 20%)",
+  background: "hsl(var(--popover))",
+  border: "1px solid hsl(var(--border))",
   borderRadius: "10px",
   fontSize: "12px",
+  color: "hsl(var(--popover-foreground))",
 };
 
 export default function BookkeepersPage() {
@@ -165,23 +166,23 @@ export default function BookkeepersPage() {
           animate={{ opacity: 1, y: 0 }}
           className="rounded-xl border border-primary/20 bg-card shadow-card overflow-hidden"
         >
-          <div className="flex items-center justify-between px-6 py-4 border-b border-border bg-primary/[0.04]">
-            <div>
+          <div className="flex items-center justify-between gap-3 px-4 sm:px-6 py-4 border-b border-border bg-primary/[0.04]">
+            <div className="min-w-0">
               <h2 className="text-sm font-semibold text-foreground flex items-center gap-2">
-                <Activity className="h-4 w-4 text-primary" />
-                {focus.name} — Detailed Performance
+                <Activity className="h-4 w-4 text-primary shrink-0" />
+                <span className="truncate">{focus.name} — Detailed Performance</span>
               </h2>
               <p className="text-[11px] text-muted-foreground mt-0.5">{focus.totalClients} clients · {focus.rate}% compliance</p>
             </div>
             <button
               onClick={() => setSelected(null)}
-              className="text-xs text-muted-foreground hover:text-foreground transition-colors"
+              className="text-xs text-muted-foreground hover:text-foreground transition-colors shrink-0"
             >
               Close
             </button>
           </div>
 
-          <div className="p-5 grid grid-cols-1 lg:grid-cols-2 gap-5">
+          <div className="p-3 sm:p-5 grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-5">
             {/* Trend chart */}
             <div className="rounded-lg border border-border bg-muted/20 p-4">
               <h3 className="text-xs font-semibold text-foreground mb-3 flex items-center gap-1.5">
@@ -209,17 +210,17 @@ export default function BookkeepersPage() {
                 <Users className="h-3.5 w-3.5 text-primary" />
                 Per-Client Completion (current month)
               </h3>
-              <ResponsiveContainer width="100%" height={200}>
+              <ResponsiveContainer width="100%" height={Math.max(200, focusClients.length * 22)}>
                 <BarChart
                   data={focusClients
-                    .map((c) => ({ name: c.name.length > 18 ? c.name.slice(0, 16) + "…" : c.name, pct: c.completionPct }))
+                    .map((c) => ({ name: c.name.length > 16 ? c.name.slice(0, 14) + "…" : c.name, pct: c.completionPct }))
                     .sort((a, b) => a.pct - b.pct)}
                   layout="vertical"
-                  margin={{ left: 10, right: 10 }}
+                  margin={{ left: 0, right: 10 }}
                 >
                   <CartesianGrid strokeDasharray="3 3" stroke="hsl(20, 8%, 16%)" horizontal={false} />
                   <XAxis type="number" domain={[0, 100]} tick={{ fontSize: 10, fill: "hsl(25, 10%, 50%)" }} unit="%" />
-                  <YAxis type="category" dataKey="name" width={110} tick={{ fontSize: 9, fill: "hsl(25, 10%, 50%)" }} />
+                  <YAxis type="category" dataKey="name" width={90} tick={{ fontSize: 9, fill: "hsl(25, 10%, 50%)" }} />
                   <Tooltip contentStyle={tooltipStyle} />
                   <Bar dataKey="pct" fill="hsl(340, 45%, 55%)" radius={[0, 4, 4, 0]} />
                 </BarChart>

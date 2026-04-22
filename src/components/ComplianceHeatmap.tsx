@@ -30,7 +30,7 @@ export default function ComplianceHeatmap({ history }: Props) {
       initial={{ opacity: 0, y: 16 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.4 }}
-      className="rounded-xl border border-border bg-card p-5 shadow-card"
+      className="rounded-xl border border-border bg-card p-3 sm:p-5 shadow-card"
     >
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
         <div>

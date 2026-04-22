@@ -63,16 +63,16 @@ function NeedsAttentionSection({ clients }: { clients: Client[] }) {
   return (
     <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4, delay: 0.8 }}
       className="lg:col-span-2 rounded-xl border border-destructive/15 bg-card shadow-card overflow-hidden">
-      <div className="px-6 py-4 border-b border-border bg-destructive/[0.02]">
-        <h2 className="text-sm font-semibold text-foreground flex items-center gap-2">
-          <div className="h-7 w-7 rounded-lg bg-destructive/10 flex items-center justify-center"><AlertTriangle className="h-4 w-4 text-destructive" /></div>
+      <div className="px-4 sm:px-6 py-4 border-b border-border bg-destructive/[0.02]">
+        <h2 className="text-sm font-semibold text-foreground flex items-center gap-2 flex-wrap">
+          <div className="h-7 w-7 rounded-lg bg-destructive/10 flex items-center justify-center shrink-0"><AlertTriangle className="h-4 w-4 text-destructive" /></div>
           Needs Attention
           <span className="ml-auto text-xs font-mono-data text-destructive font-semibold">{sections.reduce((sum, s) => sum + s.count, 0)} issues</span>
         </h2>
       </div>
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-0 divide-y sm:divide-y-0 sm:divide-x divide-border">
         {sections.map((section) => (
-          <div key={section.title} className="p-5">
+          <div key={section.title} className="p-4 sm:p-5">
             <div className="flex items-center gap-2 mb-3">
               <span className={`inline-flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wider px-2 py-1 rounded-md border ${priorityStyles[section.priority]}`}>
                 <section.icon className="h-3 w-3" />{section.priority === "critical" ? "Critical" : section.priority === "high" ? "High" : "Medium"}
@@ -156,24 +156,24 @@ function BookkeepersSection({ clients, bookkeepers }: { clients: Client[]; bookk
   return (
     <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4, delay: 0.9 }}
       className="rounded-xl border border-border bg-card shadow-card">
-      <div className="px-6 py-4 border-b border-border">
+      <div className="px-4 sm:px-6 py-4 border-b border-border">
         <h2 className="text-sm font-semibold text-foreground flex items-center gap-2">
           <div className="h-7 w-7 rounded-lg bg-primary/10 flex items-center justify-center"><Award className="h-4 w-4 text-primary" /></div>
           Top Bookkeepers
         </h2>
       </div>
-      <div className="p-5 space-y-3">
+      <div className="p-4 sm:p-5 space-y-3">
         {bkStats.map((bk, i) => {
           const nonCompliant = bk.totalClients - bk.compliant;
           return (
             <motion.div key={bk.name} whileHover={{ scale: 1.01 }} transition={{ type: "spring", stiffness: 400, damping: 25 }}
               className="flex items-center gap-3 p-2.5 rounded-lg hover:bg-accent/50 transition-colors -mx-2 cursor-default">
-              <div className="h-9 w-9 rounded-lg bg-primary/8 flex items-center justify-center text-xs font-bold text-primary">#{i + 1}</div>
+              <div className="h-9 w-9 rounded-lg bg-primary/8 flex items-center justify-center text-xs font-bold text-primary shrink-0">#{i + 1}</div>
               <div className="flex-1 min-w-0">
                 <p className="text-[13px] font-semibold text-foreground break-words">{bk.name}</p>
                 <p className="text-[11px] text-muted-foreground break-words">{bk.totalClients} clients · <span className="text-success">{bk.compliant} compliant</span> · <span className="text-destructive">{nonCompliant} non-compliant</span></p>
               </div>
-              <div className="text-right">
+              <div className="text-right shrink-0">
                 <span className="font-mono-data text-sm font-bold text-foreground">{bk.rate}%</span>
                 <p className="text-[10px] text-muted-foreground">rate</p>
               </div>
@@ -181,18 +181,18 @@ function BookkeepersSection({ clients, bookkeepers }: { clients: Client[]; bookk
           );
         })}
       </div>
-      <div className="border-t border-border px-6 py-4">
+      <div className="border-t border-border px-4 sm:px-6 py-4">
         <h3 className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider mb-3 flex items-center gap-1.5"><Clock className="h-3.5 w-3.5" /> Recent Activity</h3>
         <div className="space-y-2.5">
           {recentActivity.slice(0, 7).map(a => (
             <div key={a.id} className="flex items-start gap-2.5 py-1.5 rounded-md hover:bg-accent/20 -mx-1 px-1 transition-colors">
               <div className={`mt-1.5 h-1.5 w-1.5 rounded-full shrink-0 ${dotColor[a.type] || "bg-muted-foreground"}`} />
               <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2 mb-0.5">
+                <div className="flex items-center gap-2 mb-0.5 flex-wrap">
                   <span className={`text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded ${catColor[a.category] || "text-muted-foreground bg-muted"}`}>{a.category}</span>
                   <span className="text-[10px] text-muted-foreground">{a.time}</span>
                 </div>
-                <p className="text-[12px] text-muted-foreground leading-relaxed">{a.message}</p>
+                <p className="text-[12px] text-muted-foreground leading-relaxed break-words">{a.message}</p>
               </div>
             </div>
           ))}
@@ -219,11 +219,11 @@ function KPIChartsSection({ kpi, breakdown }: { kpi: ReturnType<typeof getKPIMet
 
   const renderCustomLabel = ({ cx, cy, midAngle, innerRadius, outerRadius, name, value }: any) => {
     const RADIAN = Math.PI / 180;
-    const radius = outerRadius + 28;
+    const radius = outerRadius + 18;
     const x = cx + radius * Math.cos(-midAngle * RADIAN);
     const y = cy + radius * Math.sin(-midAngle * RADIAN);
     return (
-      <text x={x} y={y} fill="currentColor" className="fill-foreground" textAnchor={x > cx ? "start" : "end"} dominantBaseline="central" fontSize={11} fontWeight={500}>
+      <text x={x} y={y} fill="currentColor" className="fill-foreground" textAnchor={x > cx ? "start" : "end"} dominantBaseline="central" fontSize={10} fontWeight={500}>
         {name}: {value}
       </text>
     );
@@ -234,12 +234,12 @@ function KPIChartsSection({ kpi, breakdown }: { kpi: ReturnType<typeof getKPIMet
       className="grid grid-cols-1 lg:grid-cols-2 gap-5">
       {/* Compliance Distribution - Donut */}
       <motion.div whileHover={{ scale: 1.005 }} transition={{ type: "spring", stiffness: 300, damping: 25 }}
-        className="rounded-xl border border-border bg-card p-6 shadow-card hover:shadow-card-hover transition-[box-shadow] duration-300">
+        className="rounded-xl border border-border bg-card p-4 sm:p-6 shadow-card hover:shadow-card-hover transition-[box-shadow] duration-300">
         <h2 className="text-sm font-semibold text-foreground mb-1">Compliance Distribution</h2>
         <p className="text-[11px] text-muted-foreground mb-3">{kpi.total} total clients</p>
         <ResponsiveContainer width="100%" height={260}>
-          <PieChart>
-            <Pie data={pieData} cx="50%" cy="50%" innerRadius={55} outerRadius={88} dataKey="value" paddingAngle={3} strokeWidth={0}
+          <PieChart margin={{ top: 10, right: 20, bottom: 10, left: 20 }}>
+            <Pie data={pieData} cx="50%" cy="50%" innerRadius="40%" outerRadius="62%" dataKey="value" paddingAngle={3} strokeWidth={0}
               label={renderCustomLabel} labelLine={false}>
               {pieData.map((entry, i) => <Cell key={i} fill={entry.color} />)}
             </Pie>
@@ -251,14 +251,14 @@ function KPIChartsSection({ kpi, breakdown }: { kpi: ReturnType<typeof getKPIMet
 
       {/* Compliance Breakdown % - Bar */}
       <motion.div whileHover={{ scale: 1.005 }} transition={{ type: "spring", stiffness: 300, damping: 25 }}
-        className="rounded-xl border border-border bg-card p-6 shadow-card hover:shadow-card-hover transition-[box-shadow] duration-300">
+        className="rounded-xl border border-border bg-card p-4 sm:p-6 shadow-card hover:shadow-card-hover transition-[box-shadow] duration-300">
         <h2 className="text-sm font-semibold text-foreground mb-1">Compliance Breakdown %</h2>
         <p className="text-[11px] text-muted-foreground mb-3">Percentage of clients meeting each criteria</p>
         <ResponsiveContainer width="100%" height={260}>
-          <BarChart data={breakdownData} layout="vertical" margin={{ left: 5, right: 20 }}>
+          <BarChart data={breakdownData} layout="vertical" margin={{ left: 0, right: 16 }}>
             <CartesianGrid strokeDasharray="3 3" stroke={CHART_COLORS.grid} horizontal={false} />
             <XAxis type="number" domain={[0, 100]} tick={{ fontSize: 10, fill: CHART_COLORS.muted }} unit="%" />
-            <YAxis type="category" dataKey="name" width={80} tick={{ fontSize: 10, fill: CHART_COLORS.muted }} />
+            <YAxis type="category" dataKey="name" width={70} tick={{ fontSize: 10, fill: CHART_COLORS.muted }} />
             <Tooltip content={<CustomTooltip />} cursor={{ fill: "hsl(20, 8%, 14%)" }} />
             <Bar dataKey="value" radius={[0, 6, 6, 0]} name="% Compliant">
               {breakdownData.map((entry, i) => <Cell key={i} fill={entry.fill} />)}
@@ -279,14 +279,14 @@ function ReportsSummarySection({ clients, bookkeepers }: { clients: Client[]; bo
   return (
     <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4, delay: 1.0 }}
       className="rounded-xl border border-border bg-card shadow-card overflow-hidden">
-      <div className="px-6 py-4 border-b border-border">
+      <div className="px-4 sm:px-6 py-4 border-b border-border">
         <h2 className="text-sm font-semibold text-foreground flex items-center gap-2">
           <div className="h-7 w-7 rounded-lg bg-primary/10 flex items-center justify-center"><BarChart3 className="h-4 w-4 text-primary" /></div>
           Reports Summary
         </h2>
       </div>
       <div className="grid grid-cols-1 sm:grid-cols-2 divide-y sm:divide-y-0 sm:divide-x divide-border">
-        <div className="p-5">
+        <div className="p-4 sm:p-5">
           <div className="flex items-center gap-2 mb-3">
             <ShieldAlert className="h-4 w-4 text-destructive" />
             <span className="text-xs font-semibold text-foreground">Risk Overview</span>
@@ -312,7 +312,7 @@ function ReportsSummarySection({ clients, bookkeepers }: { clients: Client[]; bo
           )}
         </div>
 
-        <div className="p-5">
+        <div className="p-4 sm:p-5">
           <div className="flex items-center gap-2 mb-3">
             <FileText className="h-4 w-4 text-primary" />
             <span className="text-xs font-semibold text-foreground">Performance</span>
@@ -387,11 +387,11 @@ export default function DashboardPage() {
   const breakdown = getComplianceBreakdown(clients);
 
   return (
-    <div ref={dashRef} className="space-y-7">
+    <div ref={dashRef} className="space-y-6 sm:space-y-7">
       {/* Top bar: Month picker + Capture */}
       <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-3">
         <div className="flex items-end gap-3 flex-wrap">
-          <div>
+          <div className="w-full sm:w-auto">
             <label className="text-[11px] font-medium text-muted-foreground uppercase tracking-wider flex items-center gap-1.5 mb-1.5">
               <Calendar className="h-3 w-3" /> Reporting Month
             </label>
@@ -424,14 +424,14 @@ export default function DashboardPage() {
         <button
           onClick={handleCapture}
           disabled={capturing}
-          className="inline-flex items-center gap-2 rounded-lg border border-border bg-card px-4 py-2 text-xs font-semibold text-muted-foreground shadow-card hover:bg-accent hover:text-foreground transition-colors disabled:opacity-50"
+          className="inline-flex items-center justify-center gap-2 rounded-lg border border-border bg-card px-4 py-2 text-xs font-semibold text-muted-foreground shadow-card hover:bg-accent hover:text-foreground transition-colors disabled:opacity-50 w-full sm:w-auto"
         >
           <Camera className={`h-3.5 w-3.5 ${capturing ? "animate-pulse" : ""}`} />
           {capturing ? "Capturing…" : "Capture as PNG"}
         </button>
       </div>
 
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4">
         <KPICard title="Total Clients" value={kpi.total} icon={Users} index={0} />
         <KPICard title="Compliant" value={kpi.compliant} icon={CheckCircle2} variant="success" index={1} />
         <KPICard title="Non-Compliant" value={kpi.nonCompliant} icon={XCircle} variant="destructive" index={2} />
@@ -447,9 +447,9 @@ export default function DashboardPage() {
 
       {/* Compliance Breakdown Progress Bars */}
       <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4, delay: 0.5 }}
-        className="rounded-xl border border-border bg-card p-6 shadow-card">
-        <h2 className="text-sm font-semibold text-foreground mb-5">Compliance Breakdown</h2>
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+        className="rounded-xl border border-border bg-card p-4 sm:p-6 shadow-card">
+        <h2 className="text-sm font-semibold text-foreground mb-4 sm:mb-5">Compliance Breakdown</h2>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-5">
           <ComplianceProgress label="Bank Transactions" value={breakdown.bankPct} index={0} />
           <ComplianceProgress label="Uncategorized Transactions" value={breakdown.uncatPct} index={1} />
           <ComplianceProgress label="Unapplied Payments" value={breakdown.unappliedPct} index={2} />
@@ -458,15 +458,15 @@ export default function DashboardPage() {
       </motion.div>
 
       {/* Trend Charts */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-5">
         <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4, delay: 0.6 }}
-          whileHover={{ scale: 1.005 }} className="rounded-xl border border-border bg-card p-6 shadow-card hover:shadow-card-hover transition-[box-shadow] duration-300">
-          <h2 className="text-sm font-semibold text-foreground mb-5">Compliance Trend</h2>
+          whileHover={{ scale: 1.005 }} className="rounded-xl border border-border bg-card p-4 sm:p-6 shadow-card hover:shadow-card-hover transition-[box-shadow] duration-300">
+          <h2 className="text-sm font-semibold text-foreground mb-4 sm:mb-5">Compliance Trend</h2>
           <ResponsiveContainer width="100%" height={240}>
-            <LineChart data={monthlyTrends}>
+            <LineChart data={monthlyTrends} margin={{ left: -10, right: 10 }}>
               <CartesianGrid strokeDasharray="3 3" stroke={CHART_COLORS.grid} />
-              <XAxis dataKey="month" tick={{ fontSize: 11, fill: CHART_COLORS.muted }} />
-              <YAxis tick={{ fontSize: 11, fill: CHART_COLORS.muted }} />
+              <XAxis dataKey="month" tick={{ fontSize: 10, fill: CHART_COLORS.muted }} />
+              <YAxis tick={{ fontSize: 10, fill: CHART_COLORS.muted }} />
               <Tooltip content={<CustomTooltip />} />
               <Line type="monotone" dataKey="compliant" stroke={CHART_COLORS.success} strokeWidth={2.5} dot={{ r: 3.5, strokeWidth: 2, fill: CHART_COLORS.bg }} name="Compliant" />
               <Line type="monotone" dataKey="nonCompliant" stroke={CHART_COLORS.destructive} strokeWidth={2.5} dot={{ r: 3.5, strokeWidth: 2, fill: CHART_COLORS.bg }} name="Non-Compliant" />
@@ -474,13 +474,13 @@ export default function DashboardPage() {
           </ResponsiveContainer>
         </motion.div>
         <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4, delay: 0.7 }}
-          whileHover={{ scale: 1.005 }} className="rounded-xl border border-border bg-card p-6 shadow-card hover:shadow-card-hover transition-[box-shadow] duration-300">
-          <h2 className="text-sm font-semibold text-foreground mb-5">Completion % by Month</h2>
+          whileHover={{ scale: 1.005 }} className="rounded-xl border border-border bg-card p-4 sm:p-6 shadow-card hover:shadow-card-hover transition-[box-shadow] duration-300">
+          <h2 className="text-sm font-semibold text-foreground mb-4 sm:mb-5">Completion % by Month</h2>
           <ResponsiveContainer width="100%" height={240}>
-            <BarChart data={monthlyTrends}>
+            <BarChart data={monthlyTrends} margin={{ left: -10, right: 10 }}>
               <CartesianGrid strokeDasharray="3 3" stroke={CHART_COLORS.grid} />
-              <XAxis dataKey="month" tick={{ fontSize: 11, fill: CHART_COLORS.muted }} />
-              <YAxis tick={{ fontSize: 11, fill: CHART_COLORS.muted }} />
+              <XAxis dataKey="month" tick={{ fontSize: 10, fill: CHART_COLORS.muted }} />
+              <YAxis tick={{ fontSize: 10, fill: CHART_COLORS.muted }} />
               <Tooltip content={<CustomTooltip />} cursor={{ fill: "hsl(20, 8%, 14%)" }} />
               <Bar dataKey="completionPct" fill={CHART_COLORS.primary} radius={[6, 6, 0, 0]} name="Completion %" />
             </BarChart>
@@ -492,7 +492,7 @@ export default function DashboardPage() {
       <AtRiskAlerts />
 
       {/* Needs Attention + Bookkeepers */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-5">
         <NeedsAttentionSection clients={clients} />
         <BookkeepersSection clients={clients} bookkeepers={bookkeepers} />
       </div>

@@ -125,17 +125,17 @@ export default function ClientsPage() {
     <div className="space-y-6">
       <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4 }}
         whileHover={{ scale: 1.003 }}
-        className="rounded-xl border border-border bg-card p-6 shadow-card hover:shadow-card-hover transition-[box-shadow] duration-300">
+        className="rounded-xl border border-border bg-card p-4 sm:p-6 shadow-card hover:shadow-card-hover transition-[box-shadow] duration-300">
         <h2 className="text-sm font-semibold text-foreground mb-1 flex items-center gap-2">
           <BarChart3 className="h-4 w-4 text-primary" />
           Lowest Completion % Clients
         </h2>
         <p className="text-[11px] text-muted-foreground mb-4">Bottom {chartData.length} clients by completion percentage</p>
         <ResponsiveContainer width="100%" height={280}>
-          <BarChart data={chartData} layout="vertical" margin={{ left: 10, right: 20 }}>
+          <BarChart data={chartData} layout="vertical" margin={{ left: 0, right: 16 }}>
             <CartesianGrid strokeDasharray="3 3" stroke="hsl(20, 8%, 16%)" horizontal={false} />
             <XAxis type="number" domain={[0, 100]} tick={{ fontSize: 10, fill: "hsl(25, 10%, 50%)" }} unit="%" />
-            <YAxis type="category" dataKey="name" width={130} tick={{ fontSize: 10, fill: "hsl(25, 10%, 50%)" }} />
+            <YAxis type="category" dataKey="name" width={100} tick={{ fontSize: 9, fill: "hsl(25, 10%, 50%)" }} />
             <Tooltip content={<CustomTooltip />} cursor={{ fill: "hsl(20, 8%, 14%)" }} />
             <Bar dataKey="pct" radius={[0, 4, 4, 0]} name="Completion %">
               {chartData.map((entry, i) => (
@@ -166,47 +166,49 @@ export default function ClientsPage() {
 
       {/* Filters */}
       <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}
-        className="flex flex-wrap items-center gap-3">
-        <div className="flex items-center gap-2 rounded-lg border border-border bg-card px-3 py-1.5 text-sm w-64">
-          <Search className="h-3.5 w-3.5 text-muted-foreground" />
-          <input type="text" placeholder="Search clients…" value={search} onChange={(e) => setSearch(e.target.value)}
-            className="bg-transparent outline-none text-sm text-foreground placeholder:text-muted-foreground w-full" />
+        className="flex flex-col gap-3">
+        <div className="flex flex-wrap items-center gap-2 sm:gap-3">
+          <div className="flex items-center gap-2 rounded-lg border border-border bg-card px-3 py-1.5 text-sm w-full sm:w-64">
+            <Search className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+            <input type="text" placeholder="Search clients…" value={search} onChange={(e) => setSearch(e.target.value)}
+              className="bg-transparent outline-none text-sm text-foreground placeholder:text-muted-foreground w-full min-w-0" />
+          </div>
+
+          <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value as SavedFilter["status"])}
+            className="rounded-lg border border-border bg-card px-2.5 py-1.5 text-xs font-medium text-foreground flex-1 sm:flex-none min-w-0">
+            <option value="all">All statuses</option>
+            <option value="Compliant">Compliant</option>
+            <option value="Non-Compliant">Non-Compliant</option>
+            <option value="On Hold">On Hold</option>
+          </select>
+
+          <select value={bookkeeperFilter} onChange={(e) => setBookkeeperFilter(e.target.value)}
+            className="rounded-lg border border-border bg-card px-2.5 py-1.5 text-xs font-medium text-foreground flex-1 sm:flex-none min-w-0 max-w-[50%] sm:max-w-none">
+            <option value="">All bookkeepers</option>
+            {data.bookkeepers.map((b) => <option key={b} value={b}>{b}</option>)}
+          </select>
+
+          <select value={typeFilter} onChange={(e) => setTypeFilter(e.target.value)}
+            className="rounded-lg border border-border bg-card px-2.5 py-1.5 text-xs font-medium text-foreground flex-1 sm:flex-none min-w-0 max-w-[50%] sm:max-w-none">
+            <option value="">All types</option>
+            {clientTypes.map((t) => <option key={t} value={t}>{t}</option>)}
+          </select>
+
+          <label className="inline-flex items-center gap-2 text-[11px] text-muted-foreground">
+            Min %
+            <input type="number" min={0} max={100} value={minCompletion} onChange={(e) => setMinCompletion(Number(e.target.value))}
+              className="w-14 rounded-md border border-border bg-card px-1.5 py-1 text-xs font-mono-data text-foreground" />
+          </label>
+
+          {hasActiveFilter && (
+            <button onClick={() => setShowSaveDialog(true)}
+              className="inline-flex items-center gap-1 text-[11px] font-semibold px-2.5 py-1.5 rounded-md bg-primary/10 text-primary border border-primary/20 hover:bg-primary/15 transition-colors">
+              <BookmarkPlus className="h-3 w-3" />Save view
+            </button>
+          )}
         </div>
 
-        <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value as SavedFilter["status"])}
-          className="rounded-lg border border-border bg-card px-2.5 py-1.5 text-xs font-medium text-foreground">
-          <option value="all">All statuses</option>
-          <option value="Compliant">Compliant</option>
-          <option value="Non-Compliant">Non-Compliant</option>
-          <option value="On Hold">On Hold</option>
-        </select>
-
-        <select value={bookkeeperFilter} onChange={(e) => setBookkeeperFilter(e.target.value)}
-          className="rounded-lg border border-border bg-card px-2.5 py-1.5 text-xs font-medium text-foreground">
-          <option value="">All bookkeepers</option>
-          {data.bookkeepers.map((b) => <option key={b} value={b}>{b}</option>)}
-        </select>
-
-        <select value={typeFilter} onChange={(e) => setTypeFilter(e.target.value)}
-          className="rounded-lg border border-border bg-card px-2.5 py-1.5 text-xs font-medium text-foreground">
-          <option value="">All types</option>
-          {clientTypes.map((t) => <option key={t} value={t}>{t}</option>)}
-        </select>
-
-        <label className="inline-flex items-center gap-2 text-[11px] text-muted-foreground">
-          Min %
-          <input type="number" min={0} max={100} value={minCompletion} onChange={(e) => setMinCompletion(Number(e.target.value))}
-            className="w-14 rounded-md border border-border bg-card px-1.5 py-1 text-xs font-mono-data text-foreground" />
-        </label>
-
-        {hasActiveFilter && (
-          <button onClick={() => setShowSaveDialog(true)}
-            className="inline-flex items-center gap-1 text-[11px] font-semibold px-2.5 py-1.5 rounded-md bg-primary/10 text-primary border border-primary/20 hover:bg-primary/15 transition-colors">
-            <BookmarkPlus className="h-3 w-3" />Save view
-          </button>
-        )}
-
-        <div className="flex items-center gap-1.5 ml-auto">
+        <div className="flex flex-wrap items-center gap-1.5">
           <span className="text-[11px] text-muted-foreground uppercase tracking-wider font-semibold mr-1">Sort:</span>
           {sortButtons.map((s) => (
             <button key={s.key} onClick={() => toggleSort(s.key)}
@@ -217,8 +219,8 @@ export default function ClientsPage() {
               {sortKey === s.key && <ArrowUpDown className="h-3 w-3" />}
             </button>
           ))}
+          <span className="text-[11px] text-muted-foreground sm:ml-auto">{filtered.length} clients</span>
         </div>
-        <span className="text-[11px] text-muted-foreground">{filtered.length} clients</span>
       </motion.div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
@@ -278,7 +280,7 @@ export default function ClientsPage() {
 
       {/* Per-client history dialog with MoM diff */}
       <Dialog open={!!historyClient} onOpenChange={(open) => !open && setHistoryClient(null)}>
-        <DialogContent className="max-w-3xl max-h-[85vh] overflow-y-auto">
+        <DialogContent className="max-w-3xl w-[calc(100vw-1rem)] sm:w-auto max-h-[85vh] overflow-y-auto p-4 sm:p-6">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <History className="h-4 w-4 text-primary" />
@@ -305,12 +307,12 @@ export default function ClientsPage() {
                       const Icon = d.direction === "improved" ? ArrowUp : d.direction === "regressed" ? ArrowDown : Minus;
                       const color = d.direction === "improved" ? "text-success" : d.direction === "regressed" ? "text-destructive" : "text-muted-foreground";
                       return (
-                        <li key={i} className="flex items-center gap-2 text-[12px]">
-                          <Icon className={`h-3 w-3 ${color}`} />
-                          <span className="text-foreground font-medium min-w-[140px]">{d.field}:</span>
-                          <span className="font-mono-data text-muted-foreground">{d.prev}</span>
+                        <li key={i} className="flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[12px]">
+                          <Icon className={`h-3 w-3 ${color} shrink-0`} />
+                          <span className="text-foreground font-medium min-w-[120px] sm:min-w-[140px]">{d.field}:</span>
+                          <span className="font-mono-data text-muted-foreground break-all">{d.prev}</span>
                           <span className="text-muted-foreground">→</span>
-                          <span className={`font-mono-data font-semibold ${color}`}>{d.curr}</span>
+                          <span className={`font-mono-data font-semibold ${color} break-all`}>{d.curr}</span>
                         </li>
                       );
                     })}
@@ -371,7 +373,7 @@ export default function ClientsPage() {
 
       {/* Save filter dialog */}
       <Dialog open={showSaveDialog} onOpenChange={setShowSaveDialog}>
-        <DialogContent className="max-w-md">
+        <DialogContent className="max-w-md w-[calc(100vw-1rem)] sm:w-auto p-4 sm:p-6">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <BookmarkPlus className="h-4 w-4 text-primary" />

@@ -41,7 +41,7 @@ export default function SettingsPage() {
   })();
 
   return (
-    <div className="max-w-2xl space-y-5">
+    <div className="max-w-2xl mx-auto space-y-5">
       {/* General */}
       <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0 }}
         className="rounded-xl border border-border bg-card shadow-card overflow-hidden">
@@ -147,14 +147,14 @@ export default function SettingsPage() {
       {/* At-Risk Thresholds (#3) */}
       <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.16 }}
         className="rounded-xl border border-border bg-card shadow-card overflow-hidden">
-        <div className="flex items-center gap-3 px-6 py-4 border-b border-border">
-          <div className="h-7 w-7 rounded-lg bg-destructive/10 flex items-center justify-center">
+        <div className="flex items-center gap-3 px-4 sm:px-6 py-4 border-b border-border">
+          <div className="h-7 w-7 rounded-lg bg-destructive/10 flex items-center justify-center shrink-0">
             <ShieldAlert className="h-4 w-4 text-destructive" />
           </div>
           <h2 className="text-sm font-semibold text-foreground">At-Risk Thresholds</h2>
           <button
             onClick={() => setThresholds(DEFAULT_THRESHOLDS)}
-            className="ml-auto inline-flex items-center gap-1 text-[10px] text-muted-foreground hover:text-primary transition-colors"
+            className="ml-auto inline-flex items-center gap-1 text-[10px] text-muted-foreground hover:text-primary transition-colors shrink-0"
           >
             <RotateCcw className="h-3 w-3" />Reset
           </button>
@@ -166,8 +166,8 @@ export default function SettingsPage() {
             { key: "stuckInStageDays" as const, label: "Stuck in cycle stage (days)", help: "Flag clients sitting in the same Master Cycle stage longer than this", min: 1, max: 90 },
             { key: "lowCompletionPct" as const, label: "Low completion threshold (%)", help: "Flag clients whose current month completion falls below this percentage", min: 0, max: 100 },
           ].map((row) => (
-            <div key={row.key} className="flex items-center justify-between px-6 py-4">
-              <div>
+            <div key={row.key} className="flex items-center justify-between gap-3 px-4 sm:px-6 py-4">
+              <div className="min-w-0 flex-1">
                 <p className="text-sm font-medium text-foreground">{row.label}</p>
                 <p className="text-xs text-muted-foreground">{row.help}</p>
               </div>
@@ -177,7 +177,7 @@ export default function SettingsPage() {
                 max={row.max}
                 value={thresholds[row.key]}
                 onChange={(e) => setThresholds({ ...thresholds, [row.key]: Math.max(row.min, Math.min(row.max, Number(e.target.value))) })}
-                className="w-20 rounded-md border border-border bg-muted px-3 py-1.5 text-sm font-mono-data text-foreground text-right"
+                className="w-16 sm:w-20 rounded-md border border-border bg-muted px-2 sm:px-3 py-1.5 text-sm font-mono-data text-foreground text-right shrink-0"
               />
             </div>
           ))}
@@ -187,8 +187,8 @@ export default function SettingsPage() {
       {/* Notification Preferences (#13) */}
       <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}
         className="rounded-xl border border-border bg-card shadow-card overflow-hidden">
-        <div className="flex items-center gap-3 px-6 py-4 border-b border-border">
-          <div className="h-7 w-7 rounded-lg bg-warning/10 flex items-center justify-center">
+        <div className="flex items-center gap-3 px-4 sm:px-6 py-4 border-b border-border flex-wrap">
+          <div className="h-7 w-7 rounded-lg bg-warning/10 flex items-center justify-center shrink-0">
             <Bell className="h-4 w-4 text-warning" />
           </div>
           <h2 className="text-sm font-semibold text-foreground">Notification Preferences</h2>
@@ -199,13 +199,13 @@ export default function SettingsPage() {
           )}
           <button
             onClick={() => setNotifPrefs(DEFAULT_NOTIF_PREFS)}
-            className="inline-flex items-center gap-1 text-[10px] text-muted-foreground hover:text-primary transition-colors"
+            className="inline-flex items-center gap-1 text-[10px] text-muted-foreground hover:text-primary transition-colors shrink-0"
           >
             <RotateCcw className="h-3 w-3" />Reset
           </button>
         </div>
         <div className="divide-y divide-border">
-          <div className="flex items-center justify-between px-6 py-4">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 px-4 sm:px-6 py-4">
             <div>
               <p className="text-sm font-medium text-foreground">Filter by Bookkeeper</p>
               <p className="text-xs text-muted-foreground">Only show alerts tied to this bookkeeper's clients</p>
@@ -213,7 +213,7 @@ export default function SettingsPage() {
             <select
               value={notifPrefs.bookkeeperFilter}
               onChange={(e) => setNotifPrefs({ ...notifPrefs, bookkeeperFilter: e.target.value })}
-              className="rounded-md border border-border bg-muted px-3 py-1.5 text-sm text-foreground"
+              className="rounded-md border border-border bg-muted px-3 py-1.5 text-sm text-foreground w-full sm:w-auto sm:max-w-[200px] truncate"
             >
               <option value="">All bookkeepers</option>
               {allBookkeepers.map((b) => <option key={b} value={b}>Only {b}</option>)}
@@ -225,14 +225,14 @@ export default function SettingsPage() {
             { key: "showSuccess" as const, label: "Positive alerts", help: "Compliance improvements and trend ups", color: "text-success" },
             { key: "showInfo" as const, label: "Info alerts", help: "Summary updates and other context", color: "text-muted-foreground" },
           ]).map((row) => (
-            <div key={row.key} className="flex items-center justify-between px-6 py-4">
-              <div>
+            <div key={row.key} className="flex items-center justify-between gap-3 px-4 sm:px-6 py-4">
+              <div className="min-w-0 flex-1">
                 <p className={`text-sm font-medium ${row.color}`}>{row.label}</p>
                 <p className="text-xs text-muted-foreground">{row.help}</p>
               </div>
               <button
                 onClick={() => setNotifPrefs({ ...notifPrefs, [row.key]: !notifPrefs[row.key] })}
-                className={`relative h-6 w-11 rounded-full transition-colors duration-200 ${notifPrefs[row.key] ? "bg-primary" : "bg-muted"}`}
+                className={`relative h-6 w-11 rounded-full transition-colors duration-200 shrink-0 ${notifPrefs[row.key] ? "bg-primary" : "bg-muted"}`}
               >
                 <motion.div
                   animate={{ x: notifPrefs[row.key] ? 20 : 2 }}
@@ -243,7 +243,7 @@ export default function SettingsPage() {
             </div>
           ))}
           {/* Live alert breakdown (read-only) */}
-          <div className="px-6 py-4">
+          <div className="px-4 sm:px-6 py-4">
             <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">Live Alert Volume</p>
             <div className="grid grid-cols-3 gap-3">
               <div className="rounded-lg bg-destructive/8 border border-destructive/15 p-3 text-center">

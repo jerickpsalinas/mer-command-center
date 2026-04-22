@@ -30,14 +30,14 @@ export default function AtRiskAlerts() {
     >
       <button
         onClick={() => setExpanded((v) => !v)}
-        className="w-full flex items-center justify-between px-6 py-4 border-b border-border bg-destructive/[0.03] hover:bg-destructive/[0.05] transition-colors"
+        className="w-full flex items-center justify-between gap-3 px-4 sm:px-6 py-4 border-b border-border bg-destructive/[0.03] hover:bg-destructive/[0.05] transition-colors"
       >
-        <div className="flex items-center gap-3">
-          <div className="h-7 w-7 rounded-lg bg-destructive/10 flex items-center justify-center">
+        <div className="flex items-center gap-3 min-w-0">
+          <div className="h-7 w-7 rounded-lg bg-destructive/10 flex items-center justify-center shrink-0">
             <ShieldAlert className="h-4 w-4 text-destructive" />
           </div>
-          <div className="text-left">
-            <h2 className="text-sm font-semibold text-foreground flex items-center gap-2">
+          <div className="text-left min-w-0">
+            <h2 className="text-sm font-semibold text-foreground flex items-center gap-2 flex-wrap">
               At-Risk Clients
               {atRisk.length > 0 && (
                 <span className="inline-flex items-center rounded-full bg-destructive/10 px-2 py-0.5 text-[10px] font-bold text-destructive">
@@ -45,12 +45,12 @@ export default function AtRiskAlerts() {
                 </span>
               )}
             </h2>
-            <p className="text-[11px] text-muted-foreground">
+            <p className="text-[11px] text-muted-foreground break-words">
               Auto-flagged based on patterns. Tune thresholds in <Link to="/settings" className="text-primary hover:underline">Settings</Link>.
             </p>
           </div>
         </div>
-        {expanded ? <ChevronDown className="h-4 w-4 text-muted-foreground" /> : <ChevronRight className="h-4 w-4 text-muted-foreground" />}
+        {expanded ? <ChevronDown className="h-4 w-4 text-muted-foreground shrink-0" /> : <ChevronRight className="h-4 w-4 text-muted-foreground shrink-0" />}
       </button>
 
       <AnimatePresence initial={false}>
@@ -73,11 +73,11 @@ export default function AtRiskAlerts() {
                     initial={{ opacity: 0, x: -6 }}
                     animate={{ opacity: 1, x: 0 }}
                     transition={{ delay: i * 0.02 }}
-                    className="px-6 py-3 hover:bg-accent/30 transition-colors"
+                    className="px-4 sm:px-6 py-3 hover:bg-accent/30 transition-colors"
                   >
                     <div className="flex items-start justify-between gap-3">
                       <div className="min-w-0 flex-1">
-                        <div className="flex items-center gap-2 mb-1">
+                        <div className="flex items-center gap-2 mb-1 flex-wrap">
                           <AlertCircle className="h-3.5 w-3.5 text-destructive shrink-0" />
                           <p className="text-sm font-medium text-foreground break-words">{c.name}</p>
                           <span className="text-[10px] text-muted-foreground">· {c.bookkeeper}</span>
