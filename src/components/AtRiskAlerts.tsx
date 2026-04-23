@@ -66,7 +66,7 @@ export default function AtRiskAlerts() {
                 <p className="text-sm text-muted-foreground">No clients currently flagged as at-risk.</p>
               </div>
             ) : (
-              <div className="divide-y divide-border max-h-[320px] overflow-y-auto">
+              <div className="divide-y divide-border max-h-[320px] overflow-auto scrollbar-thin scrollbar-thumb-muted-foreground/20 hover:scrollbar-thumb-muted-foreground/40 scrollbar-track-transparent">
                 {atRisk.slice(0, 12).map((c, i) => (
                   <motion.div
                     key={c.name}
