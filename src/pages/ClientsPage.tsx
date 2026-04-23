@@ -5,7 +5,8 @@ import SwipeableCard from "@/components/SwipeableCard";
 import { useMemo, useState } from "react";
 import { Search, AlertTriangle, ArrowUpDown, BarChart3, History, TrendingUp, Bookmark, BookmarkPlus, X, Filter, ArrowUp, ArrowDown, Minus } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
-import { useSheetData, getClientHistory } from "@/hooks/useSheetData";
+import { useSheetData, getClientHistory, getClientsForMonth } from "@/hooks/useSheetData";
+import MonthFilter from "@/components/MonthFilter";
 import { useUserSettings, type SavedFilter } from "@/hooks/useUserSettings";
 import { DataLoading, DataError } from "@/components/DataStatus";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell, LineChart, Line } from "recharts";
@@ -53,9 +54,14 @@ export default function ClientsPage() {
   const [historyClient, setHistoryClient] = useState<string | null>(null);
   const [showSaveDialog, setShowSaveDialog] = useState(false);
   const [newFilterName, setNewFilterName] = useState("");
+  const [monthFilter, setMonthFilter] = useState<string>("current");
 
   if (isLoading) return <DataLoading />;
   if (error || !data) return <DataError message={error?.message} />;
+
+  // Snapshot of clients for the chosen month (or live latest)
+  const isLatest = monthFilter === "current";
+  const monthClients = isLatest ? data.clients : getClientsForMonth(data.merHistory, monthFilter);
 
   const history = historyClient ? getClientHistory(data.merHistory, historyClient) : [];
   const monthDiff = history.length >= 2 ? diffClientMonths(history[history.length - 2], history[history.length - 1]) : [];
@@ -65,7 +71,7 @@ export default function ClientsPage() {
     else { setSortKey(key); setSortDir(key === "completionPct" ? "asc" : "desc"); }
   };
 
-  const filtered = data.clients
+  const filtered = monthClients
     .filter((c) => c.name.toLowerCase().includes(search.toLowerCase()))
     .filter((c) => statusFilter === "all" || c.complianceStatus === statusFilter)
     .filter((c) => !bookkeeperFilter || c.bookkeeper === bookkeeperFilter)
@@ -80,7 +86,7 @@ export default function ClientsPage() {
       return 0;
     });
 
-  const chartData = [...data.clients]
+  const chartData = [...monthClients]
     .sort((a, b) => a.completionPct - b.completionPct)
     .slice(0, 15)
     .map((c) => ({ name: c.name.length > 18 ? c.name.slice(0, 16) + "…" : c.name, pct: c.completionPct, full: c.name }));
