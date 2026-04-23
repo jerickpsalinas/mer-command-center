@@ -1,4 +1,4 @@
-import { useMemo, useState, useRef } from "react";
+import { useMemo, useState } from "react";
 import { motion } from "framer-motion";
 import {
   Search,
@@ -15,7 +15,6 @@ import {
 } from "lucide-react";
 import { useSheetData } from "@/hooks/useSheetData";
 import { DataLoading, DataError } from "@/components/DataStatus";
-import SnapshotButton from "@/components/SnapshotButton";
 import type { CycleEntry } from "@/services/googleSheets";
 
 /* ────────────────────────────────────────────────────────────────────────────
@@ -106,7 +105,6 @@ export default function MasterCyclePage() {
   const [filterCategory, setFilterCategory] = useState("");
   const [filterStage, setFilterStage] = useState<number | null>(null);
   const [expanded, setExpanded] = useState<string | null>(null);
-  const pipelineRef = useRef<HTMLElement>(null);
 
   const entries = data?.cycleEntries ?? [];
 
@@ -255,7 +253,6 @@ export default function MasterCyclePage() {
 
       {/* Pipeline rail — primary visual */}
       <motion.section
-        ref={pipelineRef}
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.04 }}
@@ -274,24 +271,15 @@ export default function MasterCyclePage() {
               Click a stage to filter the list below.
             </p>
           </div>
-          <div className="flex items-center gap-2">
-            {filterStage !== null && (
-              <button
-                onClick={() => setFilterStage(null)}
-                className="inline-flex items-center gap-1.5 text-[12px] text-muted-foreground hover:text-foreground border border-border rounded-md px-2.5 py-1 transition-colors"
-              >
-                <X className="h-3 w-3" />
-                Clear stage filter
-              </button>
-            )}
-            <SnapshotButton
-              targetRef={pipelineRef as React.RefObject<HTMLElement>}
-              fileSlug="Master_Cycle_Pipeline"
-              contextLabel={`${cycles.length} cycles`}
-              helper="Save pipeline as PNG"
-              compact
-            />
-          </div>
+          {filterStage !== null && (
+            <button
+              onClick={() => setFilterStage(null)}
+              className="inline-flex items-center gap-1.5 text-[12px] text-muted-foreground hover:text-foreground border border-border rounded-md px-2.5 py-1 transition-colors"
+            >
+              <X className="h-3 w-3" />
+              Clear stage filter
+            </button>
+          )}
         </header>
 
         {/* Stage cards: responsive grid that gives each stage a labeled card */}

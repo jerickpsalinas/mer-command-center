@@ -1,4 +1,4 @@
-import { useState, useMemo, useRef } from "react";
+import { useState, useMemo } from "react";
 import { motion } from "framer-motion";
 import { Award, TrendingUp, TrendingDown, Users, Clock, AlertTriangle, FileText, Activity, ArrowRight, Search } from "lucide-react";
 import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
@@ -7,7 +7,6 @@ import { DataLoading, DataError } from "@/components/DataStatus";
 import { getBookkeeperPerformance, getBookkeeperPerformanceForMonth, type BookkeeperPerformance } from "@/lib/insights";
 import KPICard from "@/components/KPICard";
 import MonthFilter from "@/components/MonthFilter";
-import SnapshotButton from "@/components/SnapshotButton";
 
 const tooltipStyle = {
   background: "hsl(var(--popover))",
@@ -22,8 +21,6 @@ export default function BookkeepersPage() {
   const [search, setSearch] = useState("");
   const [selected, setSelected] = useState<string | null>(null);
   const [monthFilter, setMonthFilter] = useState<string>("current"); // "current" or month label
-  const leaderboardRef = useRef<HTMLDivElement>(null);
-  const drilldownRef = useRef<HTMLDivElement>(null);
 
   // Available months (most recent first) derived from MER history
   const monthOptions = useMemo(() => {
@@ -117,18 +114,7 @@ export default function BookkeepersPage() {
             Showing performance for <span className="font-semibold text-foreground">{monthFilter}</span>
           </span>
         )}
-        <div className="sm:ml-auto">
-          <SnapshotButton
-            targetRef={leaderboardRef}
-            fileSlug="Bookkeepers_Leaderboard"
-            contextLabel={monthFilter === "current" ? "current · live" : monthFilter}
-            helper="Save leaderboard as PNG"
-          />
-        </div>
       </div>
-
-      {/* Leaderboard cards (snapshot target) */}
-      <div ref={leaderboardRef} className="bg-background rounded-xl">
 
       {/* Leaderboard cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
@@ -206,13 +192,10 @@ export default function BookkeepersPage() {
           );
         })}
       </div>
-      </div>
-      {/* End leaderboard snapshot region */}
 
       {/* Drill-down panel */}
       {focus && (
         <motion.div
-          ref={drilldownRef}
           initial={{ opacity: 0, y: 16 }}
           animate={{ opacity: 1, y: 0 }}
           className="rounded-xl border border-primary/20 bg-card shadow-card overflow-hidden"
@@ -225,21 +208,12 @@ export default function BookkeepersPage() {
               </h2>
               <p className="text-[11px] text-muted-foreground mt-0.5">{focus.totalClients} clients · {focus.rate}% compliance</p>
             </div>
-            <div className="flex items-center gap-2 shrink-0">
-              <SnapshotButton
-                targetRef={drilldownRef}
-                fileSlug={`Bookkeeper_${focus.name.replace(/\s+/g, "_")}`}
-                contextLabel={monthFilter === "current" ? "current · live" : monthFilter}
-                helper="Save panel as PNG"
-                compact
-              />
-              <button
-                onClick={() => setSelected(null)}
-                className="text-xs text-muted-foreground hover:text-foreground transition-colors"
-              >
-                Close
-              </button>
-            </div>
+            <button
+              onClick={() => setSelected(null)}
+              className="text-xs text-muted-foreground hover:text-foreground transition-colors shrink-0"
+            >
+              Close
+            </button>
           </div>
 
           <div className="p-3 sm:p-5 grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-5">

@@ -1,8 +1,7 @@
-import { useState, useRef } from "react";
+import { useState } from "react";
 import KPICard from "@/components/KPICard";
 import ExportCenter from "@/components/ExportCenter";
 import ComplianceHeatmap from "@/components/ComplianceHeatmap";
-import SnapshotButton from "@/components/SnapshotButton";
 import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from "recharts";
 import { TrendingUp, TrendingDown, CheckCircle2, XCircle, ArrowRight, Calendar, Minus, Sparkles } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -40,7 +39,6 @@ export default function MonthlyTrendsPage() {
   const { data, isLoading, error } = useSheetData();
   const [selectedHistoryIdx, setSelectedHistoryIdx] = useState<number | null>(null);
   const [compareIdx, setCompareIdx] = useState<string>("-");
-  const chartsRef = useRef<HTMLDivElement>(null);
 
   if (isLoading) return <DataLoading />;
   if (error || !data) return <DataError message={error?.message} />;
@@ -223,50 +221,39 @@ export default function MonthlyTrendsPage() {
             </motion.div>
           )}
 
-          {/* Charts (snapshot region) */}
-          <div ref={chartsRef} className="space-y-3 bg-background rounded-xl">
-            <div className="flex items-center justify-between gap-3">
-              <h2 className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Trend Charts</h2>
-              <SnapshotButton
-                targetRef={chartsRef}
-                fileSlug="Monthly_Trends_Charts"
-                contextLabel={histCurrent ? histCurrent.month : "all months"}
-                helper="Save charts as PNG"
-              />
-            </div>
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-              <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }}
-                whileHover={{ scale: 1.005 }}
-                className="rounded-xl border border-border bg-card p-4 sm:p-5 shadow-card hover:shadow-card-hover transition-[box-shadow] duration-300">
-                <h2 className="text-sm font-semibold text-foreground mb-3 sm:mb-4">Compliance Over Time</h2>
-                <ResponsiveContainer width="100%" height={240}>
-                  <LineChart data={autoTrends}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="hsl(20, 8%, 16%)" />
-                    <XAxis dataKey="month" tick={{ fontSize: 11, fill: "hsl(25, 10%, 50%)" }} />
-                    <YAxis tick={{ fontSize: 11, fill: "hsl(25, 10%, 50%)" }} />
-                    <Tooltip content={<CustomTooltip />} />
-                    <Legend wrapperStyle={{ fontSize: "11px", color: "hsl(30, 25%, 88%)" }} />
-                    <Line type="monotone" dataKey="compliant" stroke="hsl(160, 55%, 42%)" strokeWidth={2} dot={{ r: 3 }} name="Compliant" />
-                    <Line type="monotone" dataKey="nonCompliant" stroke="hsl(0, 65%, 50%)" strokeWidth={2} dot={{ r: 3 }} name="Non-Compliant" />
-                  </LineChart>
-                </ResponsiveContainer>
-              </motion.div>
+          {/* Charts */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+            <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }}
+              whileHover={{ scale: 1.005 }}
+              className="rounded-xl border border-border bg-card p-4 sm:p-5 shadow-card hover:shadow-card-hover transition-[box-shadow] duration-300">
+              <h2 className="text-sm font-semibold text-foreground mb-3 sm:mb-4">Compliance Over Time</h2>
+              <ResponsiveContainer width="100%" height={240}>
+                <LineChart data={autoTrends}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="hsl(20, 8%, 16%)" />
+                  <XAxis dataKey="month" tick={{ fontSize: 11, fill: "hsl(25, 10%, 50%)" }} />
+                  <YAxis tick={{ fontSize: 11, fill: "hsl(25, 10%, 50%)" }} />
+                  <Tooltip content={<CustomTooltip />} />
+                  <Legend wrapperStyle={{ fontSize: "11px", color: "hsl(30, 25%, 88%)" }} />
+                  <Line type="monotone" dataKey="compliant" stroke="hsl(160, 55%, 42%)" strokeWidth={2} dot={{ r: 3 }} name="Compliant" />
+                  <Line type="monotone" dataKey="nonCompliant" stroke="hsl(0, 65%, 50%)" strokeWidth={2} dot={{ r: 3 }} name="Non-Compliant" />
+                </LineChart>
+              </ResponsiveContainer>
+            </motion.div>
 
-              <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.4 }}
-                whileHover={{ scale: 1.005 }}
-                className="rounded-xl border border-border bg-card p-4 sm:p-5 shadow-card hover:shadow-card-hover transition-[box-shadow] duration-300">
-                <h2 className="text-sm font-semibold text-foreground mb-3 sm:mb-4">Completion % by Month</h2>
-                <ResponsiveContainer width="100%" height={240}>
-                  <BarChart data={autoTrends}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="hsl(20, 8%, 16%)" />
-                    <XAxis dataKey="month" tick={{ fontSize: 11, fill: "hsl(25, 10%, 50%)" }} />
-                    <YAxis tick={{ fontSize: 11, fill: "hsl(25, 10%, 50%)" }} domain={[0, 100]} />
-                    <Tooltip content={<CustomTooltip />} cursor={{ fill: "hsl(20, 8%, 14%)" }} />
-                    <Bar dataKey="completionPct" fill="hsl(340, 45%, 55%)" radius={[4, 4, 0, 0]} name="Completion %" />
-                  </BarChart>
-                </ResponsiveContainer>
-              </motion.div>
-            </div>
+            <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.4 }}
+              whileHover={{ scale: 1.005 }}
+              className="rounded-xl border border-border bg-card p-4 sm:p-5 shadow-card hover:shadow-card-hover transition-[box-shadow] duration-300">
+              <h2 className="text-sm font-semibold text-foreground mb-3 sm:mb-4">Completion % by Month</h2>
+              <ResponsiveContainer width="100%" height={240}>
+                <BarChart data={autoTrends}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="hsl(20, 8%, 16%)" />
+                  <XAxis dataKey="month" tick={{ fontSize: 11, fill: "hsl(25, 10%, 50%)" }} />
+                  <YAxis tick={{ fontSize: 11, fill: "hsl(25, 10%, 50%)" }} domain={[0, 100]} />
+                  <Tooltip content={<CustomTooltip />} cursor={{ fill: "hsl(20, 8%, 14%)" }} />
+                  <Bar dataKey="completionPct" fill="hsl(340, 45%, 55%)" radius={[4, 4, 0, 0]} name="Completion %" />
+                </BarChart>
+              </ResponsiveContainer>
+            </motion.div>
           </div>
 
           {/* Data table */}
