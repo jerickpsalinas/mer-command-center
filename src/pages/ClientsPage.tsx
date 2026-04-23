@@ -44,6 +44,7 @@ function getIssueDetails(c: { uncategorizedTransactions: number; bankTransaction
 export default function ClientsPage() {
   const { data, isLoading, error } = useSheetData();
   const { savedFilters, saveFilter, deleteFilter } = useUserSettings();
+  const historyDialogRef = useRef<HTMLDivElement>(null);
 
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<SavedFilter["status"]>("all");
