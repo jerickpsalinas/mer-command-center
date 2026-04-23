@@ -250,10 +250,10 @@ export default function NotificationDropdown({ clients, trends }: { clients: Cli
                 <select
                   value={notifPrefs.bookkeeperFilter}
                   onChange={(e) => setNotifPrefs({ ...notifPrefs, bookkeeperFilter: e.target.value })}
-                  className="bg-transparent text-[11px] text-foreground outline-none flex-1"
+                  className="bg-card text-[11px] text-foreground outline-none flex-1 cursor-pointer"
                 >
-                  <option value="">All bookkeepers</option>
-                  {allBookkeepers.map((b) => <option key={b} value={b}>Only {b}</option>)}
+                  <option value="" className="bg-popover text-popover-foreground">All bookkeepers</option>
+                  {allBookkeepers.map((b) => <option key={b} value={b} className="bg-popover text-popover-foreground">Only {b}</option>)}
                 </select>
                 {hasPrefFilter && (
                   <button onClick={() => setNotifPrefs({ ...notifPrefs, bookkeeperFilter: "" })}

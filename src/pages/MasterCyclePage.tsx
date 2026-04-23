@@ -48,11 +48,10 @@ function stageTone(num: number): {
   ring: string;
   bar: string;
 } {
-  // Color progression: cool → warm → success
+  // 4-color grouping: stages 1-4 (intake), 5-6 (processing), 7 (review), 8 (done)
   if (num === 8) return { bg: "bg-success/15", text: "text-success", ring: "ring-success/40", bar: "bg-success" };
-  if (num === 7) return { bg: "bg-primary/15", text: "text-primary", ring: "ring-primary/40", bar: "bg-primary" };
-  if (num >= 5) return { bg: "bg-primary/10", text: "text-primary", ring: "ring-primary/30", bar: "bg-primary/80" };
-  if (num >= 3) return { bg: "bg-warning/10", text: "text-warning", ring: "ring-warning/30", bar: "bg-warning/80" };
+  if (num === 7) return { bg: "bg-warning/15", text: "text-warning", ring: "ring-warning/40", bar: "bg-warning" };
+  if (num >= 5) return { bg: "bg-primary/15", text: "text-primary", ring: "ring-primary/40", bar: "bg-primary" };
   return { bg: "bg-muted", text: "text-muted-foreground", ring: "ring-border", bar: "bg-muted-foreground/40" };
 }
 
