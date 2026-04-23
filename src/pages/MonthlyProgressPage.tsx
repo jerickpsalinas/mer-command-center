@@ -48,6 +48,7 @@ export default function MonthlyProgressPage() {
   const [sortKey, setSortKey] = useState<SortKey>("name");
   const [sortDir, setSortDir] = useState<SortDir>("asc");
   const [monthFilter, setMonthFilter] = useState<string>("current");
+  const tableRef = useRef<HTMLDivElement>(null);
 
   const toggleSort = (key: SortKey) => {
     if (sortKey === key) setSortDir(d => (d === "asc" ? "desc" : "asc"));
@@ -128,10 +129,19 @@ export default function MonthlyProgressPage() {
             <ChevronDown className="absolute right-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground pointer-events-none" />
           </div>
         ))}
-        <div className="ml-auto text-[12px] text-muted-foreground font-mono-data">{filtered.length} of {clients.length} clients</div>
+        <div className="ml-auto flex items-center gap-2">
+          <span className="text-[12px] text-muted-foreground font-mono-data">{filtered.length} of {clients.length} clients</span>
+          <SnapshotButton
+            targetRef={tableRef}
+            fileSlug="Monthly_Progress_Table"
+            contextLabel={monthFilter === "current" ? "current · live" : monthFilter}
+            helper="Save table as PNG"
+            compact
+          />
+        </div>
       </motion.div>
 
-      <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}
+      <motion.div ref={tableRef} initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}
         className="rounded-xl border border-border bg-card shadow-card overflow-hidden relative">
         <div className="overflow-auto max-h-[calc(100vh-220px)] scrollbar-thin scrollbar-thumb-muted-foreground/20 hover:scrollbar-thumb-muted-foreground/40 scrollbar-track-transparent">
           <table className="w-full text-sm">
