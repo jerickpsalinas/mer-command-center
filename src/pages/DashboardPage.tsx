@@ -1,21 +1,21 @@
-import { useRef, useCallback, useState as useLocalState } from "react";
+import { useRef, useState as useLocalState } from "react";
 import {
   Users, CheckCircle2, XCircle, Pause, TrendingUp, AlertTriangle,
-  FileText, StickyNote, Award, Clock, AlertCircle, ChevronRight, ShieldAlert, BarChart3, Camera, Calendar,
+  FileText, StickyNote, Award, Clock, AlertCircle, ChevronRight, ShieldAlert, BarChart3,
 } from "lucide-react";
 import { LineChart, Line, BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from "recharts";
-import html2canvas from "html2canvas";
 import KPICard from "@/components/KPICard";
 import ComplianceProgress from "@/components/ComplianceProgress";
 import StatusBadge from "@/components/StatusBadge";
 import ExportCenter from "@/components/ExportCenter";
 import AtRiskAlerts from "@/components/AtRiskAlerts";
 import MonthFilter from "@/components/MonthFilter";
+import SnapshotButton from "@/components/SnapshotButton";
 import { useSheetData, getKPIMetrics, getComplianceBreakdown, getNeedsAttention, getBookkeeperStats, getClientsForMonth } from "@/hooks/useSheetData";
 import { DataLoading, DataError } from "@/components/DataStatus";
-import { toast } from "@/hooks/use-toast";
 import { motion } from "framer-motion";
 import type { Client } from "@/data/mockData";
+
 
 const CHART_COLORS = {
   primary: "hsl(340, 45%, 55%)",
@@ -342,32 +342,10 @@ function ReportsSummarySection({ clients, bookkeepers }: { clients: Client[]; bo
 
 export default function DashboardPage() {
   const { data, isLoading, error } = useSheetData();
-  const dashRef = useRef<HTMLDivElement>(null);
-  const [capturing, setCapturing] = useLocalState(false);
+  const heroRef = useRef<HTMLDivElement>(null);
+  const atRiskRef = useRef<HTMLDivElement>(null);
+  const reportsRef = useRef<HTMLDivElement>(null);
   const [monthFilter, setMonthFilter] = useLocalState<string>("current");
-
-  const handleCapture = useCallback(async () => {
-    if (!dashRef.current || capturing) return;
-    setCapturing(true);
-    try {
-      const canvas = await html2canvas(dashRef.current, {
-        backgroundColor: "#1a1614",
-        scale: 2,
-        useCORS: true,
-        logging: false,
-      });
-      const link = document.createElement("a");
-      const date = new Date().toISOString().split("T")[0];
-      link.download = `MER_Dashboard_${date}.png`;
-      link.href = canvas.toDataURL("image/png");
-      link.click();
-      toast({ title: "PNG saved", description: `Dashboard exported as MER_Dashboard_${date}.png` });
-    } catch {
-      toast({ title: "Capture failed", description: "Could not generate PNG", variant: "destructive" });
-    } finally {
-      setCapturing(false);
-    }
-  }, [capturing]);
 
   if (isLoading) return <DataLoading />;
   if (error || !data) return <DataError message={error?.message} />;
@@ -378,13 +356,14 @@ export default function DashboardPage() {
   const isLatest = monthFilter === "current";
   const activeMonth = isLatest ? latestMonth : monthFilter;
   const clients = isLatest ? data.clients : getClientsForMonth(merHistory, monthFilter);
+  const contextLabel = `${activeMonth ?? ""}${isLatest ? " · live" : " · historical"}`.trim();
 
   const kpi = getKPIMetrics(clients);
   const breakdown = getComplianceBreakdown(clients);
 
   return (
-    <div ref={dashRef} className="space-y-6 sm:space-y-7">
-      {/* Top bar: Month picker + Capture */}
+    <div className="space-y-6 sm:space-y-7">
+      {/* Top bar: Month picker */}
       <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-3">
         <div className="flex items-end gap-3 flex-wrap">
           <MonthFilter
@@ -407,15 +386,15 @@ export default function DashboardPage() {
             {isLatest ? <span className="text-success">live</span> : <span className="text-warning">historical view</span>}
           </div>
         </div>
-        <button
-          onClick={handleCapture}
-          disabled={capturing}
-          className="inline-flex items-center justify-center gap-2 rounded-lg border border-border bg-card px-4 py-2 text-xs font-semibold text-muted-foreground shadow-card hover:bg-accent hover:text-foreground transition-colors disabled:opacity-50 w-full sm:w-auto"
-        >
-          <Camera className={`h-3.5 w-3.5 ${capturing ? "animate-pulse" : ""}`} />
-          {capturing ? "Capturing…" : "Capture as PNG"}
-        </button>
       </div>
+
+      {/* HERO snapshot region: KPI + Charts + Compliance Breakdown */}
+      <div ref={heroRef} className="space-y-6 sm:space-y-7 bg-background rounded-xl">
+        <div className="flex items-center justify-between gap-3">
+          <h2 className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Monthly KPI Overview</h2>
+          <SnapshotButton targetRef={heroRef} fileSlug="Dashboard_KPI_Overview" contextLabel={contextLabel} helper="Save KPI hero as PNG" />
+        </div>
+
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4">
         <KPICard title="Total Clients" value={kpi.total} icon={Users} index={0} />
