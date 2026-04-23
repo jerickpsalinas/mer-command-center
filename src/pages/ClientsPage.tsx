@@ -358,12 +358,26 @@ export default function ClientsPage() {
       {/* Per-client history dialog with MoM diff */}
       <Dialog open={!!historyClient} onOpenChange={(open) => !open && setHistoryClient(null)}>
         <DialogContent className="max-w-3xl w-[calc(100vw-1rem)] sm:w-auto max-h-[85vh] overflow-y-auto p-4 sm:p-6">
+          <div ref={historyDialogRef}>
           <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <History className="h-4 w-4 text-primary" />
-              {historyClient} – Monthly History
-            </DialogTitle>
-            <p className="text-xs text-muted-foreground">{history.length} month{history.length === 1 ? "" : "s"} on record</p>
+            <div className="flex items-start justify-between gap-3">
+              <div className="min-w-0">
+                <DialogTitle className="flex items-center gap-2">
+                  <History className="h-4 w-4 text-primary" />
+                  {historyClient} – Monthly History
+                </DialogTitle>
+                <p className="text-xs text-muted-foreground">{history.length} month{history.length === 1 ? "" : "s"} on record</p>
+              </div>
+              {historyClient && (
+                <SnapshotButton
+                  targetRef={historyDialogRef}
+                  fileSlug={`Client_${historyClient.replace(/\s+/g, "_")}_History`}
+                  contextLabel={`${history.length} months`}
+                  helper="Save history as PNG"
+                  compact
+                />
+              )}
+            </div>
           </DialogHeader>
 
           {history.length === 0 ? (
