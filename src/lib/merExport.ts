@@ -54,7 +54,7 @@ function dash(n: number) { return n === 0 ? "-" : n; }
 
 type CellStyle = NonNullable<XLSX.CellObject["s"]>;
 
-const border = (color = BRAND.border) => ({
+const border = (color: string = BRAND.border) => ({
   top: { style: "thin", color: { rgb: color } },
   bottom: { style: "thin", color: { rgb: color } },
   left: { style: "thin", color: { rgb: color } },
