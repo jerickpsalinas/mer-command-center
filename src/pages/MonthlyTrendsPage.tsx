@@ -1,7 +1,8 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import KPICard from "@/components/KPICard";
 import ExportCenter from "@/components/ExportCenter";
 import ComplianceHeatmap from "@/components/ComplianceHeatmap";
+import SnapshotButton from "@/components/SnapshotButton";
 import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from "recharts";
 import { TrendingUp, TrendingDown, CheckCircle2, XCircle, ArrowRight, Calendar, Minus, Sparkles } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";

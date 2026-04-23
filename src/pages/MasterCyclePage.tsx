@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useMemo, useState, useRef } from "react";
 import { motion } from "framer-motion";
 import {
   Search,
@@ -15,6 +15,7 @@ import {
 } from "lucide-react";
 import { useSheetData } from "@/hooks/useSheetData";
 import { DataLoading, DataError } from "@/components/DataStatus";
+import SnapshotButton from "@/components/SnapshotButton";
 import type { CycleEntry } from "@/services/googleSheets";
 
 /* ────────────────────────────────────────────────────────────────────────────

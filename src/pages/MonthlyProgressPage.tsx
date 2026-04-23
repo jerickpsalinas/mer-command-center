@@ -1,4 +1,4 @@
-import { useState, useMemo, useCallback } from "react";
+import { useState, useMemo, useCallback, useRef } from "react";
 
 function formatDateToISO(dateStr: string): string {
   if (!dateStr || dateStr.trim() === "") return "—";
@@ -29,6 +29,7 @@ function formatDateToISO(dateStr: string): string {
 }
 import StatusBadge from "@/components/StatusBadge";
 import MonthFilter from "@/components/MonthFilter";
+import SnapshotButton from "@/components/SnapshotButton";
 import { Search, ArrowUpDown, Filter, ChevronDown } from "lucide-react";
 import { motion } from "framer-motion";
 import { useSheetData, getClientsForMonth } from "@/hooks/useSheetData";

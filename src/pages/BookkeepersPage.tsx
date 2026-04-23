@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useRef } from "react";
 import { motion } from "framer-motion";
 import { Award, TrendingUp, TrendingDown, Users, Clock, AlertTriangle, FileText, Activity, ArrowRight, Search } from "lucide-react";
 import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
@@ -7,6 +7,7 @@ import { DataLoading, DataError } from "@/components/DataStatus";
 import { getBookkeeperPerformance, getBookkeeperPerformanceForMonth, type BookkeeperPerformance } from "@/lib/insights";
 import KPICard from "@/components/KPICard";
 import MonthFilter from "@/components/MonthFilter";
+import SnapshotButton from "@/components/SnapshotButton";
 
 const tooltipStyle = {
   background: "hsl(var(--popover))",
@@ -21,6 +22,8 @@ export default function BookkeepersPage() {
   const [search, setSearch] = useState("");
   const [selected, setSelected] = useState<string | null>(null);
   const [monthFilter, setMonthFilter] = useState<string>("current"); // "current" or month label
+  const leaderboardRef = useRef<HTMLDivElement>(null);
+  const drilldownRef = useRef<HTMLDivElement>(null);
 
   // Available months (most recent first) derived from MER history
   const monthOptions = useMemo(() => {

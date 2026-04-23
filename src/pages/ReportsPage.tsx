@@ -1,7 +1,8 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useRef } from "react";
 import ComplianceProgress from "@/components/ComplianceProgress";
 import StatusBadge from "@/components/StatusBadge";
 import MonthFilter from "@/components/MonthFilter";
+import SnapshotButton from "@/components/SnapshotButton";
 import { motion } from "framer-motion";
 import { FileText, ShieldAlert, BarChart3, Users } from "lucide-react";
 import { useSheetData, getKPIMetrics, getComplianceBreakdown, getBookkeeperStats, getNeedsAttention, getClientsForMonth } from "@/hooks/useSheetData";
@@ -10,6 +11,7 @@ import { DataLoading, DataError } from "@/components/DataStatus";
 export default function ReportsPage() {
   const { data, isLoading, error } = useSheetData();
   const [monthFilter, setMonthFilter] = useState<string>("current");
+  const summaryRef = useRef<HTMLDivElement>(null);
 
   const clients = useMemo(() => {
     if (!data) return [];
