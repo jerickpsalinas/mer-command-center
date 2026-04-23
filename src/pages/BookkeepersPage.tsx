@@ -1,11 +1,12 @@
 import { useState, useMemo } from "react";
 import { motion } from "framer-motion";
-import { Award, TrendingUp, TrendingDown, Users, Clock, AlertTriangle, FileText, Activity, ArrowRight, Search, Calendar } from "lucide-react";
+import { Award, TrendingUp, TrendingDown, Users, Clock, AlertTriangle, FileText, Activity, ArrowRight, Search } from "lucide-react";
 import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
 import { useSheetData } from "@/hooks/useSheetData";
 import { DataLoading, DataError } from "@/components/DataStatus";
 import { getBookkeeperPerformance, getBookkeeperPerformanceForMonth, type BookkeeperPerformance } from "@/lib/insights";
 import KPICard from "@/components/KPICard";
+import MonthFilter from "@/components/MonthFilter";
 
 const tooltipStyle = {
   background: "hsl(var(--popover))",
@@ -101,20 +102,13 @@ export default function BookkeepersPage() {
             className="bg-transparent outline-none text-sm text-foreground placeholder:text-muted-foreground w-full"
           />
         </div>
-        <div className="flex items-center gap-2 rounded-lg border border-border bg-card px-3 py-1.5 text-sm w-full sm:w-auto">
-          <Calendar className="h-3.5 w-3.5 text-muted-foreground" />
-          <select
-            value={monthFilter}
-            onChange={(e) => { setMonthFilter(e.target.value); setSelected(null); }}
-            className="bg-card outline-none text-sm text-foreground w-full sm:w-44 cursor-pointer"
-            aria-label="Performance month"
-          >
-            <option value="current" className="bg-popover text-popover-foreground">Current (latest)</option>
-            {monthOptions.map((m) => (
-              <option key={m} value={m} className="bg-popover text-popover-foreground">{m}</option>
-            ))}
-          </select>
-        </div>
+        <MonthFilter
+          value={monthFilter}
+          onChange={(v) => { setMonthFilter(v); setSelected(null); }}
+          months={data.availableMonths}
+          latestMonth={data.latestMonth}
+          compact
+        />
         {monthFilter !== "current" && (
           <span className="text-[11px] text-muted-foreground">
             Showing performance for <span className="font-semibold text-foreground">{monthFilter}</span>
