@@ -89,16 +89,37 @@ export default function BookkeepersPage() {
         <KPICard title="Total Clients Managed" value={totalClients} icon={FileText} index={3} />
       </div>
 
-      {/* Search */}
-      <div className="flex items-center gap-2 rounded-lg border border-border bg-card px-3 py-1.5 text-sm w-full sm:w-72">
-        <Search className="h-3.5 w-3.5 text-muted-foreground" />
-        <input
-          type="text"
-          placeholder="Search bookkeepers…"
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          className="bg-transparent outline-none text-sm text-foreground placeholder:text-muted-foreground w-full"
-        />
+      {/* Search + Month filter */}
+      <div className="flex flex-col sm:flex-row sm:items-center gap-2">
+        <div className="flex items-center gap-2 rounded-lg border border-border bg-card px-3 py-1.5 text-sm w-full sm:w-72">
+          <Search className="h-3.5 w-3.5 text-muted-foreground" />
+          <input
+            type="text"
+            placeholder="Search bookkeepers…"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="bg-transparent outline-none text-sm text-foreground placeholder:text-muted-foreground w-full"
+          />
+        </div>
+        <div className="flex items-center gap-2 rounded-lg border border-border bg-card px-3 py-1.5 text-sm w-full sm:w-auto">
+          <Calendar className="h-3.5 w-3.5 text-muted-foreground" />
+          <select
+            value={monthFilter}
+            onChange={(e) => { setMonthFilter(e.target.value); setSelected(null); }}
+            className="bg-card outline-none text-sm text-foreground w-full sm:w-44 cursor-pointer"
+            aria-label="Performance month"
+          >
+            <option value="current" className="bg-popover text-popover-foreground">Current (latest)</option>
+            {monthOptions.map((m) => (
+              <option key={m} value={m} className="bg-popover text-popover-foreground">{m}</option>
+            ))}
+          </select>
+        </div>
+        {monthFilter !== "current" && (
+          <span className="text-[11px] text-muted-foreground">
+            Showing performance for <span className="font-semibold text-foreground">{monthFilter}</span>
+          </span>
+        )}
       </div>
 
       {/* Leaderboard cards */}
