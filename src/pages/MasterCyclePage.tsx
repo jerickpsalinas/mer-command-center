@@ -106,6 +106,7 @@ export default function MasterCyclePage() {
   const [filterCategory, setFilterCategory] = useState("");
   const [filterStage, setFilterStage] = useState<number | null>(null);
   const [expanded, setExpanded] = useState<string | null>(null);
+  const pipelineRef = useRef<HTMLElement>(null);
 
   const entries = data?.cycleEntries ?? [];
 
