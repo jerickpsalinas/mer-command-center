@@ -40,6 +40,7 @@ export default function MonthlyTrendsPage() {
   const { data, isLoading, error } = useSheetData();
   const [selectedHistoryIdx, setSelectedHistoryIdx] = useState<number | null>(null);
   const [compareIdx, setCompareIdx] = useState<string>("-");
+  const chartsRef = useRef<HTMLDivElement>(null);
 
   if (isLoading) return <DataLoading />;
   if (error || !data) return <DataError message={error?.message} />;
