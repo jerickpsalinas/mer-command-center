@@ -421,6 +421,8 @@ export default function DashboardPage() {
           <ComplianceProgress label="Statement Requests" value={breakdown.stmtPct} index={3} />
         </div>
       </motion.div>
+      </div>
+      {/* End hero snapshot region */}
 
       {/* Trend Charts */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-5">
@@ -453,8 +455,14 @@ export default function DashboardPage() {
         </motion.div>
       </div>
 
-      {/* At-Risk Alerts (configurable in Settings) */}
-      <AtRiskAlerts />
+      {/* At-Risk Alerts (configurable in Settings) — snapshot wrapper */}
+      <div ref={atRiskRef} className="space-y-2 bg-background rounded-xl">
+        <div className="flex items-center justify-between gap-3">
+          <h2 className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">At-Risk Clients</h2>
+          <SnapshotButton targetRef={atRiskRef} fileSlug="Dashboard_AtRisk" contextLabel={contextLabel} helper="Save at-risk list as PNG" />
+        </div>
+        <AtRiskAlerts />
+      </div>
 
       {/* Needs Attention + Bookkeepers */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-5">
@@ -462,8 +470,14 @@ export default function DashboardPage() {
         <BookkeepersSection clients={clients} bookkeepers={bookkeepers} />
       </div>
 
-      {/* Reports Summary */}
-      <ReportsSummarySection clients={clients} bookkeepers={bookkeepers} />
+      {/* Reports Summary — snapshot wrapper */}
+      <div ref={reportsRef} className="space-y-2 bg-background rounded-xl">
+        <div className="flex items-center justify-between gap-3">
+          <h2 className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Reports Summary</h2>
+          <SnapshotButton targetRef={reportsRef} fileSlug="Dashboard_Reports_Summary" contextLabel={contextLabel} helper="Save summary as PNG" />
+        </div>
+        <ReportsSummarySection clients={clients} bookkeepers={bookkeepers} />
+      </div>
 
       {/* Download / Export Center */}
       <ExportCenter
