@@ -51,9 +51,13 @@ export default function SnapshotButton({
         const overflowY = cs.overflowY;
         const overflowX = cs.overflowX;
         const maxH = cs.maxHeight;
+        const inlineH = el.style.height; // framer-motion / animations set this
+        const heightZero = inlineH === "0px" || cs.height === "0px";
         const needsExpand =
-          (overflowY === "auto" || overflowY === "scroll" || overflowX === "auto" || overflowX === "scroll") ||
-          (maxH && maxH !== "none");
+          overflowY === "auto" || overflowY === "scroll" ||
+          overflowX === "auto" || overflowX === "scroll" ||
+          (maxH && maxH !== "none") ||
+          heightZero;
         if (!needsExpand) continue;
 
         const prev = {
@@ -63,14 +67,19 @@ export default function SnapshotButton({
           overflowX: el.style.overflowX,
           overflowY: el.style.overflowY,
           height: el.style.height,
+          opacity: el.style.opacity,
         };
         el.style.maxHeight = "none";
         el.style.maxWidth = "none";
         el.style.overflow = "visible";
         el.style.overflowX = "visible";
         el.style.overflowY = "visible";
-        // Force height to scrollHeight if a constraint was clipping content
-        if (el.scrollHeight > el.clientHeight) el.style.height = `${el.scrollHeight}px`;
+        if (heightZero) {
+          el.style.height = "auto";
+          el.style.opacity = "1";
+        } else if (el.scrollHeight > el.clientHeight) {
+          el.style.height = `${el.scrollHeight}px`;
+        }
 
         restorers.push(() => {
           el.style.maxHeight = prev.maxHeight;
@@ -79,6 +88,7 @@ export default function SnapshotButton({
           el.style.overflowX = prev.overflowX;
           el.style.overflowY = prev.overflowY;
           el.style.height = prev.height;
+          el.style.opacity = prev.opacity;
         });
       }
     };
