@@ -117,7 +117,18 @@ export default function BookkeepersPage() {
             Showing performance for <span className="font-semibold text-foreground">{monthFilter}</span>
           </span>
         )}
+        <div className="sm:ml-auto">
+          <SnapshotButton
+            targetRef={leaderboardRef}
+            fileSlug="Bookkeepers_Leaderboard"
+            contextLabel={monthFilter === "current" ? "current · live" : monthFilter}
+            helper="Save leaderboard as PNG"
+          />
+        </div>
       </div>
+
+      {/* Leaderboard cards (snapshot target) */}
+      <div ref={leaderboardRef} className="bg-background rounded-xl">
 
       {/* Leaderboard cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
