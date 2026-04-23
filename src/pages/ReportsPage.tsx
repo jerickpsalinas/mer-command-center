@@ -1,16 +1,25 @@
+import { useState, useMemo } from "react";
 import ComplianceProgress from "@/components/ComplianceProgress";
 import StatusBadge from "@/components/StatusBadge";
+import MonthFilter from "@/components/MonthFilter";
 import { motion } from "framer-motion";
 import { FileText, ShieldAlert, BarChart3, Users } from "lucide-react";
-import { useSheetData, getKPIMetrics, getComplianceBreakdown, getBookkeeperStats, getNeedsAttention } from "@/hooks/useSheetData";
+import { useSheetData, getKPIMetrics, getComplianceBreakdown, getBookkeeperStats, getNeedsAttention, getClientsForMonth } from "@/hooks/useSheetData";
 import { DataLoading, DataError } from "@/components/DataStatus";
 
 export default function ReportsPage() {
   const { data, isLoading, error } = useSheetData();
+  const [monthFilter, setMonthFilter] = useState<string>("current");
+
+  const clients = useMemo(() => {
+    if (!data) return [];
+    return monthFilter === "current" ? data.clients : getClientsForMonth(data.merHistory, monthFilter);
+  }, [data, monthFilter]);
+
   if (isLoading) return <DataLoading />;
   if (error || !data) return <DataError message={error?.message} />;
 
-  const { clients, bookkeepers } = data;
+  const { bookkeepers } = data;
   const kpi = getKPIMetrics(clients);
   const breakdown = getComplianceBreakdown(clients);
   const bkStats = getBookkeeperStats(clients, bookkeepers);
@@ -99,17 +108,35 @@ export default function ReportsPage() {
     },
   ];
 
+  const isLatest = monthFilter === "current";
+
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-      {sections.map((section, i) => (
-        <motion.div key={section.title} initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.1 }}
-          className="rounded-lg border border-border bg-card p-5 shadow-sm">
-          <h2 className="text-sm font-semibold text-foreground mb-4 flex items-center gap-2">
-            <section.icon className="h-4 w-4 text-primary" />{section.title}
-          </h2>
-          {section.content}
-        </motion.div>
-      ))}
+    <div className="space-y-5">
+      <div className="flex flex-wrap items-end gap-3">
+        <MonthFilter
+          value={monthFilter}
+          onChange={setMonthFilter}
+          months={data.availableMonths}
+          latestMonth={data.latestMonth}
+          label="Reporting Month"
+        />
+        <div className="pb-2.5 text-[11px] text-muted-foreground">
+          <span className="font-mono-data text-foreground font-semibold">{clients.length}</span> clients ·{" "}
+          {isLatest ? <span className="text-success">live</span> : <span className="text-warning">historical · {monthFilter}</span>}
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        {sections.map((section, i) => (
+          <motion.div key={section.title} initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.1 }}
+            className="rounded-lg border border-border bg-card p-5 shadow-sm">
+            <h2 className="text-sm font-semibold text-foreground mb-4 flex items-center gap-2">
+              <section.icon className="h-4 w-4 text-primary" />{section.title}
+            </h2>
+            {section.content}
+          </motion.div>
+        ))}
+      </div>
     </div>
   );
 }
