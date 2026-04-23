@@ -1,10 +1,10 @@
 import { useState, useMemo } from "react";
 import { motion } from "framer-motion";
-import { Award, TrendingUp, TrendingDown, Users, Clock, AlertTriangle, FileText, Activity, ArrowRight, Search } from "lucide-react";
+import { Award, TrendingUp, TrendingDown, Users, Clock, AlertTriangle, FileText, Activity, ArrowRight, Search, Calendar } from "lucide-react";
 import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
 import { useSheetData } from "@/hooks/useSheetData";
 import { DataLoading, DataError } from "@/components/DataStatus";
-import { getBookkeeperPerformance, type BookkeeperPerformance } from "@/lib/insights";
+import { getBookkeeperPerformance, getBookkeeperPerformanceForMonth, type BookkeeperPerformance } from "@/lib/insights";
 import KPICard from "@/components/KPICard";
 
 const tooltipStyle = {
@@ -19,13 +19,32 @@ export default function BookkeepersPage() {
   const { data, isLoading, error } = useSheetData();
   const [search, setSearch] = useState("");
   const [selected, setSelected] = useState<string | null>(null);
+  const [monthFilter, setMonthFilter] = useState<string>("current"); // "current" or month label
+
+  // Available months (most recent first) derived from MER history
+  const monthOptions = useMemo(() => {
+    if (!data) return [];
+    const map = new Map<string, string>(); // label -> iso
+    for (const r of data.merHistory) {
+      if (r.month && r.monthDate) map.set(r.month, r.monthDate);
+    }
+    return Array.from(map.entries())
+      .sort((a, b) => b[1].localeCompare(a[1]))
+      .map(([label]) => label);
+  }, [data]);
 
   const stats = useMemo<BookkeeperPerformance[]>(() => {
     if (!data) return [];
+    if (monthFilter === "current") {
+      return data.bookkeepers
+        .map((bk) => getBookkeeperPerformance(data.clients, data.merHistory, bk))
+        .sort((a, b) => b.rate - a.rate);
+    }
     return data.bookkeepers
-      .map((bk) => getBookkeeperPerformance(data.clients, data.merHistory, bk))
+      .map((bk) => getBookkeeperPerformanceForMonth(data.merHistory, bk, monthFilter))
+      .filter((x): x is BookkeeperPerformance => x !== null)
       .sort((a, b) => b.rate - a.rate);
-  }, [data]);
+  }, [data, monthFilter]);
 
   if (isLoading) return <DataLoading />;
   if (error || !data) return <DataError message={error?.message} />;
@@ -70,16 +89,37 @@ export default function BookkeepersPage() {
         <KPICard title="Total Clients Managed" value={totalClients} icon={FileText} index={3} />
       </div>
 
-      {/* Search */}
-      <div className="flex items-center gap-2 rounded-lg border border-border bg-card px-3 py-1.5 text-sm w-full sm:w-72">
-        <Search className="h-3.5 w-3.5 text-muted-foreground" />
-        <input
-          type="text"
-          placeholder="Search bookkeepers…"
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          className="bg-transparent outline-none text-sm text-foreground placeholder:text-muted-foreground w-full"
-        />
+      {/* Search + Month filter */}
+      <div className="flex flex-col sm:flex-row sm:items-center gap-2">
+        <div className="flex items-center gap-2 rounded-lg border border-border bg-card px-3 py-1.5 text-sm w-full sm:w-72">
+          <Search className="h-3.5 w-3.5 text-muted-foreground" />
+          <input
+            type="text"
+            placeholder="Search bookkeepers…"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="bg-transparent outline-none text-sm text-foreground placeholder:text-muted-foreground w-full"
+          />
+        </div>
+        <div className="flex items-center gap-2 rounded-lg border border-border bg-card px-3 py-1.5 text-sm w-full sm:w-auto">
+          <Calendar className="h-3.5 w-3.5 text-muted-foreground" />
+          <select
+            value={monthFilter}
+            onChange={(e) => { setMonthFilter(e.target.value); setSelected(null); }}
+            className="bg-card outline-none text-sm text-foreground w-full sm:w-44 cursor-pointer"
+            aria-label="Performance month"
+          >
+            <option value="current" className="bg-popover text-popover-foreground">Current (latest)</option>
+            {monthOptions.map((m) => (
+              <option key={m} value={m} className="bg-popover text-popover-foreground">{m}</option>
+            ))}
+          </select>
+        </div>
+        {monthFilter !== "current" && (
+          <span className="text-[11px] text-muted-foreground">
+            Showing performance for <span className="font-semibold text-foreground">{monthFilter}</span>
+          </span>
+        )}
       </div>
 
       {/* Leaderboard cards */}

@@ -25,6 +25,52 @@ export function getBookkeeperPerformance(
   history: MerHistoryRow[],
   bookkeeper: string,
 ): BookkeeperPerformance {
+  return computeBookkeeperPerformance(clients, history, bookkeeper);
+}
+
+/**
+ * Compute performance for a specific month (label, e.g. "Oct 2025").
+ * Returns null if the bookkeeper has no rows in that month.
+ * Builds a synthetic "clients" snapshot from MER history rows for that month
+ * (latest submission per client) so the same metrics work historically.
+ */
+export function getBookkeeperPerformanceForMonth(
+  history: MerHistoryRow[],
+  bookkeeper: string,
+  monthLabel: string,
+): BookkeeperPerformance | null {
+  const monthRows = history.filter((r) => r.bookkeeper === bookkeeper && r.month === monthLabel);
+  if (!monthRows.length) return null;
+
+  // Latest row per client for that month
+  const latest = new Map<string, MerHistoryRow>();
+  for (const r of monthRows) {
+    const ex = latest.get(r.name);
+    if (!ex || r.timestampMs >= ex.timestampMs) latest.set(r.name, r);
+  }
+  const snapshot: Client[] = Array.from(latest.values()).map((r) => ({
+    name: r.name,
+    bookkeeper: r.bookkeeper,
+    completionPct: r.completionPct,
+    complianceStatus: r.complianceStatus ?? "Non-Compliant",
+    bankTransactions: r.bankTransactions ?? "",
+    uncategorizedTransactions: r.uncategorizedTransactions ?? 0,
+    unappliedPayments: r.unappliedPayments ?? 0,
+    statementRequestStatus: r.statementRequestStatus ?? "",
+    lastReconciledDate: r.lastReconciledDate ?? "",
+    prevMonthNotesApproved: !!r.prevMonthNotesApproved,
+    financialsSentToClient: !!r.financialsSentToClient,
+    booksClosedInQB: !!r.booksClosedInQB,
+  } as unknown as Client));
+
+  return computeBookkeeperPerformance(snapshot, history, bookkeeper);
+}
+
+function computeBookkeeperPerformance(
+  clients: Client[],
+  history: MerHistoryRow[],
+  bookkeeper: string,
+): BookkeeperPerformance {
   const own = clients.filter((c) => c.bookkeeper === bookkeeper);
   const compliant = own.filter((c) => c.complianceStatus === "Compliant").length;
   const nonCompliant = own.filter((c) => c.complianceStatus === "Non-Compliant").length;
