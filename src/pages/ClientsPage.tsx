@@ -128,7 +128,7 @@ export default function ClientsPage() {
   };
 
   const hasActiveFilter = search || statusFilter !== "all" || bookkeeperFilter || typeFilter || minCompletion > 0;
-  const clientTypes = Array.from(new Set(data.clients.map((c) => c.clientType))).sort();
+  const clientTypes = Array.from(new Set(monthClients.map((c) => c.clientType))).sort();
 
   return (
     <div className="space-y-6 density-space-y-6">
@@ -136,7 +136,7 @@ export default function ClientsPage() {
       <StickyPageHeader>
         <span className="inline-flex items-center gap-1.5 rounded-full bg-card px-2.5 py-1 text-[11px] font-semibold text-foreground border border-border">
           <Search className="h-3 w-3 text-muted-foreground" />
-          {filtered.length} of {data.clients.length}
+          {filtered.length} of {monthClients.length}
         </span>
         {statusFilter !== "all" && (
           <span className="inline-flex items-center gap-1 rounded-full bg-primary/10 text-primary px-2 py-0.5 text-[11px] font-medium border border-primary/20">
