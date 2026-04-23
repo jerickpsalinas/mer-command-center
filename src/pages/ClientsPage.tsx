@@ -221,6 +221,14 @@ export default function ClientsPage() {
               className="bg-transparent outline-none text-sm text-foreground placeholder:text-muted-foreground w-full min-w-0" />
           </div>
 
+          <MonthFilter
+            value={monthFilter}
+            onChange={setMonthFilter}
+            months={data.availableMonths}
+            latestMonth={data.latestMonth}
+            compact
+          />
+
           <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value as SavedFilter["status"])}
             className="rounded-lg border border-border bg-card px-2.5 py-1.5 text-xs font-medium text-foreground flex-1 sm:flex-none min-w-0">
             <option value="all">All statuses</option>
