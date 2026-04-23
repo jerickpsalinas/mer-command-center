@@ -10,7 +10,7 @@ import ComplianceProgress from "@/components/ComplianceProgress";
 import StatusBadge from "@/components/StatusBadge";
 import ExportCenter from "@/components/ExportCenter";
 import AtRiskAlerts from "@/components/AtRiskAlerts";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import MonthFilter from "@/components/MonthFilter";
 import { useSheetData, getKPIMetrics, getComplianceBreakdown, getNeedsAttention, getBookkeeperStats, getClientsForMonth } from "@/hooks/useSheetData";
 import { DataLoading, DataError } from "@/components/DataStatus";
 import { toast } from "@/hooks/use-toast";
@@ -344,7 +344,7 @@ export default function DashboardPage() {
   const { data, isLoading, error } = useSheetData();
   const dashRef = useRef<HTMLDivElement>(null);
   const [capturing, setCapturing] = useLocalState(false);
-  const [selectedMonth, setSelectedMonth] = useLocalState<string>("");
+  const [monthFilter, setMonthFilter] = useLocalState<string>("current");
 
   const handleCapture = useCallback(async () => {
     if (!dashRef.current || capturing) return;
@@ -374,14 +374,10 @@ export default function DashboardPage() {
 
   const { monthlyTrends, bookkeepers, merHistory, availableMonths, latestMonth } = data;
 
-  // Active month: explicit pick OR latest with data
-  const activeMonth = selectedMonth || latestMonth;
-  const isLatest = activeMonth === latestMonth;
-
-  // Derive clients snapshot for the chosen month (falls back to live latest)
-  const clients = activeMonth
-    ? getClientsForMonth(merHistory, activeMonth)
-    : data.clients;
+  // "current" = live latest, else historical snapshot for the picked month
+  const isLatest = monthFilter === "current";
+  const activeMonth = isLatest ? latestMonth : monthFilter;
+  const clients = isLatest ? data.clients : getClientsForMonth(merHistory, monthFilter);
 
   const kpi = getKPIMetrics(clients);
   const breakdown = getComplianceBreakdown(clients);
@@ -391,26 +387,16 @@ export default function DashboardPage() {
       {/* Top bar: Month picker + Capture */}
       <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-3">
         <div className="flex items-end gap-3 flex-wrap">
-          <div className="w-full sm:w-auto">
-            <label className="text-[11px] font-medium text-muted-foreground uppercase tracking-wider flex items-center gap-1.5 mb-1.5">
-              <Calendar className="h-3 w-3" /> Reporting Month
-            </label>
-            <Select value={activeMonth} onValueChange={(v) => setSelectedMonth(v)}>
-              <SelectTrigger className="w-full sm:w-[220px] bg-card border-border">
-                <SelectValue placeholder="Select month" />
-              </SelectTrigger>
-              <SelectContent>
-                {[...availableMonths].reverse().map((m) => (
-                  <SelectItem key={m} value={m}>
-                    {m}{m === latestMonth ? "  · Latest" : ""}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
+          <MonthFilter
+            value={monthFilter}
+            onChange={setMonthFilter}
+            months={availableMonths}
+            latestMonth={latestMonth}
+            label="Reporting Month"
+          />
           {!isLatest && (
             <button
-              onClick={() => setSelectedMonth("")}
+              onClick={() => setMonthFilter("current")}
               className="text-[11px] text-muted-foreground hover:text-foreground underline-offset-2 hover:underline pb-2.5"
             >
               Reset to latest

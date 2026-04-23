@@ -28,9 +28,10 @@ function formatDateToISO(dateStr: string): string {
   return trimmed;
 }
 import StatusBadge from "@/components/StatusBadge";
+import MonthFilter from "@/components/MonthFilter";
 import { Search, ArrowUpDown, Filter, ChevronDown } from "lucide-react";
 import { motion } from "framer-motion";
-import { useSheetData } from "@/hooks/useSheetData";
+import { useSheetData, getClientsForMonth } from "@/hooks/useSheetData";
 import { DataLoading, DataError } from "@/components/DataStatus";
 import type { Client } from "@/data/mockData";
 
@@ -45,13 +46,17 @@ export default function MonthlyProgressPage() {
   const [filterStatus, setFilterStatus] = useState("");
   const [sortKey, setSortKey] = useState<SortKey>("name");
   const [sortDir, setSortDir] = useState<SortDir>("asc");
+  const [monthFilter, setMonthFilter] = useState<string>("current");
 
   const toggleSort = (key: SortKey) => {
     if (sortKey === key) setSortDir(d => (d === "asc" ? "desc" : "asc"));
     else { setSortKey(key); setSortDir("asc"); }
   };
 
-  const clients = data?.clients ?? [];
+  const clients = useMemo(
+    () => (monthFilter === "current" ? (data?.clients ?? []) : getClientsForMonth(data?.merHistory ?? [], monthFilter)),
+    [data, monthFilter]
+  );
   const bookkeepers = data?.bookkeepers ?? [];
   const clientTypes = useMemo(() => [...new Set(clients.map(c => c.clientType))], [clients]);
   const complianceStatuses = ["Compliant", "Non-Compliant", "On Hold"];
@@ -97,6 +102,13 @@ export default function MonthlyProgressPage() {
           <input type="text" placeholder="Search clients…" value={search} onChange={(e) => setSearch(e.target.value)}
             className="bg-transparent outline-none text-sm text-foreground placeholder:text-muted-foreground w-full" />
         </div>
+        <MonthFilter
+          value={monthFilter}
+          onChange={setMonthFilter}
+          months={data.availableMonths}
+          latestMonth={data.latestMonth}
+          compact
+        />
         <div className="flex items-center gap-1.5 text-xs text-muted-foreground font-medium">
           <Filter className="h-3.5 w-3.5" /><span>Filters</span>
           {activeFilters > 0 && <span className="h-5 w-5 rounded-full bg-primary text-primary-foreground text-[10px] font-bold flex items-center justify-center">{activeFilters}</span>}

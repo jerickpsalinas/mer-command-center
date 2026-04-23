@@ -5,7 +5,8 @@ import SwipeableCard from "@/components/SwipeableCard";
 import { useMemo, useState } from "react";
 import { Search, AlertTriangle, ArrowUpDown, BarChart3, History, TrendingUp, Bookmark, BookmarkPlus, X, Filter, ArrowUp, ArrowDown, Minus } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
-import { useSheetData, getClientHistory } from "@/hooks/useSheetData";
+import { useSheetData, getClientHistory, getClientsForMonth } from "@/hooks/useSheetData";
+import MonthFilter from "@/components/MonthFilter";
 import { useUserSettings, type SavedFilter } from "@/hooks/useUserSettings";
 import { DataLoading, DataError } from "@/components/DataStatus";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell, LineChart, Line } from "recharts";
@@ -53,9 +54,14 @@ export default function ClientsPage() {
   const [historyClient, setHistoryClient] = useState<string | null>(null);
   const [showSaveDialog, setShowSaveDialog] = useState(false);
   const [newFilterName, setNewFilterName] = useState("");
+  const [monthFilter, setMonthFilter] = useState<string>("current");
 
   if (isLoading) return <DataLoading />;
   if (error || !data) return <DataError message={error?.message} />;
+
+  // Snapshot of clients for the chosen month (or live latest)
+  const isLatest = monthFilter === "current";
+  const monthClients = isLatest ? data.clients : getClientsForMonth(data.merHistory, monthFilter);
 
   const history = historyClient ? getClientHistory(data.merHistory, historyClient) : [];
   const monthDiff = history.length >= 2 ? diffClientMonths(history[history.length - 2], history[history.length - 1]) : [];
@@ -65,7 +71,7 @@ export default function ClientsPage() {
     else { setSortKey(key); setSortDir(key === "completionPct" ? "asc" : "desc"); }
   };
 
-  const filtered = data.clients
+  const filtered = monthClients
     .filter((c) => c.name.toLowerCase().includes(search.toLowerCase()))
     .filter((c) => statusFilter === "all" || c.complianceStatus === statusFilter)
     .filter((c) => !bookkeeperFilter || c.bookkeeper === bookkeeperFilter)
@@ -80,7 +86,7 @@ export default function ClientsPage() {
       return 0;
     });
 
-  const chartData = [...data.clients]
+  const chartData = [...monthClients]
     .sort((a, b) => a.completionPct - b.completionPct)
     .slice(0, 15)
     .map((c) => ({ name: c.name.length > 18 ? c.name.slice(0, 16) + "…" : c.name, pct: c.completionPct, full: c.name }));
@@ -122,7 +128,7 @@ export default function ClientsPage() {
   };
 
   const hasActiveFilter = search || statusFilter !== "all" || bookkeeperFilter || typeFilter || minCompletion > 0;
-  const clientTypes = Array.from(new Set(data.clients.map((c) => c.clientType))).sort();
+  const clientTypes = Array.from(new Set(monthClients.map((c) => c.clientType))).sort();
 
   return (
     <div className="space-y-6 density-space-y-6">
@@ -130,7 +136,7 @@ export default function ClientsPage() {
       <StickyPageHeader>
         <span className="inline-flex items-center gap-1.5 rounded-full bg-card px-2.5 py-1 text-[11px] font-semibold text-foreground border border-border">
           <Search className="h-3 w-3 text-muted-foreground" />
-          {filtered.length} of {data.clients.length}
+          {filtered.length} of {monthClients.length}
         </span>
         {statusFilter !== "all" && (
           <span className="inline-flex items-center gap-1 rounded-full bg-primary/10 text-primary px-2 py-0.5 text-[11px] font-medium border border-primary/20">
@@ -214,6 +220,14 @@ export default function ClientsPage() {
             <input type="text" placeholder="Search clients…" value={search} onChange={(e) => setSearch(e.target.value)}
               className="bg-transparent outline-none text-sm text-foreground placeholder:text-muted-foreground w-full min-w-0" />
           </div>
+
+          <MonthFilter
+            value={monthFilter}
+            onChange={setMonthFilter}
+            months={data.availableMonths}
+            latestMonth={data.latestMonth}
+            compact
+          />
 
           <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value as SavedFilter["status"])}
             className="rounded-lg border border-border bg-card px-2.5 py-1.5 text-xs font-medium text-foreground flex-1 sm:flex-none min-w-0">
