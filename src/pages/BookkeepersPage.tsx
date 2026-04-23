@@ -206,10 +206,13 @@ export default function BookkeepersPage() {
           );
         })}
       </div>
+      </div>
+      {/* End leaderboard snapshot region */}
 
       {/* Drill-down panel */}
       {focus && (
         <motion.div
+          ref={drilldownRef}
           initial={{ opacity: 0, y: 16 }}
           animate={{ opacity: 1, y: 0 }}
           className="rounded-xl border border-primary/20 bg-card shadow-card overflow-hidden"
@@ -222,12 +225,21 @@ export default function BookkeepersPage() {
               </h2>
               <p className="text-[11px] text-muted-foreground mt-0.5">{focus.totalClients} clients · {focus.rate}% compliance</p>
             </div>
-            <button
-              onClick={() => setSelected(null)}
-              className="text-xs text-muted-foreground hover:text-foreground transition-colors shrink-0"
-            >
-              Close
-            </button>
+            <div className="flex items-center gap-2 shrink-0">
+              <SnapshotButton
+                targetRef={drilldownRef}
+                fileSlug={`Bookkeeper_${focus.name.replace(/\s+/g, "_")}`}
+                contextLabel={monthFilter === "current" ? "current · live" : monthFilter}
+                helper="Save panel as PNG"
+                compact
+              />
+              <button
+                onClick={() => setSelected(null)}
+                className="text-xs text-muted-foreground hover:text-foreground transition-colors"
+              >
+                Close
+              </button>
+            </div>
           </div>
 
           <div className="p-3 sm:p-5 grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-5">
