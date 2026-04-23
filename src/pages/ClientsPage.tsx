@@ -2,7 +2,8 @@ import StatusBadge from "@/components/StatusBadge";
 import StickyPageHeader from "@/components/StickyPageHeader";
 import ClientSparkline from "@/components/ClientSparkline";
 import SwipeableCard from "@/components/SwipeableCard";
-import { useMemo, useState } from "react";
+import SnapshotButton from "@/components/SnapshotButton";
+import { useMemo, useState, useRef } from "react";
 import { Search, AlertTriangle, ArrowUpDown, BarChart3, History, TrendingUp, Bookmark, BookmarkPlus, X, Filter, ArrowUp, ArrowDown, Minus } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useSheetData, getClientHistory, getClientsForMonth } from "@/hooks/useSheetData";
@@ -43,6 +44,7 @@ function getIssueDetails(c: { uncategorizedTransactions: number; bankTransaction
 export default function ClientsPage() {
   const { data, isLoading, error } = useSheetData();
   const { savedFilters, saveFilter, deleteFilter } = useUserSettings();
+  const historyDialogRef = useRef<HTMLDivElement>(null);
 
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<SavedFilter["status"]>("all");
@@ -357,12 +359,26 @@ export default function ClientsPage() {
       {/* Per-client history dialog with MoM diff */}
       <Dialog open={!!historyClient} onOpenChange={(open) => !open && setHistoryClient(null)}>
         <DialogContent className="max-w-3xl w-[calc(100vw-1rem)] sm:w-auto max-h-[85vh] overflow-y-auto p-4 sm:p-6">
+          <div ref={historyDialogRef}>
           <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <History className="h-4 w-4 text-primary" />
-              {historyClient} – Monthly History
-            </DialogTitle>
-            <p className="text-xs text-muted-foreground">{history.length} month{history.length === 1 ? "" : "s"} on record</p>
+            <div className="flex items-start justify-between gap-3">
+              <div className="min-w-0">
+                <DialogTitle className="flex items-center gap-2">
+                  <History className="h-4 w-4 text-primary" />
+                  {historyClient} – Monthly History
+                </DialogTitle>
+                <p className="text-xs text-muted-foreground">{history.length} month{history.length === 1 ? "" : "s"} on record</p>
+              </div>
+              {historyClient && (
+                <SnapshotButton
+                  targetRef={historyDialogRef}
+                  fileSlug={`Client_${historyClient.replace(/\s+/g, "_")}_History`}
+                  contextLabel={`${history.length} months`}
+                  helper="Save history as PNG"
+                  compact
+                />
+              )}
+            </div>
           </DialogHeader>
 
           {history.length === 0 ? (
@@ -444,6 +460,7 @@ export default function ClientsPage() {
               </div>
             </div>
           )}
+          </div>
         </DialogContent>
       </Dialog>
 

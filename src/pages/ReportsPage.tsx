@@ -1,7 +1,8 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useRef } from "react";
 import ComplianceProgress from "@/components/ComplianceProgress";
 import StatusBadge from "@/components/StatusBadge";
 import MonthFilter from "@/components/MonthFilter";
+import SnapshotButton from "@/components/SnapshotButton";
 import { motion } from "framer-motion";
 import { FileText, ShieldAlert, BarChart3, Users } from "lucide-react";
 import { useSheetData, getKPIMetrics, getComplianceBreakdown, getBookkeeperStats, getNeedsAttention, getClientsForMonth } from "@/hooks/useSheetData";
@@ -10,6 +11,7 @@ import { DataLoading, DataError } from "@/components/DataStatus";
 export default function ReportsPage() {
   const { data, isLoading, error } = useSheetData();
   const [monthFilter, setMonthFilter] = useState<string>("current");
+  const summaryRef = useRef<HTMLDivElement>(null);
 
   const clients = useMemo(() => {
     if (!data) return [];
@@ -124,9 +126,17 @@ export default function ReportsPage() {
           <span className="font-mono-data text-foreground font-semibold">{clients.length}</span> clients ·{" "}
           {isLatest ? <span className="text-success">live</span> : <span className="text-warning">historical · {monthFilter}</span>}
         </div>
+        <div className="ml-auto pb-1">
+          <SnapshotButton
+            targetRef={summaryRef}
+            fileSlug="Reports_Summary"
+            contextLabel={isLatest ? "current · live" : monthFilter}
+            helper="Save summary as PNG"
+          />
+        </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+      <div ref={summaryRef} className="grid grid-cols-1 lg:grid-cols-2 gap-4 bg-background rounded-xl">
         {sections.map((section, i) => (
           <motion.div key={section.title} initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.1 }}
             className="rounded-lg border border-border bg-card p-5 shadow-sm">
