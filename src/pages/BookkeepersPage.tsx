@@ -19,13 +19,32 @@ export default function BookkeepersPage() {
   const { data, isLoading, error } = useSheetData();
   const [search, setSearch] = useState("");
   const [selected, setSelected] = useState<string | null>(null);
+  const [monthFilter, setMonthFilter] = useState<string>("current"); // "current" or month label
+
+  // Available months (most recent first) derived from MER history
+  const monthOptions = useMemo(() => {
+    if (!data) return [];
+    const map = new Map<string, string>(); // label -> iso
+    for (const r of data.merHistory) {
+      if (r.month && r.monthDate) map.set(r.month, r.monthDate);
+    }
+    return Array.from(map.entries())
+      .sort((a, b) => b[1].localeCompare(a[1]))
+      .map(([label]) => label);
+  }, [data]);
 
   const stats = useMemo<BookkeeperPerformance[]>(() => {
     if (!data) return [];
+    if (monthFilter === "current") {
+      return data.bookkeepers
+        .map((bk) => getBookkeeperPerformance(data.clients, data.merHistory, bk))
+        .sort((a, b) => b.rate - a.rate);
+    }
     return data.bookkeepers
-      .map((bk) => getBookkeeperPerformance(data.clients, data.merHistory, bk))
+      .map((bk) => getBookkeeperPerformanceForMonth(data.merHistory, bk, monthFilter))
+      .filter((x): x is BookkeeperPerformance => x !== null)
       .sort((a, b) => b.rate - a.rate);
-  }, [data]);
+  }, [data, monthFilter]);
 
   if (isLoading) return <DataLoading />;
   if (error || !data) return <DataError message={error?.message} />;
