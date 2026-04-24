@@ -17,6 +17,29 @@ import {
   getBookkeeperStats,
   groupHistoryByMonth,
 } from "@/hooks/useSheetData";
+import { autoSizeRowHeights, workbookToHtml } from "@/lib/xlsxRender";
+
+/** Shared preview-payload shape returned by every build* function. */
+export type ExportPayload =
+  | { kind: "pdf"; blob: Blob; filename: string; doc: jsPDF }
+  | { kind: "xlsx"; blob: Blob; filename: string; wb: XLSX.WorkBook; html: string };
+
+function pdfPayload(doc: jsPDF, filename: string): ExportPayload {
+  const blob = doc.output("blob");
+  return { kind: "pdf", blob, filename, doc };
+}
+function xlsxPayload(wb: XLSX.WorkBook, filename: string): ExportPayload {
+  const arr = XLSX.write(wb, { bookType: "xlsx", type: "array" });
+  const blob = new Blob([arr], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
+  return { kind: "xlsx", blob, filename, wb, html: workbookToHtml(wb) };
+}
+export function downloadPayload(p: ExportPayload) {
+  const url = URL.createObjectURL(p.blob);
+  const a = document.createElement("a");
+  a.href = url; a.download = p.filename;
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 1500);
+}
 
 /* ============= Brand palette ============= */
 const RGB = {
