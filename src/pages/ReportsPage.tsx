@@ -500,6 +500,41 @@ export default function ReportsPage() {
           );
         })}
       </div>
+
+      {/* Preview Dialog */}
+      <Dialog open={!!preview} onOpenChange={(o) => { if (!o) closePreview(); }}>
+        <DialogContent className="max-w-5xl w-[95vw] max-h-[90vh] flex flex-col p-0 gap-0">
+          <DialogHeader className="p-5 border-b border-border">
+            <DialogTitle className="text-base flex items-center gap-2">
+              <Eye className="h-4 w-4 text-primary" />
+              Preview · <span className="text-muted-foreground font-normal">{preview?.title}</span>
+            </DialogTitle>
+          </DialogHeader>
+          <div className="flex-1 overflow-auto bg-muted/20 p-4">
+            {preview?.payload.kind === "pdf" && preview.previewUrl && (
+              <iframe
+                title="PDF preview"
+                src={preview.previewUrl}
+                className="w-full h-[65vh] rounded-lg border border-border bg-white"
+              />
+            )}
+            {preview?.payload.kind === "xlsx" && (
+              <div
+                className="rounded-lg border border-border bg-white p-4 overflow-auto text-xs text-foreground [&_table]:border-collapse [&_table]:w-full [&_th]:px-2 [&_th]:py-1.5 [&_td]:px-2 [&_td]:py-1.5 [&_th]:border [&_td]:border [&_th]:border-border [&_td]:border-border [&_th]:bg-muted [&_th]:text-left"
+                style={{ color: "#1a1614" }}
+                dangerouslySetInnerHTML={{ __html: preview.payload.html }}
+              />
+            )}
+          </div>
+          <DialogFooter className="p-4 border-t border-border bg-card">
+            <Button variant="outline" onClick={closePreview}>Cancel</Button>
+            <Button onClick={confirmDownload} className="gap-2">
+              <Download className="h-4 w-4" />
+              Download {preview?.payload.kind.toUpperCase()}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
