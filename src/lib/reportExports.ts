@@ -997,8 +997,9 @@ export function exportFullBackupXLSX(history: MerHistoryRow[], cycleEntries: Cyc
     cyWs["!cols"] = [{ wch: 18 }, { wch: 24 }, { wch: 24 }, { wch: 12 }, { wch: 8 }, { wch: 22 }, { wch: 14 }, { wch: 16 }, { wch: 12 }, { wch: 36 }];
     cyWs["!autofilter"] = { ref: XLSX.utils.encode_range({ s: { r: 3, c: 0 }, e: { r: 3 + cycleEntries.length, c: cyHeaders.length - 1 } }) };
     cyWs["!freeze"] = { xSplit: 1, ySplit: 4 };
+    autoSizeRowHeights(cyWs);
     XLSX.utils.book_append_sheet(wb, cyWs, "Cycle Log");
   }
 
-  XLSX.writeFile(wb, `${fileBase}.xlsx`);
+  return xlsxPayload(wb, `${fileBase}.xlsx`);
 }
