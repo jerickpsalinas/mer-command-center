@@ -501,21 +501,21 @@ export default function ReportsPage() {
         })}
       </div>
 
-      {/* Preview Dialog */}
+      {/* Preview Dialog — full screen */}
       <Dialog open={!!preview} onOpenChange={(o) => { if (!o) closePreview(); }}>
-        <DialogContent className="max-w-5xl w-[95vw] max-h-[90vh] flex flex-col p-0 gap-0">
-          <DialogHeader className="p-5 border-b border-border">
+        <DialogContent className="max-w-none w-screen h-screen sm:rounded-none p-0 gap-0 flex flex-col border-0 top-0 left-0 translate-x-0 translate-y-0 data-[state=open]:slide-in-from-bottom-2">
+          <DialogHeader className="p-4 sm:p-5 border-b border-border shrink-0">
             <DialogTitle className="text-base flex items-center gap-2">
               <Eye className="h-4 w-4 text-primary" />
-              Preview · <span className="text-muted-foreground font-normal">{preview?.title}</span>
+              Preview · <span className="text-muted-foreground font-normal truncate">{preview?.title}</span>
             </DialogTitle>
           </DialogHeader>
-          <div className="flex-1 min-h-0 overflow-hidden bg-muted/20 p-4">
+          <div className="flex-1 min-h-0 overflow-hidden bg-muted/20 p-3 sm:p-4">
             {preview?.payload.kind === "pdf" && preview.previewUrl && (
               <iframe
                 title="PDF preview"
                 src={preview.previewUrl}
-                className="w-full h-full min-h-[60vh] rounded-lg border border-border bg-white"
+                className="w-full h-full rounded-lg border border-border bg-white"
               />
             )}
             {preview?.payload.kind === "xlsx" && (
@@ -526,7 +526,7 @@ export default function ReportsPage() {
               />
             )}
           </div>
-          <DialogFooter className="p-4 border-t border-border bg-card">
+          <DialogFooter className="p-3 sm:p-4 border-t border-border bg-card shrink-0">
             <Button variant="outline" onClick={closePreview}>Cancel</Button>
             <Button onClick={confirmDownload} className="gap-2">
               <Download className="h-4 w-4" />
