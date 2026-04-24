@@ -679,24 +679,27 @@ export function exportPDF({ history, rangeLabel, fileBaseName }: ExportOptions) 
     doc.setFont("helvetica", "bold");
     doc.setFontSize(16);
     doc.setTextColor(255, 255, 255);
-    doc.text("Monthly Trends", 40, 32);
+    doc.text("Monthly Trends", margin, 32);
 
     const trendsBars = sortedMonths.map((m) => {
       const cs = grouped.get(m)!;
       const avg = cs.length ? Math.round(cs.reduce((s, c) => s + c.completionPct, 0) / cs.length) : 0;
       return { label: m.replace(/\s\d{4}/, ""), value: avg, color: RGB.primary };
     });
+    const trendChartW = pageW - margin * 2;
+    const trendChartH = 200;
+    const trendChartY = 70;
     const trendChart = renderBarChartPNG(trendsBars, {
-      width: pageW - margin * 2,
-      height: 220,
+      width: trendChartW,
+      height: trendChartH,
       title: "Average Completion % by Month",
       maxValue: 100,
       valueSuffix: "%",
     });
-    doc.addImage(trendChart, "PNG", margin, 70, pageW - margin * 2, 220);
+    doc.addImage(trendChart, "PNG", margin, trendChartY, trendChartW, trendChartH);
 
     autoTable(doc, {
-      startY: 310,
+      startY: trendChartY + trendChartH + 16,
       head: [["Month", "Total Clients", "Compliant", "Non-Compliant", "Avg Completion %"]],
       body: sortedMonths.map((m) => {
         const cs = grouped.get(m)!;
@@ -706,9 +709,16 @@ export function exportPDF({ history, rangeLabel, fileBaseName }: ExportOptions) 
         return [m, String(cs.length), String(compliant), String(nonCompliant), `${avg}%`];
       }),
       theme: "striped",
-      headStyles: { fillColor: RGB.primary, textColor: 255, fontStyle: "bold" },
+      headStyles: { fillColor: RGB.primary, textColor: 255, fontStyle: "bold", cellPadding: 6 },
       alternateRowStyles: { fillColor: RGB.zebra },
-      styles: { fontSize: 9, cellPadding: 5 },
+      styles: { fontSize: 9, cellPadding: 5, lineColor: RGB.border, lineWidth: 0.25, valign: "middle" },
+      columnStyles: {
+        0: { cellWidth: 130, fontStyle: "bold" },
+        1: { cellWidth: 110, halign: "center" },
+        2: { cellWidth: 110, halign: "center" },
+        3: { cellWidth: 130, halign: "center" },
+        4: { cellWidth: 130, halign: "right", fontStyle: "bold" },
+      },
       didParseCell: (d) => {
         if (d.section === "body") {
           if (d.column.index === 2) d.cell.styles.textColor = RGB.success;
@@ -720,7 +730,7 @@ export function exportPDF({ history, rangeLabel, fileBaseName }: ExportOptions) 
           }
         }
       },
-      margin: { left: margin, right: margin },
+      margin: { left: margin, right: margin, bottom: FOOTER_RESERVE },
     });
   }
 
@@ -734,13 +744,13 @@ export function exportPDF({ history, rangeLabel, fileBaseName }: ExportOptions) 
     doc.setFont("helvetica", "bold");
     doc.setFontSize(16);
     doc.setTextColor(255, 255, 255);
-    doc.text(`Month-End Review – ${m}`, 40, 32);
+    doc.text(`Month-End Review – ${m}`, margin, 32);
     doc.setFontSize(10);
     doc.setFont("helvetica", "normal");
-    doc.text(`${cs.length} clients`, pageW - 40, 32, { align: "right" });
+    doc.text(`${cs.length} clients`, pageW - margin, 32, { align: "right" });
 
     autoTable(doc, {
-      startY: 66,
+      startY: 70,
       head: [[
         "Client", "Type", "Bookkeeper", "Bank", "Uncat.", "No-Payee",
         "Undep.", "Unapp.", "Stmt", "Reconciled", "Notes", "Fin", "Closed", "%", "Status",
@@ -754,18 +764,25 @@ export function exportPDF({ history, rangeLabel, fileBaseName }: ExportOptions) 
         bool(c.booksClosedInQB), `${c.completionPct}%`, c.complianceStatus,
       ]),
       theme: "striped",
-      headStyles: { fillColor: RGB.primary, textColor: 255, fontStyle: "bold", fontSize: 8, halign: "center" },
+      headStyles: { fillColor: RGB.primary, textColor: 255, fontStyle: "bold", fontSize: 8, halign: "center", cellPadding: 4, valign: "middle" },
       alternateRowStyles: { fillColor: RGB.zebra },
-      styles: { fontSize: 7, cellPadding: 4, overflow: "linebreak", lineColor: RGB.border, lineWidth: 0.25 },
+      styles: { fontSize: 7, cellPadding: 3, overflow: "linebreak", lineColor: RGB.border, lineWidth: 0.25, valign: "middle" },
       columnStyles: {
-        0: { cellWidth: 110, fontStyle: "bold" },
-        1: { cellWidth: 50 },
-        2: { cellWidth: 60 },
-        3: { halign: "right" }, 4: { halign: "right" }, 5: { halign: "right" },
-        6: { halign: "right" }, 7: { halign: "right" },
-        10: { halign: "center" }, 11: { halign: "center" }, 12: { halign: "center" },
-        13: { halign: "right", fontStyle: "bold" },
-        14: { halign: "center", fontStyle: "bold" },
+        0: { cellWidth: 100, fontStyle: "bold" },
+        1: { cellWidth: 44 },
+        2: { cellWidth: 56 },
+        3: { cellWidth: 44, halign: "right" },
+        4: { cellWidth: 36, halign: "right" },
+        5: { cellWidth: 44, halign: "right" },
+        6: { cellWidth: 36, halign: "right" },
+        7: { cellWidth: 36, halign: "right" },
+        8: { cellWidth: 56 },
+        9: { cellWidth: 56 },
+        10: { cellWidth: 32, halign: "center" },
+        11: { cellWidth: 28, halign: "center" },
+        12: { cellWidth: 36, halign: "center" },
+        13: { cellWidth: 36, halign: "right", fontStyle: "bold" },
+        14: { cellWidth: 70, halign: "center", fontStyle: "bold" },
       },
       didParseCell: (d) => {
         if (d.section !== "body") return;
@@ -793,7 +810,7 @@ export function exportPDF({ history, rangeLabel, fileBaseName }: ExportOptions) 
           }
         }
       },
-      margin: { left: margin, right: margin },
+      margin: { left: margin, right: margin, bottom: FOOTER_RESERVE },
     });
   }
 
@@ -802,12 +819,12 @@ export function exportPDF({ history, rangeLabel, fileBaseName }: ExportOptions) 
   for (let i = 1; i <= pageCount; i++) {
     doc.setPage(i);
     doc.setFillColor(...RGB.primaryDark);
-    doc.rect(0, pageH - 18, pageW, 18, "F");
+    doc.rect(0, pageH - 20, pageW, 20, "F");
     doc.setFont("helvetica", "normal");
     doc.setFontSize(8);
     doc.setTextColor(255, 255, 255);
-    doc.text("Brant & Associates – MER Report", 40, pageH - 6);
-    doc.text(`Page ${i} of ${pageCount}`, pageW - 40, pageH - 6, { align: "right" });
+    doc.text("Brant & Associates – MER Report", margin, pageH - 7);
+    doc.text(`Page ${i} of ${pageCount}`, pageW - margin, pageH - 7, { align: "right" });
   }
 
   doc.save(`${fileBaseName}.pdf`);
