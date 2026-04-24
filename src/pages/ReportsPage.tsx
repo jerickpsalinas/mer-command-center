@@ -468,19 +468,33 @@ export default function ReportsPage() {
                 </div>
               </div>
               <p className="text-[12px] text-muted-foreground leading-relaxed mb-4 flex-1">{def.description}</p>
-              <div className="grid grid-cols-2 gap-2">
-                {def.formats.includes("xlsx") ? (
-                  <button onClick={() => handleExport(def, "xlsx")} disabled={empty}
-                    className="inline-flex items-center justify-center gap-1.5 rounded-lg border border-success/30 bg-success/5 hover:bg-success/10 text-success font-semibold px-3 py-2 text-xs transition-colors disabled:opacity-40 disabled:cursor-not-allowed">
-                    <FileSpreadsheet className="h-3.5 w-3.5" /> XLSX
-                  </button>
-                ) : <div />}
-                {def.formats.includes("pdf") ? (
-                  <button onClick={() => handleExport(def, "pdf")} disabled={empty}
-                    className={`inline-flex items-center justify-center gap-1.5 rounded-lg border border-destructive/30 bg-destructive/5 hover:bg-destructive/10 text-destructive font-semibold px-3 py-2 text-xs transition-colors disabled:opacity-40 disabled:cursor-not-allowed ${!def.formats.includes("xlsx") ? "col-span-2" : ""}`}>
-                    <FileText className="h-3.5 w-3.5" /> PDF
-                  </button>
-                ) : null}
+              <div className="space-y-2">
+                {def.formats.includes("xlsx") && (
+                  <div className="flex gap-2">
+                    <button onClick={() => handleDirectDownload(def, "xlsx")} disabled={empty}
+                      className="flex-1 inline-flex items-center justify-center gap-1.5 rounded-lg border border-success/30 bg-success/5 hover:bg-success/10 text-success font-semibold px-3 py-2 text-xs transition-colors disabled:opacity-40 disabled:cursor-not-allowed">
+                      <FileSpreadsheet className="h-3.5 w-3.5" /> Download XLSX
+                    </button>
+                    <button onClick={() => handlePreview(def, "xlsx")} disabled={empty}
+                      title="Preview before download"
+                      className="inline-flex items-center justify-center rounded-lg border border-border bg-muted/30 hover:bg-accent text-foreground px-2.5 py-2 text-xs transition-colors disabled:opacity-40 disabled:cursor-not-allowed">
+                      <Eye className="h-3.5 w-3.5" />
+                    </button>
+                  </div>
+                )}
+                {def.formats.includes("pdf") && (
+                  <div className="flex gap-2">
+                    <button onClick={() => handleDirectDownload(def, "pdf")} disabled={empty}
+                      className="flex-1 inline-flex items-center justify-center gap-1.5 rounded-lg border border-destructive/30 bg-destructive/5 hover:bg-destructive/10 text-destructive font-semibold px-3 py-2 text-xs transition-colors disabled:opacity-40 disabled:cursor-not-allowed">
+                      <FileText className="h-3.5 w-3.5" /> Download PDF
+                    </button>
+                    <button onClick={() => handlePreview(def, "pdf")} disabled={empty}
+                      title="Preview before download"
+                      className="inline-flex items-center justify-center rounded-lg border border-border bg-muted/30 hover:bg-accent text-foreground px-2.5 py-2 text-xs transition-colors disabled:opacity-40 disabled:cursor-not-allowed">
+                      <Eye className="h-3.5 w-3.5" />
+                    </button>
+                  </div>
+                )}
               </div>
             </motion.div>
           );
