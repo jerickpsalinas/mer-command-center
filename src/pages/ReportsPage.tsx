@@ -510,17 +510,17 @@ export default function ReportsPage() {
               Preview · <span className="text-muted-foreground font-normal">{preview?.title}</span>
             </DialogTitle>
           </DialogHeader>
-          <div className="flex-1 overflow-auto bg-muted/20 p-4">
+          <div className="flex-1 min-h-0 overflow-hidden bg-muted/20 p-4">
             {preview?.payload.kind === "pdf" && preview.previewUrl && (
               <iframe
                 title="PDF preview"
                 src={preview.previewUrl}
-                className="w-full h-[65vh] rounded-lg border border-border bg-white"
+                className="w-full h-full min-h-[60vh] rounded-lg border border-border bg-white"
               />
             )}
             {preview?.payload.kind === "xlsx" && (
               <div
-                className="rounded-lg border border-border bg-white p-4 overflow-auto text-xs text-foreground [&_table]:border-collapse [&_table]:w-full [&_th]:px-2 [&_th]:py-1.5 [&_td]:px-2 [&_td]:py-1.5 [&_th]:border [&_td]:border [&_th]:border-border [&_td]:border-border [&_th]:bg-muted [&_th]:text-left"
+                className="h-full w-full overflow-auto rounded-lg border border-border bg-white p-4 text-xs text-foreground scrollbar-thin scrollbar-thumb-muted-foreground/30 hover:scrollbar-thumb-muted-foreground/50 scrollbar-track-transparent [&_table]:border-collapse [&_table]:w-max [&_table]:min-w-full [&_th]:px-2 [&_th]:py-1.5 [&_td]:px-2 [&_td]:py-1.5 [&_th]:border [&_td]:border [&_th]:border-[#e5e5e5] [&_td]:border-[#e5e5e5] [&_th]:bg-[#f5f5f5] [&_th]:text-left [&_th]:whitespace-nowrap [&_td]:align-top"
                 style={{ color: "#1a1614" }}
                 dangerouslySetInnerHTML={{ __html: preview.payload.html }}
               />
