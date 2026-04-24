@@ -250,7 +250,6 @@ export default function ReportsPage() {
     setToDate(end);
   };
 
-  const [preview, setPreview] = useState<{ payload: ExportPayload; title: string; previewUrl?: string } | null>(null);
 
   const buildPayload = (def: ExportDef, fmt: "xlsx" | "pdf"): ExportPayload | null => {
     const empty = def.id === "cycle" ? filteredCycle.length === 0 : filteredHistory.length === 0;
