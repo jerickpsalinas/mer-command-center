@@ -1,14 +1,15 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect, useRef } from "react";
 import { motion } from "framer-motion";
 import { format } from "date-fns";
 import {
-  Download, FileSpreadsheet, FileText, Calendar as CalendarIcon,
+  Download, FileSpreadsheet, FileText, Calendar as CalendarIcon, Eye,
   Users, UserCheck, ShieldAlert, TrendingUp, Workflow, Crown, Database, FileBarChart,
 } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
 import { Button } from "@/components/ui/button";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
 import { toast } from "@/hooks/use-toast";
 import { useSheetData, filterHistoryByDateRange } from "@/hooks/useSheetData";
@@ -22,6 +23,8 @@ import {
   exportCycleStatusXLSX, exportCycleStatusPDF,
   exportExecSummaryPDF,
   exportFullBackupXLSX,
+  downloadPayload,
+  type ExportPayload,
 } from "@/lib/reportExports";
 import type { MerHistoryRow, CycleEntry } from "@/services/googleSheets";
 
