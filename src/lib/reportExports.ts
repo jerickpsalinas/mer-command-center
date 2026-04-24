@@ -461,13 +461,39 @@ function buildAtRisk(history: MerHistoryRow[]) {
     return { ...c, reasons: reasons.join(" · ") || "Low completion %" };
   }).sort((a, b) => a.completionPct - b.completionPct);
 }
-export function exportAtRiskXLSX(history: MerHistoryRow[], rangeLabel: string, fileBase: string) {
+export function exportAtRiskXLSX(history: MerHistoryRow[], rangeLabel: string, fileBase: string): ExportPayload {
   const wb = XLSX.utils.book_new();
   const ws: XLSX.WorkSheet = { "!ref": "A1" };
   const rows = buildAtRisk(history);
   const headers = ["Client", "Bookkeeper", "Type", "Latest Month", "Completion %", "Status", "Last Reconciled", "Risk Reasons"];
-  makeTitleHeader(ws, "At-Risk Clients Snapshot", `${rows.length} clients flagged · Range: ${rangeLabel} · Generated: ${new Date().toLocaleString()}`, headers.length);
-  placeRow(ws, 3, headers, Array(headers.length).fill(headerStyle));
+  // Danger-themed title band to match the PDF cover treatment
+  ws["!ref"] = "A1";
+  const dangerTitleStyle: CellStyle = {
+    font: { name: "Calibri", sz: 18, bold: true, color: { rgb: HEX.white } },
+    fill: { patternType: "solid", fgColor: { rgb: HEX.danger } },
+    alignment: { horizontal: "left", vertical: "center", indent: 1 },
+  };
+  const dangerSubStyle: CellStyle = {
+    font: { name: "Calibri", sz: 11, italic: true, color: { rgb: HEX.white } },
+    fill: { patternType: "solid", fgColor: { rgb: "8A2828" } },
+    alignment: { horizontal: "left", vertical: "center", indent: 1 },
+  };
+  placeRow(ws, 0, ["At-Risk Clients Snapshot", ...Array(headers.length - 1).fill("")], Array(headers.length).fill(dangerTitleStyle));
+  placeRow(ws, 1, [`${rows.length} clients flagged · Range: ${rangeLabel} · Generated: ${new Date().toLocaleString()}`, ...Array(headers.length - 1).fill("")], Array(headers.length).fill(dangerSubStyle));
+  ws["!merges"] = [
+    { s: { r: 0, c: 0 }, e: { r: 0, c: headers.length - 1 } },
+    { s: { r: 1, c: 0 }, e: { r: 1, c: headers.length - 1 } },
+  ];
+  ws["!rows"] = [{ hpt: 28 }, { hpt: 20 }, { hpt: 8 }, { hpt: 28 }];
+
+  // Danger-tinted header row matches PDF (red header)
+  const dangerHeader: CellStyle = {
+    font: { name: "Calibri", sz: 10, bold: true, color: { rgb: HEX.white } },
+    fill: { patternType: "solid", fgColor: { rgb: HEX.danger } },
+    alignment: { horizontal: "center", vertical: "center", wrapText: true },
+    border: border(),
+  };
+  placeRow(ws, 3, headers, Array(headers.length).fill(dangerHeader));
   rows.forEach((r, i) => {
     const z = i % 2 === 1;
     placeRow(ws, 4 + i, [r.name, r.bookkeeper, r.clientType, r.month, `${r.completionPct}%`, r.complianceStatus, r.lastReconciledDate || "Never", r.reasons], [
@@ -476,16 +502,17 @@ export function exportAtRiskXLSX(history: MerHistoryRow[], rangeLabel: string, f
       pctStyle(r.completionPct, z),
       statusStyle(r.complianceStatus, z),
       cellStyle(z),
-      { ...cellStyle(z), font: { name: "Calibri", sz: 8, color: { rgb: HEX.danger } } },
+      { ...cellStyle(z), font: { name: "Calibri", sz: 9, color: { rgb: HEX.danger } } },
     ]);
   });
   ws["!cols"] = [{ wch: 36 }, { wch: 14 }, { wch: 12 }, { wch: 14 }, { wch: 14 }, { wch: 16 }, { wch: 16 }, { wch: 60 }];
   ws["!autofilter"] = { ref: XLSX.utils.encode_range({ s: { r: 3, c: 0 }, e: { r: 3 + rows.length, c: headers.length - 1 } }) };
   ws["!freeze"] = { xSplit: 1, ySplit: 4 };
+  autoSizeRowHeights(ws);
   XLSX.utils.book_append_sheet(wb, ws, "At-Risk Clients");
-  XLSX.writeFile(wb, `${fileBase}.xlsx`);
+  return xlsxPayload(wb, `${fileBase}.xlsx`);
 }
-export function exportAtRiskPDF(history: MerHistoryRow[], rangeLabel: string, fileBase: string) {
+export function exportAtRiskPDF(history: MerHistoryRow[], rangeLabel: string, fileBase: string): ExportPayload {
   const doc = new jsPDF({ orientation: "landscape", unit: "pt", format: "letter" });
   pdfCover(doc, "At-Risk Clients Snapshot", "Clients flagged as Non-Compliant or below 40% completion", rangeLabel);
   const rows = buildAtRisk(history);
