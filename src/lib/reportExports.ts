@@ -129,26 +129,36 @@ function makeTitleHeader(ws: XLSX.WorkSheet, title: string, subtitle: string, co
 }
 
 /* ============= Shared PDF helpers ============= */
+/** Reserved bottom margin so autoTable never paints into the footer band. */
+const PDF_FOOTER_RESERVE = 28;
+/** Y where content (tables/sections) safely starts after the cover band. */
+const PDF_CONTENT_START_Y = 130;
+
 function pdfCover(doc: jsPDF, title: string, subtitle: string, rangeLabel: string) {
   const pageW = doc.internal.pageSize.getWidth();
+  // Top brand band
   doc.setFillColor(...RGB.primary);
-  doc.rect(0, 0, pageW, 70, "F");
+  doc.rect(0, 0, pageW, 78, "F");
   doc.setFillColor(...RGB.primaryDark);
-  doc.rect(0, 70, pageW, 6, "F");
+  doc.rect(0, 78, pageW, 5, "F");
+  // Brand name + title
   doc.setFont("helvetica", "bold");
   doc.setFontSize(20);
   doc.setTextColor(255, 255, 255);
   doc.text("Brant & Associates", 40, 34);
   doc.setFont("helvetica", "normal");
   doc.setFontSize(13);
-  doc.text(title, 40, 56);
+  doc.text(title, 40, 58);
+  // Right-aligned meta
   doc.setFontSize(9);
   doc.text(`Range: ${rangeLabel}`, pageW - 40, 34, { align: "right" });
   doc.text(`Generated: ${new Date().toLocaleString()}`, pageW - 40, 50, { align: "right" });
+  // Subtitle in the white space below the band, with safe gap from band edge
   if (subtitle) {
     doc.setFontSize(10);
     doc.setTextColor(...RGB.textMuted);
-    doc.text(subtitle, 40, 92);
+    const lines = doc.splitTextToSize(subtitle, pageW - 80);
+    doc.text(lines, 40, 102);
   }
 }
 function pdfFooter(doc: jsPDF) {
@@ -158,12 +168,12 @@ function pdfFooter(doc: jsPDF) {
   for (let i = 1; i <= pageCount; i++) {
     doc.setPage(i);
     doc.setFillColor(...RGB.primaryDark);
-    doc.rect(0, pageH - 18, pageW, 18, "F");
+    doc.rect(0, pageH - 20, pageW, 20, "F");
     doc.setFont("helvetica", "normal");
     doc.setFontSize(8);
     doc.setTextColor(255, 255, 255);
-    doc.text("Brant & Associates – Export Center", 40, pageH - 6);
-    doc.text(`Page ${i} of ${pageCount}`, pageW - 40, pageH - 6, { align: "right" });
+    doc.text("Brant & Associates – Export Center", 40, pageH - 7);
+    doc.text(`Page ${i} of ${pageCount}`, pageW - 40, pageH - 7, { align: "right" });
   }
 }
 
