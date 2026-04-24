@@ -1,14 +1,14 @@
 import { useRef, useCallback, useState as useLocalState } from "react";
+import { Link } from "react-router-dom";
 import {
   Users, CheckCircle2, XCircle, Pause, TrendingUp, AlertTriangle,
-  FileText, StickyNote, Award, Clock, AlertCircle, ChevronRight, ShieldAlert, BarChart3, Camera, Calendar,
+  FileText, StickyNote, Award, Clock, AlertCircle, ChevronRight, ShieldAlert, BarChart3, Camera, Calendar, Download, ArrowRight,
 } from "lucide-react";
 import { LineChart, Line, BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from "recharts";
 import html2canvas from "html2canvas";
 import KPICard from "@/components/KPICard";
 import ComplianceProgress from "@/components/ComplianceProgress";
 import StatusBadge from "@/components/StatusBadge";
-import ExportCenter from "@/components/ExportCenter";
 import AtRiskAlerts from "@/components/AtRiskAlerts";
 import MonthFilter from "@/components/MonthFilter";
 import { useSheetData, getKPIMetrics, getComplianceBreakdown, getNeedsAttention, getBookkeeperStats, getClientsForMonth } from "@/hooks/useSheetData";
