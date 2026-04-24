@@ -561,14 +561,23 @@ export function exportTrendsSummaryPDF(history: MerHistoryRow[], rangeLabel: str
   pdfCover(doc, "Monthly Trends Summary", "Compliance %, completion %, MoM deltas, trend direction", rangeLabel);
   const rows = trendsSummary(history);
   autoTable(doc, {
-    startY: 110,
+    startY: PDF_CONTENT_START_Y,
     head: [["Month", "Total", "Compliant", "Non-Comp", "Compliance %", "Avg Completion %", "MoM Δ", "Trend"]],
     body: rows.map((r, i) => [r.month, String(r.total), String(r.compliant), String(r.nonCompliant), `${r.compliancePct}%`, `${r.avg}%`, i === 0 ? "—" : `${r.momDelta > 0 ? "+" : ""}${r.momDelta}`, r.trend]),
     theme: "striped",
-    headStyles: { fillColor: RGB.primary, textColor: 255, fontStyle: "bold", fontSize: 10 },
+    headStyles: { fillColor: RGB.primary, textColor: 255, fontStyle: "bold", fontSize: 10, cellPadding: 6 },
     alternateRowStyles: { fillColor: RGB.zebra },
-    styles: { fontSize: 10, cellPadding: 6 },
-    columnStyles: { 0: { fontStyle: "bold" }, 4: { halign: "right" }, 5: { halign: "right" }, 6: { halign: "right", fontStyle: "bold" }, 7: { halign: "center", fontStyle: "bold" } },
+    styles: { fontSize: 10, cellPadding: 6, overflow: "linebreak", lineColor: RGB.border, lineWidth: 0.25, valign: "middle" },
+    columnStyles: {
+      0: { cellWidth: 90, fontStyle: "bold" },
+      1: { cellWidth: 70, halign: "center" },
+      2: { cellWidth: 80, halign: "center" },
+      3: { cellWidth: 90, halign: "center" },
+      4: { cellWidth: 100, halign: "right" },
+      5: { cellWidth: 130, halign: "right" },
+      6: { cellWidth: 70, halign: "right", fontStyle: "bold" },
+      7: { cellWidth: 90, halign: "center", fontStyle: "bold" },
+    },
     didParseCell: (d) => {
       if (d.section !== "body") return;
       if (d.column.index === 5) {
@@ -580,7 +589,7 @@ export function exportTrendsSummaryPDF(history: MerHistoryRow[], rangeLabel: str
         d.cell.styles.textColor = v === "Improving" ? RGB.success : v === "Declining" ? RGB.danger : v === "Stable" ? RGB.warn : RGB.textMuted;
       }
     },
-    margin: { left: 40, right: 40 },
+    margin: { left: 40, right: 40, bottom: PDF_FOOTER_RESERVE },
   });
   pdfFooter(doc);
   doc.save(`${fileBase}.pdf`);
