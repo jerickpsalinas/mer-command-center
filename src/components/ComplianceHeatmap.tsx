@@ -53,7 +53,7 @@ export default function ComplianceHeatmap({ history }: Props) {
         </div>
       </div>
 
-      <div className="overflow-x-auto -mx-2 px-2">
+      <div className="overflow-x-auto scrollbar-thin scrollbar-thumb-muted-foreground/20 hover:scrollbar-thumb-muted-foreground/40 scrollbar-track-transparent -mx-2 px-2">
         <table className="border-separate border-spacing-1 min-w-full">
           <thead>
             <tr>
