@@ -333,7 +333,7 @@ export function exportClientScorecardPDF(history: MerHistoryRow[], rangeLabel: s
 /* ============================================================ */
 /* 3. Bookkeeper Performance Report                             */
 /* ============================================================ */
-export function exportBookkeeperPerfXLSX(history: MerHistoryRow[], rangeLabel: string, fileBase: string) {
+export function exportBookkeeperPerfXLSX(history: MerHistoryRow[], rangeLabel: string, fileBase: string): ExportPayload {
   const wb = XLSX.utils.book_new();
   const ws: XLSX.WorkSheet = { "!ref": "A1" };
 
@@ -380,10 +380,11 @@ export function exportBookkeeperPerfXLSX(history: MerHistoryRow[], rangeLabel: s
 
   ws["!cols"] = [{ wch: 8 }, { wch: 22 }, { wch: 16 }, { wch: 18 }, { wch: 16 }, { wch: 12 }, { wch: 18 }, { wch: 16 }];
   ws["!freeze"] = { xSplit: 0, ySplit: 4 };
+  autoSizeRowHeights(ws);
   XLSX.utils.book_append_sheet(wb, ws, "Bookkeeper Performance");
-  XLSX.writeFile(wb, `${fileBase}.xlsx`);
+  return xlsxPayload(wb, `${fileBase}.xlsx`);
 }
-export function exportBookkeeperPerfPDF(history: MerHistoryRow[], rangeLabel: string, fileBase: string) {
+export function exportBookkeeperPerfPDF(history: MerHistoryRow[], rangeLabel: string, fileBase: string): ExportPayload {
   const doc = new jsPDF({ orientation: "landscape", unit: "pt", format: "letter" });
   pdfCover(doc, "Bookkeeper Performance Report", "Workload, on-time rate, completion, at-risk count", rangeLabel);
 
@@ -439,7 +440,7 @@ export function exportBookkeeperPerfPDF(history: MerHistoryRow[], rangeLabel: st
     margin: { left: 40, right: 40, bottom: PDF_FOOTER_RESERVE },
   });
   pdfFooter(doc);
-  doc.save(`${fileBase}.pdf`);
+  return pdfPayload(doc, `${fileBase}.pdf`);
 }
 
 /* ============================================================ */
