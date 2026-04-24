@@ -554,7 +554,7 @@ export function exportAtRiskPDF(history: MerHistoryRow[], rangeLabel: string, fi
     margin: { left: 40, right: 40, bottom: PDF_FOOTER_RESERVE },
   });
   pdfFooter(doc);
-  doc.save(`${fileBase}.pdf`);
+  return pdfPayload(doc, `${fileBase}.pdf`);
 }
 
 /* ============================================================ */
