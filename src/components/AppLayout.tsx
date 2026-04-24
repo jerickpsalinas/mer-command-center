@@ -7,7 +7,7 @@ import { useTheme } from "@/hooks/useTheme";
 import NotificationDropdown from "@/components/NotificationDropdown";
 import MobileTabBar from "@/components/MobileTabBar";
 import {
-  LayoutDashboard, CalendarCheck, TrendingUp, Users, FileText, Settings,
+  LayoutDashboard, CalendarCheck, TrendingUp, Users, Download, Settings,
   Menu, X, ChevronLeft, RefreshCw, Sun, Moon, Workflow, UserCheck,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
@@ -15,12 +15,12 @@ import logo from "@/assets/logo.png";
 
 const navItems = [
   { title: "Dashboard", url: "/", icon: LayoutDashboard },
+  { title: "Master Bookkeeping Cycle", url: "/master-cycle", icon: Workflow },
   { title: "Monthly Progress", url: "/monthly-progress", icon: CalendarCheck },
-  { title: "Monthly Trends", url: "/monthly-trends", icon: TrendingUp },
   { title: "Clients", url: "/clients", icon: Users },
   { title: "Bookkeepers", url: "/bookkeepers", icon: UserCheck },
-  { title: "Master Bookkeeping Cycle", url: "/master-cycle", icon: Workflow },
-  { title: "Reports", url: "/reports", icon: FileText },
+  { title: "Monthly Trends", url: "/monthly-trends", icon: TrendingUp },
+  { title: "Export Center", url: "/reports", icon: Download },
   { title: "Settings", url: "/settings", icon: Settings },
 ];
 
