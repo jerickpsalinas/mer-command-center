@@ -647,14 +647,22 @@ export function exportCycleStatusPDF(cycleEntries: CycleEntry[], rangeLabel: str
   }
   const rows = Array.from(latest.values()).sort((a, b) => b.daysInStage - a.daysInStage);
   autoTable(doc, {
-    startY: 110,
+    startY: PDF_CONTENT_START_Y,
     head: [["Client", "Cycle Mo", "Stage #", "Stage Name", "Days", "Status", "Escalated"]],
     body: rows.map((r) => [r.clientName, r.month, String(r.stageNumber), r.stageName, String(r.daysInStage), r.cycleStatus, r.escalated ? "YES" : "No"]),
     theme: "striped",
-    headStyles: { fillColor: RGB.primary, textColor: 255, fontStyle: "bold", fontSize: 10 },
+    headStyles: { fillColor: RGB.primary, textColor: 255, fontStyle: "bold", fontSize: 10, cellPadding: 6 },
     alternateRowStyles: { fillColor: RGB.zebra },
-    styles: { fontSize: 9, cellPadding: 5 },
-    columnStyles: { 0: { cellWidth: 160, fontStyle: "bold" }, 2: { halign: "center" }, 4: { halign: "center", fontStyle: "bold" }, 6: { halign: "center", fontStyle: "bold" } },
+    styles: { fontSize: 9, cellPadding: 5, overflow: "linebreak", lineColor: RGB.border, lineWidth: 0.25, valign: "middle" },
+    columnStyles: {
+      0: { cellWidth: 150, fontStyle: "bold" },
+      1: { cellWidth: 70 },
+      2: { cellWidth: 50, halign: "center" },
+      3: { cellWidth: 200 },
+      4: { cellWidth: 56, halign: "center", fontStyle: "bold" },
+      5: { cellWidth: 110 },
+      6: { cellWidth: 80, halign: "center", fontStyle: "bold" },
+    },
     didParseCell: (d) => {
       if (d.section !== "body") return;
       if (d.column.index === 4) {
@@ -667,7 +675,7 @@ export function exportCycleStatusPDF(cycleEntries: CycleEntry[], rangeLabel: str
         else { d.cell.styles.textColor = RGB.success; }
       }
     },
-    margin: { left: 40, right: 40 },
+    margin: { left: 40, right: 40, bottom: PDF_FOOTER_RESERVE },
   });
   pdfFooter(doc);
   doc.save(`${fileBase}.pdf`);
