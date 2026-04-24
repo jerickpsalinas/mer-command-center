@@ -17,6 +17,29 @@ import {
   getBookkeeperStats,
   groupHistoryByMonth,
 } from "@/hooks/useSheetData";
+import { autoSizeRowHeights, workbookToHtml } from "@/lib/xlsxRender";
+
+/** Shared preview-payload shape returned by every build* function. */
+export type ExportPayload =
+  | { kind: "pdf"; blob: Blob; filename: string; doc: jsPDF }
+  | { kind: "xlsx"; blob: Blob; filename: string; wb: XLSX.WorkBook; html: string };
+
+function pdfPayload(doc: jsPDF, filename: string): ExportPayload {
+  const blob = doc.output("blob");
+  return { kind: "pdf", blob, filename, doc };
+}
+function xlsxPayload(wb: XLSX.WorkBook, filename: string): ExportPayload {
+  const arr = XLSX.write(wb, { bookType: "xlsx", type: "array" });
+  const blob = new Blob([arr], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
+  return { kind: "xlsx", blob, filename, wb, html: workbookToHtml(wb) };
+}
+export function downloadPayload(p: ExportPayload) {
+  const url = URL.createObjectURL(p.blob);
+  const a = document.createElement("a");
+  a.href = url; a.download = p.filename;
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 1500);
+}
 
 /* ============= Brand palette ============= */
 const RGB = {
@@ -190,7 +213,7 @@ function latestPerClient(history: MerHistoryRow[]): MerHistoryRow[] {
 /* ============================================================ */
 /* 2. Client Compliance Scorecard                               */
 /* ============================================================ */
-export function exportClientScorecardXLSX(history: MerHistoryRow[], rangeLabel: string, fileBase: string) {
+export function exportClientScorecardXLSX(history: MerHistoryRow[], rangeLabel: string, fileBase: string): ExportPayload {
   const wb = XLSX.utils.book_new();
   const ws: XLSX.WorkSheet = { "!ref": "A1" };
 
@@ -244,10 +267,11 @@ export function exportClientScorecardXLSX(history: MerHistoryRow[], rangeLabel: 
   ws["!cols"] = [{ wch: 36 }, { wch: 12 }, { wch: 14 }, { wch: 12 }, { wch: 16 }, { wch: 14 }, { wch: 12 }, { wch: 16 }, { wch: 16 }, { wch: 14 }];
   ws["!autofilter"] = { ref: XLSX.utils.encode_range({ s: { r: 3, c: 0 }, e: { r: 3 + rows.length, c: headers.length - 1 } }) };
   ws["!freeze"] = { xSplit: 1, ySplit: 4 };
+  autoSizeRowHeights(ws);
   XLSX.utils.book_append_sheet(wb, ws, "Client Scorecard");
-  XLSX.writeFile(wb, `${fileBase}.xlsx`);
+  return xlsxPayload(wb, `${fileBase}.xlsx`);
 }
-export function exportClientScorecardPDF(history: MerHistoryRow[], rangeLabel: string, fileBase: string) {
+export function exportClientScorecardPDF(history: MerHistoryRow[], rangeLabel: string, fileBase: string): ExportPayload {
   const doc = new jsPDF({ orientation: "landscape", unit: "pt", format: "letter" });
   pdfCover(doc, "Client Compliance Scorecard", "Per-client compliance, on-time rate, completion trend", rangeLabel);
 
@@ -303,13 +327,13 @@ export function exportClientScorecardPDF(history: MerHistoryRow[], rangeLabel: s
     margin: { left: 40, right: 40, bottom: PDF_FOOTER_RESERVE },
   });
   pdfFooter(doc);
-  doc.save(`${fileBase}.pdf`);
+  return pdfPayload(doc, `${fileBase}.pdf`);
 }
 
 /* ============================================================ */
 /* 3. Bookkeeper Performance Report                             */
 /* ============================================================ */
-export function exportBookkeeperPerfXLSX(history: MerHistoryRow[], rangeLabel: string, fileBase: string) {
+export function exportBookkeeperPerfXLSX(history: MerHistoryRow[], rangeLabel: string, fileBase: string): ExportPayload {
   const wb = XLSX.utils.book_new();
   const ws: XLSX.WorkSheet = { "!ref": "A1" };
 
@@ -356,10 +380,11 @@ export function exportBookkeeperPerfXLSX(history: MerHistoryRow[], rangeLabel: s
 
   ws["!cols"] = [{ wch: 8 }, { wch: 22 }, { wch: 16 }, { wch: 18 }, { wch: 16 }, { wch: 12 }, { wch: 18 }, { wch: 16 }];
   ws["!freeze"] = { xSplit: 0, ySplit: 4 };
+  autoSizeRowHeights(ws);
   XLSX.utils.book_append_sheet(wb, ws, "Bookkeeper Performance");
-  XLSX.writeFile(wb, `${fileBase}.xlsx`);
+  return xlsxPayload(wb, `${fileBase}.xlsx`);
 }
-export function exportBookkeeperPerfPDF(history: MerHistoryRow[], rangeLabel: string, fileBase: string) {
+export function exportBookkeeperPerfPDF(history: MerHistoryRow[], rangeLabel: string, fileBase: string): ExportPayload {
   const doc = new jsPDF({ orientation: "landscape", unit: "pt", format: "letter" });
   pdfCover(doc, "Bookkeeper Performance Report", "Workload, on-time rate, completion, at-risk count", rangeLabel);
 
@@ -415,7 +440,7 @@ export function exportBookkeeperPerfPDF(history: MerHistoryRow[], rangeLabel: st
     margin: { left: 40, right: 40, bottom: PDF_FOOTER_RESERVE },
   });
   pdfFooter(doc);
-  doc.save(`${fileBase}.pdf`);
+  return pdfPayload(doc, `${fileBase}.pdf`);
 }
 
 /* ============================================================ */
@@ -436,13 +461,39 @@ function buildAtRisk(history: MerHistoryRow[]) {
     return { ...c, reasons: reasons.join(" · ") || "Low completion %" };
   }).sort((a, b) => a.completionPct - b.completionPct);
 }
-export function exportAtRiskXLSX(history: MerHistoryRow[], rangeLabel: string, fileBase: string) {
+export function exportAtRiskXLSX(history: MerHistoryRow[], rangeLabel: string, fileBase: string): ExportPayload {
   const wb = XLSX.utils.book_new();
   const ws: XLSX.WorkSheet = { "!ref": "A1" };
   const rows = buildAtRisk(history);
   const headers = ["Client", "Bookkeeper", "Type", "Latest Month", "Completion %", "Status", "Last Reconciled", "Risk Reasons"];
-  makeTitleHeader(ws, "At-Risk Clients Snapshot", `${rows.length} clients flagged · Range: ${rangeLabel} · Generated: ${new Date().toLocaleString()}`, headers.length);
-  placeRow(ws, 3, headers, Array(headers.length).fill(headerStyle));
+  // Danger-themed title band to match the PDF cover treatment
+  ws["!ref"] = "A1";
+  const dangerTitleStyle: CellStyle = {
+    font: { name: "Calibri", sz: 18, bold: true, color: { rgb: HEX.white } },
+    fill: { patternType: "solid", fgColor: { rgb: HEX.danger } },
+    alignment: { horizontal: "left", vertical: "center", indent: 1 },
+  };
+  const dangerSubStyle: CellStyle = {
+    font: { name: "Calibri", sz: 11, italic: true, color: { rgb: HEX.white } },
+    fill: { patternType: "solid", fgColor: { rgb: "8A2828" } },
+    alignment: { horizontal: "left", vertical: "center", indent: 1 },
+  };
+  placeRow(ws, 0, ["At-Risk Clients Snapshot", ...Array(headers.length - 1).fill("")], Array(headers.length).fill(dangerTitleStyle));
+  placeRow(ws, 1, [`${rows.length} clients flagged · Range: ${rangeLabel} · Generated: ${new Date().toLocaleString()}`, ...Array(headers.length - 1).fill("")], Array(headers.length).fill(dangerSubStyle));
+  ws["!merges"] = [
+    { s: { r: 0, c: 0 }, e: { r: 0, c: headers.length - 1 } },
+    { s: { r: 1, c: 0 }, e: { r: 1, c: headers.length - 1 } },
+  ];
+  ws["!rows"] = [{ hpt: 28 }, { hpt: 20 }, { hpt: 8 }, { hpt: 28 }];
+
+  // Danger-tinted header row matches PDF (red header)
+  const dangerHeader: CellStyle = {
+    font: { name: "Calibri", sz: 10, bold: true, color: { rgb: HEX.white } },
+    fill: { patternType: "solid", fgColor: { rgb: HEX.danger } },
+    alignment: { horizontal: "center", vertical: "center", wrapText: true },
+    border: border(),
+  };
+  placeRow(ws, 3, headers, Array(headers.length).fill(dangerHeader));
   rows.forEach((r, i) => {
     const z = i % 2 === 1;
     placeRow(ws, 4 + i, [r.name, r.bookkeeper, r.clientType, r.month, `${r.completionPct}%`, r.complianceStatus, r.lastReconciledDate || "Never", r.reasons], [
@@ -451,16 +502,17 @@ export function exportAtRiskXLSX(history: MerHistoryRow[], rangeLabel: string, f
       pctStyle(r.completionPct, z),
       statusStyle(r.complianceStatus, z),
       cellStyle(z),
-      { ...cellStyle(z), font: { name: "Calibri", sz: 8, color: { rgb: HEX.danger } } },
+      { ...cellStyle(z), font: { name: "Calibri", sz: 9, color: { rgb: HEX.danger } } },
     ]);
   });
   ws["!cols"] = [{ wch: 36 }, { wch: 14 }, { wch: 12 }, { wch: 14 }, { wch: 14 }, { wch: 16 }, { wch: 16 }, { wch: 60 }];
   ws["!autofilter"] = { ref: XLSX.utils.encode_range({ s: { r: 3, c: 0 }, e: { r: 3 + rows.length, c: headers.length - 1 } }) };
   ws["!freeze"] = { xSplit: 1, ySplit: 4 };
+  autoSizeRowHeights(ws);
   XLSX.utils.book_append_sheet(wb, ws, "At-Risk Clients");
-  XLSX.writeFile(wb, `${fileBase}.xlsx`);
+  return xlsxPayload(wb, `${fileBase}.xlsx`);
 }
-export function exportAtRiskPDF(history: MerHistoryRow[], rangeLabel: string, fileBase: string) {
+export function exportAtRiskPDF(history: MerHistoryRow[], rangeLabel: string, fileBase: string): ExportPayload {
   const doc = new jsPDF({ orientation: "landscape", unit: "pt", format: "letter" });
   pdfCover(doc, "At-Risk Clients Snapshot", "Clients flagged as Non-Compliant or below 40% completion", rangeLabel);
   const rows = buildAtRisk(history);
@@ -502,7 +554,7 @@ export function exportAtRiskPDF(history: MerHistoryRow[], rangeLabel: string, fi
     margin: { left: 40, right: 40, bottom: PDF_FOOTER_RESERVE },
   });
   pdfFooter(doc);
-  doc.save(`${fileBase}.pdf`);
+  return pdfPayload(doc, `${fileBase}.pdf`);
 }
 
 /* ============================================================ */
@@ -530,7 +582,7 @@ function trendsSummary(history: MerHistoryRow[]) {
     return { month, total: cs.length, compliant, nonCompliant, compliancePct, avg, momDelta, trend };
   });
 }
-export function exportTrendsSummaryXLSX(history: MerHistoryRow[], rangeLabel: string, fileBase: string) {
+export function exportTrendsSummaryXLSX(history: MerHistoryRow[], rangeLabel: string, fileBase: string): ExportPayload {
   const wb = XLSX.utils.book_new();
   const ws: XLSX.WorkSheet = { "!ref": "A1" };
   const rows = trendsSummary(history);
@@ -553,10 +605,11 @@ export function exportTrendsSummaryXLSX(history: MerHistoryRow[], rangeLabel: st
   });
   ws["!cols"] = [{ wch: 14 }, { wch: 14 }, { wch: 12 }, { wch: 14 }, { wch: 14 }, { wch: 18 }, { wch: 10 }, { wch: 14 }];
   ws["!freeze"] = { xSplit: 0, ySplit: 4 };
+  autoSizeRowHeights(ws);
   XLSX.utils.book_append_sheet(wb, ws, "Trends Summary");
-  XLSX.writeFile(wb, `${fileBase}.xlsx`);
+  return xlsxPayload(wb, `${fileBase}.xlsx`);
 }
-export function exportTrendsSummaryPDF(history: MerHistoryRow[], rangeLabel: string, fileBase: string) {
+export function exportTrendsSummaryPDF(history: MerHistoryRow[], rangeLabel: string, fileBase: string): ExportPayload {
   const doc = new jsPDF({ orientation: "landscape", unit: "pt", format: "letter" });
   pdfCover(doc, "Monthly Trends Summary", "Compliance %, completion %, MoM deltas, trend direction", rangeLabel);
   const rows = trendsSummary(history);
@@ -592,13 +645,13 @@ export function exportTrendsSummaryPDF(history: MerHistoryRow[], rangeLabel: str
     margin: { left: 40, right: 40, bottom: PDF_FOOTER_RESERVE },
   });
   pdfFooter(doc);
-  doc.save(`${fileBase}.pdf`);
+  return pdfPayload(doc, `${fileBase}.pdf`);
 }
 
 /* ============================================================ */
 /* 6. Master Cycle Status Export                                */
 /* ============================================================ */
-export function exportCycleStatusXLSX(cycleEntries: CycleEntry[], rangeLabel: string, fileBase: string) {
+export function exportCycleStatusXLSX(cycleEntries: CycleEntry[], rangeLabel: string, fileBase: string): ExportPayload {
   const wb = XLSX.utils.book_new();
   const ws: XLSX.WorkSheet = { "!ref": "A1" };
   // Latest entry per (clientName + cycleKey) - showing current stage
@@ -631,10 +684,11 @@ export function exportCycleStatusXLSX(cycleEntries: CycleEntry[], rangeLabel: st
   ws["!cols"] = [{ wch: 28 }, { wch: 28 }, { wch: 12 }, { wch: 8 }, { wch: 24 }, { wch: 14 }, { wch: 16 }, { wch: 12 }, { wch: 40 }];
   ws["!autofilter"] = { ref: XLSX.utils.encode_range({ s: { r: 3, c: 0 }, e: { r: 3 + rows.length, c: headers.length - 1 } }) };
   ws["!freeze"] = { xSplit: 1, ySplit: 4 };
+  autoSizeRowHeights(ws);
   XLSX.utils.book_append_sheet(wb, ws, "Cycle Status");
-  XLSX.writeFile(wb, `${fileBase}.xlsx`);
+  return xlsxPayload(wb, `${fileBase}.xlsx`);
 }
-export function exportCycleStatusPDF(cycleEntries: CycleEntry[], rangeLabel: string, fileBase: string) {
+export function exportCycleStatusPDF(cycleEntries: CycleEntry[], rangeLabel: string, fileBase: string): ExportPayload {
   const doc = new jsPDF({ orientation: "landscape", unit: "pt", format: "letter" });
   pdfCover(doc, "Master Cycle Status", "Each client's current stage, days in stage, escalation flags", rangeLabel);
   const latest = new Map<string, CycleEntry>();
@@ -678,7 +732,7 @@ export function exportCycleStatusPDF(cycleEntries: CycleEntry[], rangeLabel: str
     margin: { left: 40, right: 40, bottom: PDF_FOOTER_RESERVE },
   });
   pdfFooter(doc);
-  doc.save(`${fileBase}.pdf`);
+  return pdfPayload(doc, `${fileBase}.pdf`);
 }
 
 /* ============================================================ */
@@ -700,7 +754,7 @@ function drawKpiCard(doc: jsPDF, x: number, y: number, w: number, h: number, lab
   doc.setTextColor(...accent);
   doc.text(value, x + 12, y + 40);
 }
-export function exportExecSummaryPDF(history: MerHistoryRow[], rangeLabel: string, fileBase: string) {
+export function exportExecSummaryPDF(history: MerHistoryRow[], rangeLabel: string, fileBase: string): ExportPayload {
   const doc = new jsPDF({ orientation: "portrait", unit: "pt", format: "letter" });
   const pageW = doc.internal.pageSize.getWidth();
   const pageH = doc.internal.pageSize.getHeight();
@@ -815,13 +869,13 @@ export function exportExecSummaryPDF(history: MerHistoryRow[], rangeLabel: strin
   });
 
   pdfFooter(doc);
-  doc.save(`${fileBase}.pdf`);
+  return pdfPayload(doc, `${fileBase}.pdf`);
 }
 
 /* ============================================================ */
 /* 8. Full Data Backup (multi-sheet XLSX)                       */
 /* ============================================================ */
-export function exportFullBackupXLSX(history: MerHistoryRow[], cycleEntries: CycleEntry[], rangeLabel: string, fileBase: string) {
+export function exportFullBackupXLSX(history: MerHistoryRow[], cycleEntries: CycleEntry[], rangeLabel: string, fileBase: string): ExportPayload {
   const wb = XLSX.utils.book_new();
   wb.Props = {
     Title: `Full Data Backup – ${rangeLabel}`,
@@ -851,6 +905,7 @@ export function exportFullBackupXLSX(history: MerHistoryRow[], cycleEntries: Cyc
   sub["!cols"] = [{ wch: 12 }, { wch: 18 }, { wch: 14 }, { wch: 28 }, { wch: 12 }, { wch: 14 }, { wch: 12 }, { wch: 14 }, { wch: 10 }, { wch: 12 }, { wch: 10 }, { wch: 16 }, { wch: 14 }, { wch: 12 }, { wch: 14 }, { wch: 14 }, { wch: 12 }, { wch: 14 }];
   sub["!autofilter"] = { ref: XLSX.utils.encode_range({ s: { r: 3, c: 0 }, e: { r: 3 + history.length, c: subHeaders.length - 1 } }) };
   sub["!freeze"] = { xSplit: 0, ySplit: 4 };
+  autoSizeRowHeights(sub);
   XLSX.utils.book_append_sheet(wb, sub, "MER Submissions");
 
   // Sheet 2: Latest per-client snapshot
@@ -875,6 +930,7 @@ export function exportFullBackupXLSX(history: MerHistoryRow[], cycleEntries: Cyc
   cli["!cols"] = [{ wch: 28 }, { wch: 12 }, { wch: 14 }, { wch: 12 }, { wch: 8 }, { wch: 10 }, { wch: 8 }, { wch: 8 }, { wch: 14 }, { wch: 14 }, { wch: 10 }, { wch: 10 }, { wch: 10 }, { wch: 14 }, { wch: 14 }];
   cli["!autofilter"] = { ref: XLSX.utils.encode_range({ s: { r: 3, c: 0 }, e: { r: 3 + latest.length, c: cliHeaders.length - 1 } }) };
   cli["!freeze"] = { xSplit: 1, ySplit: 4 };
+  autoSizeRowHeights(cli);
   XLSX.utils.book_append_sheet(wb, cli, "Clients (Latest)");
 
   // Sheet 3: Bookkeeper aggregate
@@ -893,6 +949,7 @@ export function exportFullBackupXLSX(history: MerHistoryRow[], cycleEntries: Cyc
     ]);
   });
   bkWs["!cols"] = [{ wch: 8 }, { wch: 24 }, { wch: 12 }, { wch: 12 }, { wch: 18 }];
+  autoSizeRowHeights(bkWs);
   XLSX.utils.book_append_sheet(wb, bkWs, "Bookkeepers");
 
   // Sheet 4: Trends
@@ -916,6 +973,7 @@ export function exportFullBackupXLSX(history: MerHistoryRow[], cycleEntries: Cyc
     ]);
   });
   trWs["!cols"] = [{ wch: 14 }, { wch: 10 }, { wch: 12 }, { wch: 14 }, { wch: 14 }, { wch: 18 }, { wch: 10 }, { wch: 14 }];
+  autoSizeRowHeights(trWs);
   XLSX.utils.book_append_sheet(wb, trWs, "Monthly Trends");
 
   // Sheet 5: Cycle log (full)
@@ -939,8 +997,9 @@ export function exportFullBackupXLSX(history: MerHistoryRow[], cycleEntries: Cyc
     cyWs["!cols"] = [{ wch: 18 }, { wch: 24 }, { wch: 24 }, { wch: 12 }, { wch: 8 }, { wch: 22 }, { wch: 14 }, { wch: 16 }, { wch: 12 }, { wch: 36 }];
     cyWs["!autofilter"] = { ref: XLSX.utils.encode_range({ s: { r: 3, c: 0 }, e: { r: 3 + cycleEntries.length, c: cyHeaders.length - 1 } }) };
     cyWs["!freeze"] = { xSplit: 1, ySplit: 4 };
+    autoSizeRowHeights(cyWs);
     XLSX.utils.book_append_sheet(wb, cyWs, "Cycle Log");
   }
 
-  XLSX.writeFile(wb, `${fileBase}.xlsx`);
+  return xlsxPayload(wb, `${fileBase}.xlsx`);
 }

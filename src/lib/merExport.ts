@@ -10,6 +10,8 @@ import autoTable from "jspdf-autotable";
 import type { MerHistoryRow } from "@/services/googleSheets";
 import type { Client } from "@/data/mockData";
 import { getKPIMetrics, getComplianceBreakdown, groupHistoryByMonth } from "@/hooks/useSheetData";
+import { autoSizeRowHeights, workbookToHtml } from "@/lib/xlsxRender";
+import type { ExportPayload } from "@/lib/reportExports";
 
 /* ============= Brand palette (matches Gilded Rose aesthetic) ============= */
 const BRAND = {
@@ -334,7 +336,7 @@ export interface ExportOptions {
   fileBaseName: string;
 }
 
-export function exportXLSX({ history, rangeLabel, fileBaseName }: ExportOptions) {
+export function exportXLSX({ history, rangeLabel, fileBaseName }: ExportOptions): ExportPayload {
   const wb = XLSX.utils.book_new();
   wb.Props = {
     Title: `MER Report – ${rangeLabel}`,
@@ -351,7 +353,9 @@ export function exportXLSX({ history, rangeLabel, fileBaseName }: ExportOptions)
   }
   const aggClients = Array.from(latestByClient.values()).map((r, i) => ({ ...r, id: String(i + 1) }));
 
-  XLSX.utils.book_append_sheet(wb, buildKpiSheet(aggClients, rangeLabel), "KPI Overview");
+  const kpiSheet = buildKpiSheet(aggClients, rangeLabel);
+  autoSizeRowHeights(kpiSheet, { startRow: 6 });
+  XLSX.utils.book_append_sheet(wb, kpiSheet, "KPI Overview");
 
   const monthOrder = new Map<string, string>();
   for (const r of history) if (!monthOrder.has(r.month)) monthOrder.set(r.month, r.monthDate);
@@ -360,16 +364,24 @@ export function exportXLSX({ history, rangeLabel, fileBaseName }: ExportOptions)
   );
 
   if (sortedMonths.length === 1) {
-    XLSX.utils.book_append_sheet(wb, buildClientSheet(grouped.get(sortedMonths[0])!, sortedMonths[0]), "Client Review");
+    const cs = buildClientSheet(grouped.get(sortedMonths[0])!, sortedMonths[0]);
+    autoSizeRowHeights(cs);
+    XLSX.utils.book_append_sheet(wb, cs, "Client Review");
   } else {
     for (const m of sortedMonths) {
       const safe = m.replace(/[\\/?*[\]]/g, "").slice(0, 28);
-      XLSX.utils.book_append_sheet(wb, buildClientSheet(grouped.get(m)!, m), safe);
+      const cs = buildClientSheet(grouped.get(m)!, m);
+      autoSizeRowHeights(cs);
+      XLSX.utils.book_append_sheet(wb, cs, safe);
     }
   }
-  XLSX.utils.book_append_sheet(wb, buildTrendsSheet(history), "Monthly Trends");
+  const tr = buildTrendsSheet(history);
+  autoSizeRowHeights(tr);
+  XLSX.utils.book_append_sheet(wb, tr, "Monthly Trends");
 
-  XLSX.writeFile(wb, `${fileBaseName}.xlsx`);
+  const arr = XLSX.write(wb, { bookType: "xlsx", type: "array" });
+  const blob = new Blob([arr], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
+  return { kind: "xlsx", blob, filename: `${fileBaseName}.xlsx`, wb, html: workbookToHtml(wb) };
 }
 
 /* ============= CSV export ============= */
@@ -570,7 +582,7 @@ function drawKpiCard(
   doc.text(value, x + 12, y + 40);
 }
 
-export function exportPDF({ history, rangeLabel, fileBaseName }: ExportOptions) {
+export function exportPDF({ history, rangeLabel, fileBaseName }: ExportOptions): ExportPayload {
   const doc = new jsPDF({ orientation: "landscape", unit: "pt", format: "letter" });
   const pageW = doc.internal.pageSize.getWidth();
   const pageH = doc.internal.pageSize.getHeight();
@@ -827,5 +839,6 @@ export function exportPDF({ history, rangeLabel, fileBaseName }: ExportOptions) 
     doc.text(`Page ${i} of ${pageCount}`, pageW - margin, pageH - 7, { align: "right" });
   }
 
-  doc.save(`${fileBaseName}.pdf`);
+  const blob = doc.output("blob");
+  return { kind: "pdf", blob, filename: `${fileBaseName}.pdf`, doc };
 }
