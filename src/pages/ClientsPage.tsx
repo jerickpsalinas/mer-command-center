@@ -356,7 +356,7 @@ export default function ClientsPage() {
 
       {/* Per-client history dialog with MoM diff */}
       <Dialog open={!!historyClient} onOpenChange={(open) => !open && setHistoryClient(null)}>
-        <DialogContent className="max-w-3xl w-[calc(100vw-1rem)] sm:w-auto max-h-[85vh] overflow-y-auto p-4 sm:p-6">
+        <DialogContent className="max-w-3xl w-[calc(100vw-1rem)] sm:w-auto max-h-[85vh] overflow-y-auto scrollbar-thin scrollbar-thumb-muted-foreground/20 hover:scrollbar-thumb-muted-foreground/40 scrollbar-track-transparent p-4 sm:p-6">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <History className="h-4 w-4 text-primary" />
@@ -414,7 +414,7 @@ export default function ClientsPage() {
               </div>
 
               {/* Per-month table */}
-              <div className="overflow-x-auto rounded-lg border border-border">
+              <div className="overflow-x-auto scrollbar-thin scrollbar-thumb-muted-foreground/20 hover:scrollbar-thumb-muted-foreground/40 scrollbar-track-transparent rounded-lg border border-border">
                 <table className="w-full text-sm min-w-[640px]">
                   <thead>
                     <tr className="border-b border-border bg-muted/30">

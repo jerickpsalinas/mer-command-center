@@ -263,7 +263,7 @@ export default function NotificationDropdown({ clients, trends }: { clients: Cli
                 )}
               </div>
             </div>
-            <div className="max-h-[420px] overflow-y-auto">
+            <div className="max-h-[420px] overflow-y-auto scrollbar-thin scrollbar-thumb-muted-foreground/20 hover:scrollbar-thumb-muted-foreground/40 scrollbar-track-transparent">
               {/* Recent activity from toast log (#14) */}
               {toastLog.length > 0 && (
                 <div className="border-b border-border/50">

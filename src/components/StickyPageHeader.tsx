@@ -45,7 +45,7 @@ export default function StickyPageHeader({ children, className, topOffset = 56 }
             style={{ top: topOffset }}
             className={`sticky z-20 -mx-3 sm:-mx-5 lg:-mx-8 px-3 sm:px-5 lg:px-8 py-2 border-b border-border glass-panel ${className ?? ""}`}
           >
-            <div className="flex items-center gap-2 overflow-x-auto scrollbar-thin">
+            <div className="flex items-center gap-2 overflow-x-auto scrollbar-thin scrollbar-thumb-muted-foreground/20 hover:scrollbar-thumb-muted-foreground/40 scrollbar-track-transparent">
               {children}
             </div>
           </motion.div>

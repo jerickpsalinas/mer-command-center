@@ -123,7 +123,7 @@ export default function AppLayout() {
           </button>
         </div>
 
-        <nav className="flex-1 py-4 px-2.5 space-y-0.5 overflow-y-auto">
+        <nav className="flex-1 py-4 px-2.5 space-y-0.5 overflow-y-auto scrollbar-thin scrollbar-thumb-muted-foreground/20 hover:scrollbar-thumb-muted-foreground/40 scrollbar-track-transparent">
           {navItems.map((item) => {
             const isActive = location.pathname === item.url;
             return (
