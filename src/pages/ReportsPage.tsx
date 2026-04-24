@@ -162,6 +162,7 @@ export default function ReportsPage() {
   }, []);
   const [fromDate, setFromDate] = useState<Date | undefined>(weekAgo);
   const [toDate, setToDate] = useState<Date | undefined>(today);
+  const [preview, setPreview] = useState<{ payload: ExportPayload; title: string; previewUrl?: string } | null>(null);
 
   // Initialize defaults once data is available
   useMemo(() => {
@@ -249,19 +250,56 @@ export default function ReportsPage() {
     setToDate(end);
   };
 
-  const handleExport = (def: ExportDef, fmt: "xlsx" | "pdf") => {
+
+  const buildPayload = (def: ExportDef, fmt: "xlsx" | "pdf"): ExportPayload | null => {
     const empty = def.id === "cycle" ? filteredCycle.length === 0 : filteredHistory.length === 0;
     if (empty) {
       toast({ title: "No data in range", description: "Adjust the date range and try again.", variant: "destructive" });
-      return;
+      return null;
     }
     const base = `BA_${def.id}_${fileSuffix}`;
     try {
-      def.run(fmt, filteredHistory, filteredCycle, rangeLabel, base);
-      toast({ title: "Export complete", description: `${base}.${fmt}` });
+      return def.run(fmt, filteredHistory, filteredCycle, rangeLabel, base);
     } catch (e) {
+      console.error("[Export] build failed", e);
       toast({ title: "Export failed", description: String(e), variant: "destructive" });
+      return null;
     }
+  };
+
+  const handlePreview = (def: ExportDef, fmt: "xlsx" | "pdf") => {
+    const payload = buildPayload(def, fmt);
+    if (!payload) return;
+    const previewUrl = payload.kind === "pdf" ? URL.createObjectURL(payload.blob) : undefined;
+    setPreview({ payload, title: `${def.title} · ${fmt.toUpperCase()}`, previewUrl });
+  };
+
+  const handleDirectDownload = (def: ExportDef, fmt: "xlsx" | "pdf") => {
+    const payload = buildPayload(def, fmt);
+    if (!payload) return;
+    try {
+      downloadPayload(payload);
+      toast({ title: "Export complete", description: payload.filename });
+    } catch (e) {
+      console.error("[Export] download failed", e);
+      toast({ title: "Download failed", description: String(e), variant: "destructive" });
+    }
+  };
+
+  const closePreview = () => {
+    if (preview?.previewUrl) URL.revokeObjectURL(preview.previewUrl);
+    setPreview(null);
+  };
+
+  const confirmDownload = () => {
+    if (!preview) return;
+    try {
+      downloadPayload(preview.payload);
+      toast({ title: "Export complete", description: preview.payload.filename });
+    } catch (e) {
+      toast({ title: "Download failed", description: String(e), variant: "destructive" });
+    }
+    closePreview();
   };
 
   return (
@@ -430,24 +468,73 @@ export default function ReportsPage() {
                 </div>
               </div>
               <p className="text-[12px] text-muted-foreground leading-relaxed mb-4 flex-1">{def.description}</p>
-              <div className="grid grid-cols-2 gap-2">
-                {def.formats.includes("xlsx") ? (
-                  <button onClick={() => handleExport(def, "xlsx")} disabled={empty}
-                    className="inline-flex items-center justify-center gap-1.5 rounded-lg border border-success/30 bg-success/5 hover:bg-success/10 text-success font-semibold px-3 py-2 text-xs transition-colors disabled:opacity-40 disabled:cursor-not-allowed">
-                    <FileSpreadsheet className="h-3.5 w-3.5" /> XLSX
-                  </button>
-                ) : <div />}
-                {def.formats.includes("pdf") ? (
-                  <button onClick={() => handleExport(def, "pdf")} disabled={empty}
-                    className={`inline-flex items-center justify-center gap-1.5 rounded-lg border border-destructive/30 bg-destructive/5 hover:bg-destructive/10 text-destructive font-semibold px-3 py-2 text-xs transition-colors disabled:opacity-40 disabled:cursor-not-allowed ${!def.formats.includes("xlsx") ? "col-span-2" : ""}`}>
-                    <FileText className="h-3.5 w-3.5" /> PDF
-                  </button>
-                ) : null}
+              <div className="space-y-2">
+                {def.formats.includes("xlsx") && (
+                  <div className="flex gap-2">
+                    <button onClick={() => handleDirectDownload(def, "xlsx")} disabled={empty}
+                      className="flex-1 inline-flex items-center justify-center gap-1.5 rounded-lg border border-success/30 bg-success/5 hover:bg-success/10 text-success font-semibold px-3 py-2 text-xs transition-colors disabled:opacity-40 disabled:cursor-not-allowed">
+                      <FileSpreadsheet className="h-3.5 w-3.5" /> Download XLSX
+                    </button>
+                    <button onClick={() => handlePreview(def, "xlsx")} disabled={empty}
+                      title="Preview before download"
+                      className="inline-flex items-center justify-center rounded-lg border border-border bg-muted/30 hover:bg-accent text-foreground px-2.5 py-2 text-xs transition-colors disabled:opacity-40 disabled:cursor-not-allowed">
+                      <Eye className="h-3.5 w-3.5" />
+                    </button>
+                  </div>
+                )}
+                {def.formats.includes("pdf") && (
+                  <div className="flex gap-2">
+                    <button onClick={() => handleDirectDownload(def, "pdf")} disabled={empty}
+                      className="flex-1 inline-flex items-center justify-center gap-1.5 rounded-lg border border-destructive/30 bg-destructive/5 hover:bg-destructive/10 text-destructive font-semibold px-3 py-2 text-xs transition-colors disabled:opacity-40 disabled:cursor-not-allowed">
+                      <FileText className="h-3.5 w-3.5" /> Download PDF
+                    </button>
+                    <button onClick={() => handlePreview(def, "pdf")} disabled={empty}
+                      title="Preview before download"
+                      className="inline-flex items-center justify-center rounded-lg border border-border bg-muted/30 hover:bg-accent text-foreground px-2.5 py-2 text-xs transition-colors disabled:opacity-40 disabled:cursor-not-allowed">
+                      <Eye className="h-3.5 w-3.5" />
+                    </button>
+                  </div>
+                )}
               </div>
             </motion.div>
           );
         })}
       </div>
+
+      {/* Preview Dialog */}
+      <Dialog open={!!preview} onOpenChange={(o) => { if (!o) closePreview(); }}>
+        <DialogContent className="max-w-5xl w-[95vw] max-h-[90vh] flex flex-col p-0 gap-0">
+          <DialogHeader className="p-5 border-b border-border">
+            <DialogTitle className="text-base flex items-center gap-2">
+              <Eye className="h-4 w-4 text-primary" />
+              Preview · <span className="text-muted-foreground font-normal">{preview?.title}</span>
+            </DialogTitle>
+          </DialogHeader>
+          <div className="flex-1 overflow-auto bg-muted/20 p-4">
+            {preview?.payload.kind === "pdf" && preview.previewUrl && (
+              <iframe
+                title="PDF preview"
+                src={preview.previewUrl}
+                className="w-full h-[65vh] rounded-lg border border-border bg-white"
+              />
+            )}
+            {preview?.payload.kind === "xlsx" && (
+              <div
+                className="rounded-lg border border-border bg-white p-4 overflow-auto text-xs text-foreground [&_table]:border-collapse [&_table]:w-full [&_th]:px-2 [&_th]:py-1.5 [&_td]:px-2 [&_td]:py-1.5 [&_th]:border [&_td]:border [&_th]:border-border [&_td]:border-border [&_th]:bg-muted [&_th]:text-left"
+                style={{ color: "#1a1614" }}
+                dangerouslySetInnerHTML={{ __html: preview.payload.html }}
+              />
+            )}
+          </div>
+          <DialogFooter className="p-4 border-t border-border bg-card">
+            <Button variant="outline" onClick={closePreview}>Cancel</Button>
+            <Button onClick={confirmDownload} className="gap-2">
+              <Download className="h-4 w-4" />
+              Download {preview?.payload.kind.toUpperCase()}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
