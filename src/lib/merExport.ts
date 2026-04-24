@@ -574,6 +574,8 @@ export function exportPDF({ history, rangeLabel, fileBaseName }: ExportOptions) 
   const doc = new jsPDF({ orientation: "landscape", unit: "pt", format: "letter" });
   const pageW = doc.internal.pageSize.getWidth();
   const pageH = doc.internal.pageSize.getHeight();
+  const margin = 40;
+  const FOOTER_RESERVE = 28; // matches footer band height + breathing room
 
   const latestByClient = new Map<string, MerHistoryRow>();
   for (const r of history) {
@@ -587,25 +589,24 @@ export function exportPDF({ history, rangeLabel, fileBaseName }: ExportOptions) 
   /* ----- Cover / Summary page ----- */
   // Header band
   doc.setFillColor(...RGB.primary);
-  doc.rect(0, 0, pageW, 70, "F");
+  doc.rect(0, 0, pageW, 78, "F");
   doc.setFillColor(...RGB.primaryDark);
-  doc.rect(0, 70, pageW, 6, "F");
+  doc.rect(0, 78, pageW, 5, "F");
   doc.setFont("helvetica", "bold");
   doc.setFontSize(22);
   doc.setTextColor(255, 255, 255);
-  doc.text("Brant & Associates", 40, 36);
+  doc.text("Brant & Associates", margin, 36);
   doc.setFont("helvetica", "normal");
   doc.setFontSize(13);
-  doc.text("Month-End Review Report", 40, 56);
+  doc.text("Month-End Review Report", margin, 58);
   doc.setFontSize(10);
   doc.setTextColor(255, 255, 255);
-  doc.text(`Range: ${rangeLabel}`, pageW - 40, 36, { align: "right" });
-  doc.text(`Generated: ${new Date().toLocaleString()}`, pageW - 40, 56, { align: "right" });
+  doc.text(`Range: ${rangeLabel}`, pageW - margin, 36, { align: "right" });
+  doc.text(`Generated: ${new Date().toLocaleString()}`, pageW - margin, 58, { align: "right" });
 
-  // KPI Cards
-  const cardY = 96;
+  // KPI Cards (drop below the band with safe gap)
+  const cardY = 102;
   const cardH = 60;
-  const margin = 40;
   const gap = 12;
   const cardW = (pageW - margin * 2 - gap * 3) / 4;
   drawKpiCard(doc, margin + (cardW + gap) * 0, cardY, cardW, cardH, "Total Clients", String(kpi.total), RGB.primary);
@@ -615,7 +616,7 @@ export function exportPDF({ history, rangeLabel, fileBaseName }: ExportOptions) 
 
   // Charts row
   const chartY = cardY + cardH + 18;
-  const chartH = 200;
+  const chartH = 190;
   const chartW = (pageW - margin * 2 - gap) / 2;
 
   const donutPng = renderDonutPNG(
@@ -650,16 +651,16 @@ export function exportPDF({ history, rangeLabel, fileBaseName }: ExportOptions) 
       ["Clients Without Updated Notes", String(kpi.withoutNotes)],
     ],
     theme: "grid",
-    headStyles: { fillColor: RGB.primary, textColor: 255, fontStyle: "bold", fontSize: 10 },
-    styles: { fontSize: 9, cellPadding: 6 },
-    columnStyles: { 0: { cellWidth: 360 }, 1: { halign: "center", fontStyle: "bold" } },
+    headStyles: { fillColor: RGB.primary, textColor: 255, fontStyle: "bold", fontSize: 10, cellPadding: 6 },
+    styles: { fontSize: 9, cellPadding: 6, lineColor: RGB.border, lineWidth: 0.25, valign: "middle" },
+    columnStyles: { 0: { cellWidth: pageW - margin * 2 - 100 }, 1: { cellWidth: 100, halign: "center", fontStyle: "bold" } },
     didParseCell: (d) => {
       if (d.section === "body" && d.column.index === 1) {
         const n = parseInt(String(d.cell.raw), 10);
         d.cell.styles.textColor = n > 0 ? RGB.danger : RGB.success;
       }
     },
-    margin: { left: margin, right: margin },
+    margin: { left: margin, right: margin, bottom: FOOTER_RESERVE },
   });
 
   /* ----- Monthly trends page (if multi-month) ----- */
