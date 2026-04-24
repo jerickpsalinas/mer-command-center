@@ -213,7 +213,7 @@ function latestPerClient(history: MerHistoryRow[]): MerHistoryRow[] {
 /* ============================================================ */
 /* 2. Client Compliance Scorecard                               */
 /* ============================================================ */
-export function exportClientScorecardXLSX(history: MerHistoryRow[], rangeLabel: string, fileBase: string) {
+export function exportClientScorecardXLSX(history: MerHistoryRow[], rangeLabel: string, fileBase: string): ExportPayload {
   const wb = XLSX.utils.book_new();
   const ws: XLSX.WorkSheet = { "!ref": "A1" };
 
@@ -267,10 +267,11 @@ export function exportClientScorecardXLSX(history: MerHistoryRow[], rangeLabel: 
   ws["!cols"] = [{ wch: 36 }, { wch: 12 }, { wch: 14 }, { wch: 12 }, { wch: 16 }, { wch: 14 }, { wch: 12 }, { wch: 16 }, { wch: 16 }, { wch: 14 }];
   ws["!autofilter"] = { ref: XLSX.utils.encode_range({ s: { r: 3, c: 0 }, e: { r: 3 + rows.length, c: headers.length - 1 } }) };
   ws["!freeze"] = { xSplit: 1, ySplit: 4 };
+  autoSizeRowHeights(ws);
   XLSX.utils.book_append_sheet(wb, ws, "Client Scorecard");
-  XLSX.writeFile(wb, `${fileBase}.xlsx`);
+  return xlsxPayload(wb, `${fileBase}.xlsx`);
 }
-export function exportClientScorecardPDF(history: MerHistoryRow[], rangeLabel: string, fileBase: string) {
+export function exportClientScorecardPDF(history: MerHistoryRow[], rangeLabel: string, fileBase: string): ExportPayload {
   const doc = new jsPDF({ orientation: "landscape", unit: "pt", format: "letter" });
   pdfCover(doc, "Client Compliance Scorecard", "Per-client compliance, on-time rate, completion trend", rangeLabel);
 
