@@ -754,7 +754,7 @@ function drawKpiCard(doc: jsPDF, x: number, y: number, w: number, h: number, lab
   doc.setTextColor(...accent);
   doc.text(value, x + 12, y + 40);
 }
-export function exportExecSummaryPDF(history: MerHistoryRow[], rangeLabel: string, fileBase: string) {
+export function exportExecSummaryPDF(history: MerHistoryRow[], rangeLabel: string, fileBase: string): ExportPayload {
   const doc = new jsPDF({ orientation: "portrait", unit: "pt", format: "letter" });
   const pageW = doc.internal.pageSize.getWidth();
   const pageH = doc.internal.pageSize.getHeight();
@@ -869,13 +869,13 @@ export function exportExecSummaryPDF(history: MerHistoryRow[], rangeLabel: strin
   });
 
   pdfFooter(doc);
-  doc.save(`${fileBase}.pdf`);
+  return pdfPayload(doc, `${fileBase}.pdf`);
 }
 
 /* ============================================================ */
 /* 8. Full Data Backup (multi-sheet XLSX)                       */
 /* ============================================================ */
-export function exportFullBackupXLSX(history: MerHistoryRow[], cycleEntries: CycleEntry[], rangeLabel: string, fileBase: string) {
+export function exportFullBackupXLSX(history: MerHistoryRow[], cycleEntries: CycleEntry[], rangeLabel: string, fileBase: string): ExportPayload {
   const wb = XLSX.utils.book_new();
   wb.Props = {
     Title: `Full Data Backup – ${rangeLabel}`,
@@ -905,6 +905,7 @@ export function exportFullBackupXLSX(history: MerHistoryRow[], cycleEntries: Cyc
   sub["!cols"] = [{ wch: 12 }, { wch: 18 }, { wch: 14 }, { wch: 28 }, { wch: 12 }, { wch: 14 }, { wch: 12 }, { wch: 14 }, { wch: 10 }, { wch: 12 }, { wch: 10 }, { wch: 16 }, { wch: 14 }, { wch: 12 }, { wch: 14 }, { wch: 14 }, { wch: 12 }, { wch: 14 }];
   sub["!autofilter"] = { ref: XLSX.utils.encode_range({ s: { r: 3, c: 0 }, e: { r: 3 + history.length, c: subHeaders.length - 1 } }) };
   sub["!freeze"] = { xSplit: 0, ySplit: 4 };
+  autoSizeRowHeights(sub);
   XLSX.utils.book_append_sheet(wb, sub, "MER Submissions");
 
   // Sheet 2: Latest per-client snapshot
@@ -929,6 +930,7 @@ export function exportFullBackupXLSX(history: MerHistoryRow[], cycleEntries: Cyc
   cli["!cols"] = [{ wch: 28 }, { wch: 12 }, { wch: 14 }, { wch: 12 }, { wch: 8 }, { wch: 10 }, { wch: 8 }, { wch: 8 }, { wch: 14 }, { wch: 14 }, { wch: 10 }, { wch: 10 }, { wch: 10 }, { wch: 14 }, { wch: 14 }];
   cli["!autofilter"] = { ref: XLSX.utils.encode_range({ s: { r: 3, c: 0 }, e: { r: 3 + latest.length, c: cliHeaders.length - 1 } }) };
   cli["!freeze"] = { xSplit: 1, ySplit: 4 };
+  autoSizeRowHeights(cli);
   XLSX.utils.book_append_sheet(wb, cli, "Clients (Latest)");
 
   // Sheet 3: Bookkeeper aggregate
@@ -947,6 +949,7 @@ export function exportFullBackupXLSX(history: MerHistoryRow[], cycleEntries: Cyc
     ]);
   });
   bkWs["!cols"] = [{ wch: 8 }, { wch: 24 }, { wch: 12 }, { wch: 12 }, { wch: 18 }];
+  autoSizeRowHeights(bkWs);
   XLSX.utils.book_append_sheet(wb, bkWs, "Bookkeepers");
 
   // Sheet 4: Trends
@@ -970,6 +973,7 @@ export function exportFullBackupXLSX(history: MerHistoryRow[], cycleEntries: Cyc
     ]);
   });
   trWs["!cols"] = [{ wch: 14 }, { wch: 10 }, { wch: 12 }, { wch: 14 }, { wch: 14 }, { wch: 18 }, { wch: 10 }, { wch: 14 }];
+  autoSizeRowHeights(trWs);
   XLSX.utils.book_append_sheet(wb, trWs, "Monthly Trends");
 
   // Sheet 5: Cycle log (full)
