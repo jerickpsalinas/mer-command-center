@@ -467,19 +467,24 @@ export function exportAtRiskPDF(history: MerHistoryRow[], rangeLabel: string, fi
   doc.setFont("helvetica", "bold");
   doc.setFontSize(11);
   doc.setTextColor(...RGB.danger);
-  doc.text(`${rows.length} clients require attention`, 40, 110);
+  doc.text(`${rows.length} clients require attention`, 40, 128);
   autoTable(doc, {
-    startY: 124,
+    startY: 142,
     head: [["Client", "Bookkeeper", "Type", "Last Mo", "%", "Status", "Reconciled", "Risk Reasons"]],
     body: rows.map((r) => [r.name, r.bookkeeper, r.clientType, r.month, `${r.completionPct}%`, r.complianceStatus, r.lastReconciledDate || "Never", r.reasons]),
     theme: "striped",
-    headStyles: { fillColor: RGB.danger, textColor: 255, fontStyle: "bold", fontSize: 9 },
+    headStyles: { fillColor: RGB.danger, textColor: 255, fontStyle: "bold", fontSize: 9, cellPadding: 5 },
     alternateRowStyles: { fillColor: RGB.dangerBg },
-    styles: { fontSize: 8, cellPadding: 4 },
+    styles: { fontSize: 8, cellPadding: 4, overflow: "linebreak", lineColor: RGB.border, lineWidth: 0.25, valign: "middle" },
     columnStyles: {
-      0: { cellWidth: 140, fontStyle: "bold" },
-      4: { halign: "right", fontStyle: "bold" },
-      7: { cellWidth: 240, fontSize: 7, textColor: RGB.danger },
+      0: { cellWidth: 130, fontStyle: "bold" },
+      1: { cellWidth: 70 },
+      2: { cellWidth: 50 },
+      3: { cellWidth: 56 },
+      4: { cellWidth: 38, halign: "right", fontStyle: "bold" },
+      5: { cellWidth: 70, halign: "center" },
+      6: { cellWidth: 60 },
+      7: { cellWidth: 248, fontSize: 7, textColor: RGB.danger },
     },
     didParseCell: (d) => {
       if (d.section !== "body") return;
@@ -487,8 +492,14 @@ export function exportAtRiskPDF(history: MerHistoryRow[], rangeLabel: string, fi
         const v = parseInt(String(d.cell.raw), 10);
         d.cell.styles.textColor = v >= 60 ? RGB.warn : RGB.danger;
       }
+      if (d.column.index === 5) {
+        const v = String(d.cell.raw);
+        if (v === "Compliant") { d.cell.styles.textColor = RGB.success; d.cell.styles.fillColor = RGB.successBg; }
+        else if (v === "Non-Compliant") { d.cell.styles.textColor = RGB.danger; d.cell.styles.fillColor = RGB.dangerBg; }
+        else { d.cell.styles.textColor = RGB.warn; d.cell.styles.fillColor = RGB.warnBg; }
+      }
     },
-    margin: { left: 40, right: 40 },
+    margin: { left: 40, right: 40, bottom: PDF_FOOTER_RESERVE },
   });
   pdfFooter(doc);
   doc.save(`${fileBase}.pdf`);
