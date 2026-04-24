@@ -179,11 +179,16 @@
   }
 
   @media (prefers-reduced-motion: no-preference) {
-    /* Cards, buttons, links, and common interactive surfaces */
+    /* Interactive controls: buttons, links, role=button */
     [class*="rounded-"]:is(button, a, [role="button"]):not(:disabled),
     .shadow-card,
     .shadow-card-hover,
-    .glass-panel {
+    .shadow-sm,
+    .shadow,
+    .shadow-md,
+    .shadow-lg,
+    .glass-panel,
+    .bg-card {
       transition: box-shadow 300ms ease, border-color 300ms ease, transform 300ms ease;
     }
     [class*="rounded-"]:is(button, a, [role="button"]):not(:disabled):hover {
@@ -192,8 +197,15 @@
         0 0 16px -2px hsl(var(--primary) / 0.4),
         0 0 36px -10px hsl(var(--primary) / 0.3);
     }
+    /* Card-like surfaces — any element using card background, glass, or card shadows */
     .shadow-card:hover,
-    .glass-panel:hover {
+    .glass-panel:hover,
+    .bg-card:hover,
+    [class*="rounded-"].border.bg-card:hover,
+    .shadow-sm:hover,
+    .shadow:hover,
+    .shadow-md:hover,
+    .shadow-lg:hover {
       box-shadow:
         var(--shadow-card-hover),
         0 0 24px -6px hsl(var(--primary) / 0.35),
