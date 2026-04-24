@@ -269,14 +269,24 @@ export function exportClientScorecardPDF(history: MerHistoryRow[], rangeLabel: s
   }).sort((a, b) => a[0].localeCompare(b[0]));
 
   autoTable(doc, {
-    startY: 110,
+    startY: PDF_CONTENT_START_Y,
     head: [["Client", "Type", "Bookkeeper", "Subs", "Avg %", "On-Time", "Last Mo", "Status", "Last %", "Trend"]],
     body: rows,
     theme: "striped",
-    headStyles: { fillColor: RGB.primary, textColor: 255, fontStyle: "bold", fontSize: 9 },
+    headStyles: { fillColor: RGB.primary, textColor: 255, fontStyle: "bold", fontSize: 9, cellPadding: 5 },
     alternateRowStyles: { fillColor: RGB.zebra },
-    styles: { fontSize: 8, cellPadding: 4 },
-    columnStyles: { 0: { cellWidth: 160, fontStyle: "bold" }, 3: { halign: "center" }, 4: { halign: "right" }, 5: { halign: "right" }, 8: { halign: "right" } },
+    styles: { fontSize: 8, cellPadding: 4, overflow: "linebreak", lineColor: RGB.border, lineWidth: 0.25, valign: "middle" },
+    columnStyles: {
+      0: { cellWidth: 150, fontStyle: "bold" },
+      1: { cellWidth: 60 }, 2: { cellWidth: 70 },
+      3: { cellWidth: 36, halign: "center" },
+      4: { cellWidth: 50, halign: "right" },
+      5: { cellWidth: 56, halign: "right" },
+      6: { cellWidth: 60 },
+      7: { cellWidth: 70, halign: "center" },
+      8: { cellWidth: 50, halign: "right" },
+      9: { cellWidth: 60, halign: "center" },
+    },
     didParseCell: (d) => {
       if (d.section !== "body") return;
       if (d.column.index === 7) {
@@ -290,7 +300,7 @@ export function exportClientScorecardPDF(history: MerHistoryRow[], rangeLabel: s
         d.cell.styles.fontStyle = "bold";
       }
     },
-    margin: { left: 40, right: 40 },
+    margin: { left: 40, right: 40, bottom: PDF_FOOTER_RESERVE },
   });
   pdfFooter(doc);
   doc.save(`${fileBase}.pdf`);
