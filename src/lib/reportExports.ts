@@ -582,7 +582,7 @@ function trendsSummary(history: MerHistoryRow[]) {
     return { month, total: cs.length, compliant, nonCompliant, compliancePct, avg, momDelta, trend };
   });
 }
-export function exportTrendsSummaryXLSX(history: MerHistoryRow[], rangeLabel: string, fileBase: string) {
+export function exportTrendsSummaryXLSX(history: MerHistoryRow[], rangeLabel: string, fileBase: string): ExportPayload {
   const wb = XLSX.utils.book_new();
   const ws: XLSX.WorkSheet = { "!ref": "A1" };
   const rows = trendsSummary(history);
@@ -605,10 +605,11 @@ export function exportTrendsSummaryXLSX(history: MerHistoryRow[], rangeLabel: st
   });
   ws["!cols"] = [{ wch: 14 }, { wch: 14 }, { wch: 12 }, { wch: 14 }, { wch: 14 }, { wch: 18 }, { wch: 10 }, { wch: 14 }];
   ws["!freeze"] = { xSplit: 0, ySplit: 4 };
+  autoSizeRowHeights(ws);
   XLSX.utils.book_append_sheet(wb, ws, "Trends Summary");
-  XLSX.writeFile(wb, `${fileBase}.xlsx`);
+  return xlsxPayload(wb, `${fileBase}.xlsx`);
 }
-export function exportTrendsSummaryPDF(history: MerHistoryRow[], rangeLabel: string, fileBase: string) {
+export function exportTrendsSummaryPDF(history: MerHistoryRow[], rangeLabel: string, fileBase: string): ExportPayload {
   const doc = new jsPDF({ orientation: "landscape", unit: "pt", format: "letter" });
   pdfCover(doc, "Monthly Trends Summary", "Compliance %, completion %, MoM deltas, trend direction", rangeLabel);
   const rows = trendsSummary(history);
@@ -644,13 +645,13 @@ export function exportTrendsSummaryPDF(history: MerHistoryRow[], rangeLabel: str
     margin: { left: 40, right: 40, bottom: PDF_FOOTER_RESERVE },
   });
   pdfFooter(doc);
-  doc.save(`${fileBase}.pdf`);
+  return pdfPayload(doc, `${fileBase}.pdf`);
 }
 
 /* ============================================================ */
 /* 6. Master Cycle Status Export                                */
 /* ============================================================ */
-export function exportCycleStatusXLSX(cycleEntries: CycleEntry[], rangeLabel: string, fileBase: string) {
+export function exportCycleStatusXLSX(cycleEntries: CycleEntry[], rangeLabel: string, fileBase: string): ExportPayload {
   const wb = XLSX.utils.book_new();
   const ws: XLSX.WorkSheet = { "!ref": "A1" };
   // Latest entry per (clientName + cycleKey) - showing current stage
@@ -683,10 +684,11 @@ export function exportCycleStatusXLSX(cycleEntries: CycleEntry[], rangeLabel: st
   ws["!cols"] = [{ wch: 28 }, { wch: 28 }, { wch: 12 }, { wch: 8 }, { wch: 24 }, { wch: 14 }, { wch: 16 }, { wch: 12 }, { wch: 40 }];
   ws["!autofilter"] = { ref: XLSX.utils.encode_range({ s: { r: 3, c: 0 }, e: { r: 3 + rows.length, c: headers.length - 1 } }) };
   ws["!freeze"] = { xSplit: 1, ySplit: 4 };
+  autoSizeRowHeights(ws);
   XLSX.utils.book_append_sheet(wb, ws, "Cycle Status");
-  XLSX.writeFile(wb, `${fileBase}.xlsx`);
+  return xlsxPayload(wb, `${fileBase}.xlsx`);
 }
-export function exportCycleStatusPDF(cycleEntries: CycleEntry[], rangeLabel: string, fileBase: string) {
+export function exportCycleStatusPDF(cycleEntries: CycleEntry[], rangeLabel: string, fileBase: string): ExportPayload {
   const doc = new jsPDF({ orientation: "landscape", unit: "pt", format: "letter" });
   pdfCover(doc, "Master Cycle Status", "Each client's current stage, days in stage, escalation flags", rangeLabel);
   const latest = new Map<string, CycleEntry>();
@@ -730,7 +732,7 @@ export function exportCycleStatusPDF(cycleEntries: CycleEntry[], rangeLabel: str
     margin: { left: 40, right: 40, bottom: PDF_FOOTER_RESERVE },
   });
   pdfFooter(doc);
-  doc.save(`${fileBase}.pdf`);
+  return pdfPayload(doc, `${fileBase}.pdf`);
 }
 
 /* ============================================================ */
