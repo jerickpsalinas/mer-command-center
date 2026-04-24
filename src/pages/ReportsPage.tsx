@@ -52,7 +52,7 @@ const EXPORTS: ExportDef[] = [
     countLabel: (h) => `${h.length} submissions · ${new Set(h.map((r) => r.month)).size} months`,
     run: (fmt, h, _c, rangeLabel, base) => {
       const opts = { history: h, rangeLabel, fileBaseName: base };
-      if (fmt === "xlsx") exportXLSX(opts); else exportPDF(opts);
+      return fmt === "xlsx" ? exportXLSX(opts) : exportPDF(opts);
     },
   },
   {
@@ -63,10 +63,8 @@ const EXPORTS: ExportDef[] = [
     accent: "primary",
     formats: ["xlsx", "pdf"],
     countLabel: (h) => `${new Set(h.map((r) => r.name)).size} clients`,
-    run: (fmt, h, _c, rangeLabel, base) => {
-      if (fmt === "xlsx") exportClientScorecardXLSX(h, rangeLabel, base);
-      else exportClientScorecardPDF(h, rangeLabel, base);
-    },
+    run: (fmt, h, _c, rangeLabel, base) =>
+      fmt === "xlsx" ? exportClientScorecardXLSX(h, rangeLabel, base) : exportClientScorecardPDF(h, rangeLabel, base),
   },
   {
     id: "bookkeeper",
@@ -76,10 +74,8 @@ const EXPORTS: ExportDef[] = [
     accent: "primary",
     formats: ["xlsx", "pdf"],
     countLabel: (h) => `${new Set(h.map((r) => r.bookkeeper).filter(Boolean)).size} bookkeepers`,
-    run: (fmt, h, _c, rangeLabel, base) => {
-      if (fmt === "xlsx") exportBookkeeperPerfXLSX(h, rangeLabel, base);
-      else exportBookkeeperPerfPDF(h, rangeLabel, base);
-    },
+    run: (fmt, h, _c, rangeLabel, base) =>
+      fmt === "xlsx" ? exportBookkeeperPerfXLSX(h, rangeLabel, base) : exportBookkeeperPerfPDF(h, rangeLabel, base),
   },
   {
     id: "atrisk",
@@ -97,10 +93,8 @@ const EXPORTS: ExportDef[] = [
       const atRisk = Array.from(latest.values()).filter((c) => c.completionPct < 40 || c.complianceStatus === "Non-Compliant").length;
       return `${atRisk} at-risk clients`;
     },
-    run: (fmt, h, _c, rangeLabel, base) => {
-      if (fmt === "xlsx") exportAtRiskXLSX(h, rangeLabel, base);
-      else exportAtRiskPDF(h, rangeLabel, base);
-    },
+    run: (fmt, h, _c, rangeLabel, base) =>
+      fmt === "xlsx" ? exportAtRiskXLSX(h, rangeLabel, base) : exportAtRiskPDF(h, rangeLabel, base),
   },
   {
     id: "trends",
@@ -110,10 +104,8 @@ const EXPORTS: ExportDef[] = [
     accent: "success",
     formats: ["xlsx", "pdf"],
     countLabel: (h) => `${new Set(h.map((r) => r.month)).size} months`,
-    run: (fmt, h, _c, rangeLabel, base) => {
-      if (fmt === "xlsx") exportTrendsSummaryXLSX(h, rangeLabel, base);
-      else exportTrendsSummaryPDF(h, rangeLabel, base);
-    },
+    run: (fmt, h, _c, rangeLabel, base) =>
+      fmt === "xlsx" ? exportTrendsSummaryXLSX(h, rangeLabel, base) : exportTrendsSummaryPDF(h, rangeLabel, base),
   },
   {
     id: "cycle",
@@ -123,10 +115,8 @@ const EXPORTS: ExportDef[] = [
     accent: "warning",
     formats: ["xlsx", "pdf"],
     countLabel: (_h, c) => `${c.length} cycle entries`,
-    run: (fmt, _h, c, rangeLabel, base) => {
-      if (fmt === "xlsx") exportCycleStatusXLSX(c, rangeLabel, base);
-      else exportCycleStatusPDF(c, rangeLabel, base);
-    },
+    run: (fmt, _h, c, rangeLabel, base) =>
+      fmt === "xlsx" ? exportCycleStatusXLSX(c, rangeLabel, base) : exportCycleStatusPDF(c, rangeLabel, base),
   },
   {
     id: "exec",
