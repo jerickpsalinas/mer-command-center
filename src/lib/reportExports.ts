@@ -384,20 +384,22 @@ export function exportBookkeeperPerfPDF(history: MerHistoryRow[], rangeLabel: st
   }).sort((a, b) => b.avgCompletion - a.avgCompletion);
 
   autoTable(doc, {
-    startY: 110,
+    startY: PDF_CONTENT_START_Y,
     head: [["Rank", "Bookkeeper", "Clients", "Submissions", "Compliant", "On-Time %", "Avg Completion %", "At-Risk"]],
     body: rows.map((r, i) => [`#${i + 1}`, r.bk, String(r.uniqueClients), String(r.submissions), String(r.compliant), `${r.onTimePct}%`, `${r.avgCompletion}%`, String(r.atRisk)]),
     theme: "striped",
-    headStyles: { fillColor: RGB.primary, textColor: 255, fontStyle: "bold", fontSize: 10 },
+    headStyles: { fillColor: RGB.primary, textColor: 255, fontStyle: "bold", fontSize: 10, cellPadding: 6 },
     alternateRowStyles: { fillColor: RGB.zebra },
-    styles: { fontSize: 10, cellPadding: 6 },
+    styles: { fontSize: 10, cellPadding: 6, overflow: "linebreak", lineColor: RGB.border, lineWidth: 0.25, valign: "middle" },
     columnStyles: {
-      0: { halign: "center", fontStyle: "bold", textColor: RGB.primary },
-      1: { fontStyle: "bold" },
-      2: { halign: "center" }, 3: { halign: "center" }, 4: { halign: "center" },
-      5: { halign: "right", fontStyle: "bold" },
-      6: { halign: "right", fontStyle: "bold" },
-      7: { halign: "center", fontStyle: "bold" },
+      0: { cellWidth: 50, halign: "center", fontStyle: "bold", textColor: RGB.primary },
+      1: { cellWidth: 160, fontStyle: "bold" },
+      2: { cellWidth: 70, halign: "center" },
+      3: { cellWidth: 90, halign: "center" },
+      4: { cellWidth: 80, halign: "center" },
+      5: { cellWidth: 80, halign: "right", fontStyle: "bold" },
+      6: { cellWidth: 110, halign: "right", fontStyle: "bold" },
+      7: { cellWidth: 70, halign: "center", fontStyle: "bold" },
     },
     didParseCell: (d) => {
       if (d.section !== "body") return;
@@ -410,7 +412,7 @@ export function exportBookkeeperPerfPDF(history: MerHistoryRow[], rangeLabel: st
         d.cell.styles.textColor = v > 0 ? RGB.danger : RGB.success;
       }
     },
-    margin: { left: 40, right: 40 },
+    margin: { left: 40, right: 40, bottom: PDF_FOOTER_RESERVE },
   });
   pdfFooter(doc);
   doc.save(`${fileBase}.pdf`);
