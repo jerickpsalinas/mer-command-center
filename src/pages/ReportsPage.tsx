@@ -162,6 +162,7 @@ export default function ReportsPage() {
   }, []);
   const [fromDate, setFromDate] = useState<Date | undefined>(weekAgo);
   const [toDate, setToDate] = useState<Date | undefined>(today);
+  const [preview, setPreview] = useState<{ payload: ExportPayload; title: string; previewUrl?: string } | null>(null);
 
   // Initialize defaults once data is available
   useMemo(() => {
