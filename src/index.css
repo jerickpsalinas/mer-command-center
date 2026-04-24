@@ -166,6 +166,47 @@
     border: 1px solid hsl(var(--border) / 0.6);
   }
 
+  /* ── Rose glow on hover ──────────────────────────────────────────
+     Applied site-wide to interactive surfaces. Respects reduced motion. */
+  .hover-glow {
+    transition: box-shadow 300ms ease, border-color 300ms ease, transform 300ms ease;
+  }
+  .hover-glow:hover {
+    box-shadow:
+      0 0 0 1px hsl(var(--primary) / 0.35),
+      0 0 18px -2px hsl(var(--primary) / 0.45),
+      0 0 42px -8px hsl(var(--primary) / 0.35);
+  }
+
+  @media (prefers-reduced-motion: no-preference) {
+    /* Cards, buttons, links, and common interactive surfaces */
+    [class*="rounded-"]:is(button, a, [role="button"]):not(:disabled),
+    .shadow-card,
+    .shadow-card-hover,
+    .glass-panel {
+      transition: box-shadow 300ms ease, border-color 300ms ease, transform 300ms ease;
+    }
+    [class*="rounded-"]:is(button, a, [role="button"]):not(:disabled):hover {
+      box-shadow:
+        0 0 0 1px hsl(var(--primary) / 0.3),
+        0 0 16px -2px hsl(var(--primary) / 0.4),
+        0 0 36px -10px hsl(var(--primary) / 0.3);
+    }
+    .shadow-card:hover,
+    .glass-panel:hover {
+      box-shadow:
+        var(--shadow-card-hover),
+        0 0 24px -6px hsl(var(--primary) / 0.35),
+        0 0 56px -16px hsl(var(--primary) / 0.25);
+      border-color: hsl(var(--primary) / 0.35);
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .hover-glow,
+    .hover-glow:hover { transition: none; box-shadow: none; }
+  }
+
   /* Warm vignette overlay */
   .vignette::before {
     content: '';
