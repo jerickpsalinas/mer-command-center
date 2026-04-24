@@ -839,5 +839,6 @@ export function exportPDF({ history, rangeLabel, fileBaseName }: ExportOptions):
     doc.text(`Page ${i} of ${pageCount}`, pageW - margin, pageH - 7, { align: "right" });
   }
 
-  doc.save(`${fileBaseName}.pdf`);
+  const blob = doc.output("blob");
+  return { kind: "pdf", blob, filename: `${fileBaseName}.pdf`, doc };
 }
