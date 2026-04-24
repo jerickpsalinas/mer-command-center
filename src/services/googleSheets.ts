@@ -172,6 +172,18 @@ function deriveMonthlyTrendsFromMER(rows: Record<string, unknown>[]): MonthlyTre
   }
   // Sort chronologically
   trends.sort((a, b) => new Date(a.month).getTime() - new Date(b.month).getTime());
+  // Derive trend by comparing each month's completion % to the previous month
+  // Threshold: ±2 percentage points = Stable, otherwise Improving/Declining
+  for (let i = 0; i < trends.length; i++) {
+    if (i === 0) {
+      trends[i].trend = "-";
+      continue;
+    }
+    const diff = trends[i].completionPct - trends[i - 1].completionPct;
+    if (diff >= 2) trends[i].trend = "Improving";
+    else if (diff <= -2) trends[i].trend = "Declining";
+    else trends[i].trend = "Stable";
+  }
   return trends;
 }
 
