@@ -249,19 +249,57 @@ export default function ReportsPage() {
     setToDate(end);
   };
 
-  const handleExport = (def: ExportDef, fmt: "xlsx" | "pdf") => {
+  const [preview, setPreview] = useState<{ payload: ExportPayload; title: string; previewUrl?: string } | null>(null);
+
+  const buildPayload = (def: ExportDef, fmt: "xlsx" | "pdf"): ExportPayload | null => {
     const empty = def.id === "cycle" ? filteredCycle.length === 0 : filteredHistory.length === 0;
     if (empty) {
       toast({ title: "No data in range", description: "Adjust the date range and try again.", variant: "destructive" });
-      return;
+      return null;
     }
     const base = `BA_${def.id}_${fileSuffix}`;
     try {
-      def.run(fmt, filteredHistory, filteredCycle, rangeLabel, base);
-      toast({ title: "Export complete", description: `${base}.${fmt}` });
+      return def.run(fmt, filteredHistory, filteredCycle, rangeLabel, base);
     } catch (e) {
+      console.error("[Export] build failed", e);
       toast({ title: "Export failed", description: String(e), variant: "destructive" });
+      return null;
     }
+  };
+
+  const handlePreview = (def: ExportDef, fmt: "xlsx" | "pdf") => {
+    const payload = buildPayload(def, fmt);
+    if (!payload) return;
+    const previewUrl = payload.kind === "pdf" ? URL.createObjectURL(payload.blob) : undefined;
+    setPreview({ payload, title: `${def.title} · ${fmt.toUpperCase()}`, previewUrl });
+  };
+
+  const handleDirectDownload = (def: ExportDef, fmt: "xlsx" | "pdf") => {
+    const payload = buildPayload(def, fmt);
+    if (!payload) return;
+    try {
+      downloadPayload(payload);
+      toast({ title: "Export complete", description: payload.filename });
+    } catch (e) {
+      console.error("[Export] download failed", e);
+      toast({ title: "Download failed", description: String(e), variant: "destructive" });
+    }
+  };
+
+  const closePreview = () => {
+    if (preview?.previewUrl) URL.revokeObjectURL(preview.previewUrl);
+    setPreview(null);
+  };
+
+  const confirmDownload = () => {
+    if (!preview) return;
+    try {
+      downloadPayload(preview.payload);
+      toast({ title: "Export complete", description: preview.payload.filename });
+    } catch (e) {
+      toast({ title: "Download failed", description: String(e), variant: "destructive" });
+    }
+    closePreview();
   };
 
   return (
