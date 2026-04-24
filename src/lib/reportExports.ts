@@ -129,26 +129,36 @@ function makeTitleHeader(ws: XLSX.WorkSheet, title: string, subtitle: string, co
 }
 
 /* ============= Shared PDF helpers ============= */
+/** Reserved bottom margin so autoTable never paints into the footer band. */
+const PDF_FOOTER_RESERVE = 28;
+/** Y where content (tables/sections) safely starts after the cover band. */
+const PDF_CONTENT_START_Y = 130;
+
 function pdfCover(doc: jsPDF, title: string, subtitle: string, rangeLabel: string) {
   const pageW = doc.internal.pageSize.getWidth();
+  // Top brand band
   doc.setFillColor(...RGB.primary);
-  doc.rect(0, 0, pageW, 70, "F");
+  doc.rect(0, 0, pageW, 78, "F");
   doc.setFillColor(...RGB.primaryDark);
-  doc.rect(0, 70, pageW, 6, "F");
+  doc.rect(0, 78, pageW, 5, "F");
+  // Brand name + title
   doc.setFont("helvetica", "bold");
   doc.setFontSize(20);
   doc.setTextColor(255, 255, 255);
   doc.text("Brant & Associates", 40, 34);
   doc.setFont("helvetica", "normal");
   doc.setFontSize(13);
-  doc.text(title, 40, 56);
+  doc.text(title, 40, 58);
+  // Right-aligned meta
   doc.setFontSize(9);
   doc.text(`Range: ${rangeLabel}`, pageW - 40, 34, { align: "right" });
   doc.text(`Generated: ${new Date().toLocaleString()}`, pageW - 40, 50, { align: "right" });
+  // Subtitle in the white space below the band, with safe gap from band edge
   if (subtitle) {
     doc.setFontSize(10);
     doc.setTextColor(...RGB.textMuted);
-    doc.text(subtitle, 40, 92);
+    const lines = doc.splitTextToSize(subtitle, pageW - 80);
+    doc.text(lines, 40, 102);
   }
 }
 function pdfFooter(doc: jsPDF) {
@@ -158,12 +168,12 @@ function pdfFooter(doc: jsPDF) {
   for (let i = 1; i <= pageCount; i++) {
     doc.setPage(i);
     doc.setFillColor(...RGB.primaryDark);
-    doc.rect(0, pageH - 18, pageW, 18, "F");
+    doc.rect(0, pageH - 20, pageW, 20, "F");
     doc.setFont("helvetica", "normal");
     doc.setFontSize(8);
     doc.setTextColor(255, 255, 255);
-    doc.text("Brant & Associates – Export Center", 40, pageH - 6);
-    doc.text(`Page ${i} of ${pageCount}`, pageW - 40, pageH - 6, { align: "right" });
+    doc.text("Brant & Associates – Export Center", 40, pageH - 7);
+    doc.text(`Page ${i} of ${pageCount}`, pageW - 40, pageH - 7, { align: "right" });
   }
 }
 
@@ -259,14 +269,24 @@ export function exportClientScorecardPDF(history: MerHistoryRow[], rangeLabel: s
   }).sort((a, b) => a[0].localeCompare(b[0]));
 
   autoTable(doc, {
-    startY: 110,
+    startY: PDF_CONTENT_START_Y,
     head: [["Client", "Type", "Bookkeeper", "Subs", "Avg %", "On-Time", "Last Mo", "Status", "Last %", "Trend"]],
     body: rows,
     theme: "striped",
-    headStyles: { fillColor: RGB.primary, textColor: 255, fontStyle: "bold", fontSize: 9 },
+    headStyles: { fillColor: RGB.primary, textColor: 255, fontStyle: "bold", fontSize: 9, cellPadding: 5 },
     alternateRowStyles: { fillColor: RGB.zebra },
-    styles: { fontSize: 8, cellPadding: 4 },
-    columnStyles: { 0: { cellWidth: 160, fontStyle: "bold" }, 3: { halign: "center" }, 4: { halign: "right" }, 5: { halign: "right" }, 8: { halign: "right" } },
+    styles: { fontSize: 8, cellPadding: 4, overflow: "linebreak", lineColor: RGB.border, lineWidth: 0.25, valign: "middle" },
+    columnStyles: {
+      0: { cellWidth: 150, fontStyle: "bold" },
+      1: { cellWidth: 60 }, 2: { cellWidth: 70 },
+      3: { cellWidth: 36, halign: "center" },
+      4: { cellWidth: 50, halign: "right" },
+      5: { cellWidth: 56, halign: "right" },
+      6: { cellWidth: 60 },
+      7: { cellWidth: 70, halign: "center" },
+      8: { cellWidth: 50, halign: "right" },
+      9: { cellWidth: 60, halign: "center" },
+    },
     didParseCell: (d) => {
       if (d.section !== "body") return;
       if (d.column.index === 7) {
@@ -280,7 +300,7 @@ export function exportClientScorecardPDF(history: MerHistoryRow[], rangeLabel: s
         d.cell.styles.fontStyle = "bold";
       }
     },
-    margin: { left: 40, right: 40 },
+    margin: { left: 40, right: 40, bottom: PDF_FOOTER_RESERVE },
   });
   pdfFooter(doc);
   doc.save(`${fileBase}.pdf`);
@@ -364,20 +384,22 @@ export function exportBookkeeperPerfPDF(history: MerHistoryRow[], rangeLabel: st
   }).sort((a, b) => b.avgCompletion - a.avgCompletion);
 
   autoTable(doc, {
-    startY: 110,
+    startY: PDF_CONTENT_START_Y,
     head: [["Rank", "Bookkeeper", "Clients", "Submissions", "Compliant", "On-Time %", "Avg Completion %", "At-Risk"]],
     body: rows.map((r, i) => [`#${i + 1}`, r.bk, String(r.uniqueClients), String(r.submissions), String(r.compliant), `${r.onTimePct}%`, `${r.avgCompletion}%`, String(r.atRisk)]),
     theme: "striped",
-    headStyles: { fillColor: RGB.primary, textColor: 255, fontStyle: "bold", fontSize: 10 },
+    headStyles: { fillColor: RGB.primary, textColor: 255, fontStyle: "bold", fontSize: 10, cellPadding: 6 },
     alternateRowStyles: { fillColor: RGB.zebra },
-    styles: { fontSize: 10, cellPadding: 6 },
+    styles: { fontSize: 10, cellPadding: 6, overflow: "linebreak", lineColor: RGB.border, lineWidth: 0.25, valign: "middle" },
     columnStyles: {
-      0: { halign: "center", fontStyle: "bold", textColor: RGB.primary },
-      1: { fontStyle: "bold" },
-      2: { halign: "center" }, 3: { halign: "center" }, 4: { halign: "center" },
-      5: { halign: "right", fontStyle: "bold" },
-      6: { halign: "right", fontStyle: "bold" },
-      7: { halign: "center", fontStyle: "bold" },
+      0: { cellWidth: 50, halign: "center", fontStyle: "bold", textColor: RGB.primary },
+      1: { cellWidth: 160, fontStyle: "bold" },
+      2: { cellWidth: 70, halign: "center" },
+      3: { cellWidth: 90, halign: "center" },
+      4: { cellWidth: 80, halign: "center" },
+      5: { cellWidth: 80, halign: "right", fontStyle: "bold" },
+      6: { cellWidth: 110, halign: "right", fontStyle: "bold" },
+      7: { cellWidth: 70, halign: "center", fontStyle: "bold" },
     },
     didParseCell: (d) => {
       if (d.section !== "body") return;
@@ -390,7 +412,7 @@ export function exportBookkeeperPerfPDF(history: MerHistoryRow[], rangeLabel: st
         d.cell.styles.textColor = v > 0 ? RGB.danger : RGB.success;
       }
     },
-    margin: { left: 40, right: 40 },
+    margin: { left: 40, right: 40, bottom: PDF_FOOTER_RESERVE },
   });
   pdfFooter(doc);
   doc.save(`${fileBase}.pdf`);
@@ -445,19 +467,24 @@ export function exportAtRiskPDF(history: MerHistoryRow[], rangeLabel: string, fi
   doc.setFont("helvetica", "bold");
   doc.setFontSize(11);
   doc.setTextColor(...RGB.danger);
-  doc.text(`${rows.length} clients require attention`, 40, 110);
+  doc.text(`${rows.length} clients require attention`, 40, 128);
   autoTable(doc, {
-    startY: 124,
+    startY: 142,
     head: [["Client", "Bookkeeper", "Type", "Last Mo", "%", "Status", "Reconciled", "Risk Reasons"]],
     body: rows.map((r) => [r.name, r.bookkeeper, r.clientType, r.month, `${r.completionPct}%`, r.complianceStatus, r.lastReconciledDate || "Never", r.reasons]),
     theme: "striped",
-    headStyles: { fillColor: RGB.danger, textColor: 255, fontStyle: "bold", fontSize: 9 },
+    headStyles: { fillColor: RGB.danger, textColor: 255, fontStyle: "bold", fontSize: 9, cellPadding: 5 },
     alternateRowStyles: { fillColor: RGB.dangerBg },
-    styles: { fontSize: 8, cellPadding: 4 },
+    styles: { fontSize: 8, cellPadding: 4, overflow: "linebreak", lineColor: RGB.border, lineWidth: 0.25, valign: "middle" },
     columnStyles: {
-      0: { cellWidth: 140, fontStyle: "bold" },
-      4: { halign: "right", fontStyle: "bold" },
-      7: { cellWidth: 240, fontSize: 7, textColor: RGB.danger },
+      0: { cellWidth: 130, fontStyle: "bold" },
+      1: { cellWidth: 70 },
+      2: { cellWidth: 50 },
+      3: { cellWidth: 56 },
+      4: { cellWidth: 38, halign: "right", fontStyle: "bold" },
+      5: { cellWidth: 70, halign: "center" },
+      6: { cellWidth: 60 },
+      7: { cellWidth: 248, fontSize: 7, textColor: RGB.danger },
     },
     didParseCell: (d) => {
       if (d.section !== "body") return;
@@ -465,8 +492,14 @@ export function exportAtRiskPDF(history: MerHistoryRow[], rangeLabel: string, fi
         const v = parseInt(String(d.cell.raw), 10);
         d.cell.styles.textColor = v >= 60 ? RGB.warn : RGB.danger;
       }
+      if (d.column.index === 5) {
+        const v = String(d.cell.raw);
+        if (v === "Compliant") { d.cell.styles.textColor = RGB.success; d.cell.styles.fillColor = RGB.successBg; }
+        else if (v === "Non-Compliant") { d.cell.styles.textColor = RGB.danger; d.cell.styles.fillColor = RGB.dangerBg; }
+        else { d.cell.styles.textColor = RGB.warn; d.cell.styles.fillColor = RGB.warnBg; }
+      }
     },
-    margin: { left: 40, right: 40 },
+    margin: { left: 40, right: 40, bottom: PDF_FOOTER_RESERVE },
   });
   pdfFooter(doc);
   doc.save(`${fileBase}.pdf`);
@@ -528,14 +561,23 @@ export function exportTrendsSummaryPDF(history: MerHistoryRow[], rangeLabel: str
   pdfCover(doc, "Monthly Trends Summary", "Compliance %, completion %, MoM deltas, trend direction", rangeLabel);
   const rows = trendsSummary(history);
   autoTable(doc, {
-    startY: 110,
+    startY: PDF_CONTENT_START_Y,
     head: [["Month", "Total", "Compliant", "Non-Comp", "Compliance %", "Avg Completion %", "MoM Δ", "Trend"]],
     body: rows.map((r, i) => [r.month, String(r.total), String(r.compliant), String(r.nonCompliant), `${r.compliancePct}%`, `${r.avg}%`, i === 0 ? "—" : `${r.momDelta > 0 ? "+" : ""}${r.momDelta}`, r.trend]),
     theme: "striped",
-    headStyles: { fillColor: RGB.primary, textColor: 255, fontStyle: "bold", fontSize: 10 },
+    headStyles: { fillColor: RGB.primary, textColor: 255, fontStyle: "bold", fontSize: 10, cellPadding: 6 },
     alternateRowStyles: { fillColor: RGB.zebra },
-    styles: { fontSize: 10, cellPadding: 6 },
-    columnStyles: { 0: { fontStyle: "bold" }, 4: { halign: "right" }, 5: { halign: "right" }, 6: { halign: "right", fontStyle: "bold" }, 7: { halign: "center", fontStyle: "bold" } },
+    styles: { fontSize: 10, cellPadding: 6, overflow: "linebreak", lineColor: RGB.border, lineWidth: 0.25, valign: "middle" },
+    columnStyles: {
+      0: { cellWidth: 90, fontStyle: "bold" },
+      1: { cellWidth: 70, halign: "center" },
+      2: { cellWidth: 80, halign: "center" },
+      3: { cellWidth: 90, halign: "center" },
+      4: { cellWidth: 100, halign: "right" },
+      5: { cellWidth: 130, halign: "right" },
+      6: { cellWidth: 70, halign: "right", fontStyle: "bold" },
+      7: { cellWidth: 90, halign: "center", fontStyle: "bold" },
+    },
     didParseCell: (d) => {
       if (d.section !== "body") return;
       if (d.column.index === 5) {
@@ -547,7 +589,7 @@ export function exportTrendsSummaryPDF(history: MerHistoryRow[], rangeLabel: str
         d.cell.styles.textColor = v === "Improving" ? RGB.success : v === "Declining" ? RGB.danger : v === "Stable" ? RGB.warn : RGB.textMuted;
       }
     },
-    margin: { left: 40, right: 40 },
+    margin: { left: 40, right: 40, bottom: PDF_FOOTER_RESERVE },
   });
   pdfFooter(doc);
   doc.save(`${fileBase}.pdf`);
@@ -605,14 +647,22 @@ export function exportCycleStatusPDF(cycleEntries: CycleEntry[], rangeLabel: str
   }
   const rows = Array.from(latest.values()).sort((a, b) => b.daysInStage - a.daysInStage);
   autoTable(doc, {
-    startY: 110,
+    startY: PDF_CONTENT_START_Y,
     head: [["Client", "Cycle Mo", "Stage #", "Stage Name", "Days", "Status", "Escalated"]],
     body: rows.map((r) => [r.clientName, r.month, String(r.stageNumber), r.stageName, String(r.daysInStage), r.cycleStatus, r.escalated ? "YES" : "No"]),
     theme: "striped",
-    headStyles: { fillColor: RGB.primary, textColor: 255, fontStyle: "bold", fontSize: 10 },
+    headStyles: { fillColor: RGB.primary, textColor: 255, fontStyle: "bold", fontSize: 10, cellPadding: 6 },
     alternateRowStyles: { fillColor: RGB.zebra },
-    styles: { fontSize: 9, cellPadding: 5 },
-    columnStyles: { 0: { cellWidth: 160, fontStyle: "bold" }, 2: { halign: "center" }, 4: { halign: "center", fontStyle: "bold" }, 6: { halign: "center", fontStyle: "bold" } },
+    styles: { fontSize: 9, cellPadding: 5, overflow: "linebreak", lineColor: RGB.border, lineWidth: 0.25, valign: "middle" },
+    columnStyles: {
+      0: { cellWidth: 150, fontStyle: "bold" },
+      1: { cellWidth: 70 },
+      2: { cellWidth: 50, halign: "center" },
+      3: { cellWidth: 200 },
+      4: { cellWidth: 56, halign: "center", fontStyle: "bold" },
+      5: { cellWidth: 110 },
+      6: { cellWidth: 80, halign: "center", fontStyle: "bold" },
+    },
     didParseCell: (d) => {
       if (d.section !== "body") return;
       if (d.column.index === 4) {
@@ -625,7 +675,7 @@ export function exportCycleStatusPDF(cycleEntries: CycleEntry[], rangeLabel: str
         else { d.cell.styles.textColor = RGB.success; }
       }
     },
-    margin: { left: 40, right: 40 },
+    margin: { left: 40, right: 40, bottom: PDF_FOOTER_RESERVE },
   });
   pdfFooter(doc);
   doc.save(`${fileBase}.pdf`);
@@ -653,6 +703,8 @@ function drawKpiCard(doc: jsPDF, x: number, y: number, w: number, h: number, lab
 export function exportExecSummaryPDF(history: MerHistoryRow[], rangeLabel: string, fileBase: string) {
   const doc = new jsPDF({ orientation: "portrait", unit: "pt", format: "letter" });
   const pageW = doc.internal.pageSize.getWidth();
+  const pageH = doc.internal.pageSize.getHeight();
+  const margin = 40;
   const aggClients = latestPerClient(history) as Client[];
   const kpi = getKPIMetrics(aggClients);
   const bd = getComplianceBreakdown(aggClients);
@@ -664,10 +716,18 @@ export function exportExecSummaryPDF(history: MerHistoryRow[], rangeLabel: strin
 
   pdfCover(doc, "Executive Summary", "1-page snapshot for leadership review", rangeLabel);
 
+  // Ensure-space helper: returns the (possibly new-page) y position
+  const ensureSpace = (y: number, needed: number): number => {
+    if (y + needed > pageH - PDF_FOOTER_RESERVE - 8) {
+      doc.addPage();
+      return margin + 10;
+    }
+    return y;
+  };
+
   // KPI cards
-  const cardY = 110;
-  const cardH = 60;
-  const margin = 40;
+  const cardY = PDF_CONTENT_START_Y;
+  const cardH = 64;
   const gap = 10;
   const cardW = (pageW - margin * 2 - gap * 3) / 4;
   drawKpiCard(doc, margin, cardY, cardW, cardH, "Total Clients", String(kpi.total), RGB.primary);
@@ -677,6 +737,7 @@ export function exportExecSummaryPDF(history: MerHistoryRow[], rangeLabel: strin
 
   // Headline
   let y = cardY + cardH + 28;
+  y = ensureSpace(y, 60);
   doc.setFont("helvetica", "bold");
   doc.setFontSize(13);
   doc.setTextColor(...RGB.primaryDark);
@@ -689,15 +750,17 @@ export function exportExecSummaryPDF(history: MerHistoryRow[], rangeLabel: strin
     ? `In ${lastTrend.month}, average completion ${headlineDirection} by ${Math.abs(headlineDelta)} pts to ${lastTrend.avg}%. Compliance rate stands at ${lastTrend.compliancePct}% (${lastTrend.compliant}/${lastTrend.total} clients).`
     : `${kpi.compliant} of ${kpi.total} clients are compliant. Average completion is ${kpi.avgCompletion}%.`;
   const lines = doc.splitTextToSize(headline, pageW - margin * 2);
+  y = ensureSpace(y, lines.length * 14 + 8);
   doc.text(lines, margin, y);
-  y += lines.length * 14 + 16;
+  y += lines.length * 14 + 18;
 
   // Top 3 risks
+  y = ensureSpace(y, 30);
   doc.setFont("helvetica", "bold");
   doc.setFontSize(13);
   doc.setTextColor(...RGB.danger);
   doc.text("Top 3 Risks", margin, y);
-  y += 16;
+  y += 18;
 
   const risks = [
     { label: "Missing Bank Statements", count: att.missingStatements.length, items: att.missingStatements.slice(0, 5).map((c) => c.name) },
@@ -706,6 +769,10 @@ export function exportExecSummaryPDF(history: MerHistoryRow[], rangeLabel: strin
   ].sort((a, b) => b.count - a.count).slice(0, 3);
 
   risks.forEach((risk) => {
+    const itemsText = risk.items.length === 0 ? "None" : risk.items.join(" · ");
+    const itemLines = doc.splitTextToSize(itemsText, pageW - margin * 2 - 18);
+    const blockNeeded = 14 + itemLines.length * 12 + 10;
+    y = ensureSpace(y, blockNeeded);
     doc.setFont("helvetica", "bold");
     doc.setFontSize(10);
     doc.setTextColor(...RGB.danger);
@@ -714,27 +781,19 @@ export function exportExecSummaryPDF(history: MerHistoryRow[], rangeLabel: strin
     doc.setFont("helvetica", "normal");
     doc.setFontSize(9);
     doc.setTextColor(80, 80, 80);
-    if (risk.items.length === 0) {
-      doc.text("  None", margin + 18, y);
-      y += 12;
-    } else {
-      const itemsText = risk.items.join(" · ");
-      const itemLines = doc.splitTextToSize(itemsText, pageW - margin * 2 - 18);
-      doc.text(itemLines, margin + 18, y);
-      y += itemLines.length * 12 + 4;
-    }
-    y += 4;
+    doc.text(itemLines, margin + 18, y);
+    y += itemLines.length * 12 + 10;
   });
 
-  // Compliance breakdown
-  y += 8;
+  // Compliance breakdown (table)
+  y += 6;
+  y = ensureSpace(y, 40);
   doc.setFont("helvetica", "bold");
   doc.setFontSize(13);
   doc.setTextColor(...RGB.primaryDark);
   doc.text("Compliance Breakdown", margin, y);
-  y += 4;
   autoTable(doc, {
-    startY: y + 4,
+    startY: y + 8,
     head: [["Criterion", "% Met"]],
     body: [
       ["Bank Transactions", `${bd.bankPct}%`],
@@ -743,16 +802,16 @@ export function exportExecSummaryPDF(history: MerHistoryRow[], rangeLabel: strin
       ["Statement Requests Received", `${bd.stmtPct}%`],
     ],
     theme: "grid",
-    headStyles: { fillColor: RGB.primary, textColor: 255, fontStyle: "bold", fontSize: 10 },
-    styles: { fontSize: 10, cellPadding: 6 },
-    columnStyles: { 0: { cellWidth: 320 }, 1: { halign: "right", fontStyle: "bold" } },
+    headStyles: { fillColor: RGB.primary, textColor: 255, fontStyle: "bold", fontSize: 10, cellPadding: 6 },
+    styles: { fontSize: 10, cellPadding: 6, lineColor: RGB.border, lineWidth: 0.25, valign: "middle" },
+    columnStyles: { 0: { cellWidth: pageW - margin * 2 - 100 }, 1: { cellWidth: 100, halign: "right", fontStyle: "bold" } },
     didParseCell: (d) => {
       if (d.section === "body" && d.column.index === 1) {
         const v = parseInt(String(d.cell.raw), 10);
         d.cell.styles.textColor = v >= 90 ? RGB.success : v >= 60 ? RGB.warn : RGB.danger;
       }
     },
-    margin: { left: margin, right: margin },
+    margin: { left: margin, right: margin, bottom: PDF_FOOTER_RESERVE },
   });
 
   pdfFooter(doc);
