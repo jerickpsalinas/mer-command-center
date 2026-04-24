@@ -1,14 +1,14 @@
 import { useRef, useCallback, useState as useLocalState } from "react";
+import { Link } from "react-router-dom";
 import {
   Users, CheckCircle2, XCircle, Pause, TrendingUp, AlertTriangle,
-  FileText, StickyNote, Award, Clock, AlertCircle, ChevronRight, ShieldAlert, BarChart3, Camera, Calendar,
+  FileText, StickyNote, Award, Clock, AlertCircle, ChevronRight, ShieldAlert, BarChart3, Camera, Calendar, Download, ArrowRight,
 } from "lucide-react";
 import { LineChart, Line, BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from "recharts";
 import html2canvas from "html2canvas";
 import KPICard from "@/components/KPICard";
 import ComplianceProgress from "@/components/ComplianceProgress";
 import StatusBadge from "@/components/StatusBadge";
-import ExportCenter from "@/components/ExportCenter";
 import AtRiskAlerts from "@/components/AtRiskAlerts";
 import MonthFilter from "@/components/MonthFilter";
 import { useSheetData, getKPIMetrics, getComplianceBreakdown, getNeedsAttention, getBookkeeperStats, getClientsForMonth } from "@/hooks/useSheetData";
@@ -486,12 +486,23 @@ export default function DashboardPage() {
       {/* Reports Summary */}
       <ReportsSummarySection clients={clients} bookkeepers={bookkeepers} />
 
-      {/* Download / Export Center */}
-      <ExportCenter
-        history={merHistory}
-        availableMonths={availableMonths}
-        defaultMonth={activeMonth}
-      />
+      {/* Link to Export Center */}
+      <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4, delay: 1.1 }}>
+        <Link to="/reports" className="group block rounded-xl border border-border bg-card hover:bg-accent/30 p-5 shadow-card hover:shadow-card-hover transition-[box-shadow,background-color] duration-300">
+          <div className="flex items-center gap-4">
+            <div className="h-11 w-11 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
+              <Download className="h-5 w-5 text-primary" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <h3 className="text-sm font-semibold text-foreground">Need to download a report?</h3>
+              <p className="text-[12px] text-muted-foreground mt-0.5">All exports — submissions, scorecards, exec summary, full backup &amp; more — live in the Export Center.</p>
+            </div>
+            <div className="flex items-center gap-1 text-primary text-xs font-semibold shrink-0">
+              Open Export Center <ArrowRight className="h-3.5 w-3.5 transition-transform group-hover:translate-x-0.5" />
+            </div>
+          </div>
+        </Link>
+      </motion.div>
     </div>
   );
 }

@@ -1,5 +1,5 @@
 import { NavLink, useLocation } from "react-router-dom";
-import { LayoutDashboard, Users, Workflow, MoreHorizontal } from "lucide-react";
+import { LayoutDashboard, Workflow, Download, MoreHorizontal } from "lucide-react";
 import { motion } from "framer-motion";
 
 interface Props {
@@ -8,17 +8,16 @@ interface Props {
 }
 
 /**
- * Mobile bottom tab bar (#16).
- * Replaces the hamburger as the primary nav surface on small screens.
- * 4 destinations: Dashboard, Clients, Master Cycle, More (opens sidebar).
+ * Mobile bottom tab bar.
+ * 4 destinations: Dashboard, Master Cycle, Export Center, More (opens sidebar).
  */
 export default function MobileTabBar({ onMore }: Props) {
   const { pathname } = useLocation();
 
   const tabs: { to?: string; label: string; icon: typeof LayoutDashboard; onClick?: () => void }[] = [
     { to: "/", label: "Dashboard", icon: LayoutDashboard },
-    { to: "/clients", label: "Clients", icon: Users },
     { to: "/master-cycle", label: "Cycle", icon: Workflow },
+    { to: "/reports", label: "Exports", icon: Download },
     { label: "More", icon: MoreHorizontal, onClick: onMore },
   ];
 

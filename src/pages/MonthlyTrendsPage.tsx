@@ -1,9 +1,9 @@
 import { useState } from "react";
+import { Link } from "react-router-dom";
 import KPICard from "@/components/KPICard";
-import ExportCenter from "@/components/ExportCenter";
 import ComplianceHeatmap from "@/components/ComplianceHeatmap";
 import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from "recharts";
-import { TrendingUp, TrendingDown, CheckCircle2, XCircle, ArrowRight, Calendar, Minus, Sparkles } from "lucide-react";
+import { TrendingUp, TrendingDown, CheckCircle2, XCircle, ArrowRight, Calendar, Minus, Sparkles, Download } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { motion, AnimatePresence } from "framer-motion";
 import { useSheetData, getKPIMetrics } from "@/hooks/useSheetData";
@@ -307,12 +307,21 @@ export default function MonthlyTrendsPage() {
       {/* Compliance Heatmap (clients × months) */}
       {data.merHistory.length > 0 && <ComplianceHeatmap history={data.merHistory} />}
 
-      {/* Download / Export Center */}
-      <ExportCenter
-        history={data.merHistory}
-        availableMonths={data.availableMonths}
-        defaultMonth={data.latestMonth}
-      />
+      {/* Link to Export Center */}
+      <Link to="/reports" className="group block rounded-xl border border-border bg-card hover:bg-accent/30 p-5 shadow-card hover:shadow-card-hover transition-[box-shadow,background-color] duration-300">
+        <div className="flex items-center gap-4">
+          <div className="h-11 w-11 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
+            <Download className="h-5 w-5 text-primary" />
+          </div>
+          <div className="flex-1 min-w-0">
+            <h3 className="text-sm font-semibold text-foreground">Need to download trends?</h3>
+            <p className="text-[12px] text-muted-foreground mt-0.5">All exports — including the Monthly Trends Summary — live in the Export Center.</p>
+          </div>
+          <div className="flex items-center gap-1 text-primary text-xs font-semibold shrink-0">
+            Open Export Center <ArrowRight className="h-3.5 w-3.5 transition-transform group-hover:translate-x-0.5" />
+          </div>
+        </div>
+      </Link>
     </div>
   );
 }
