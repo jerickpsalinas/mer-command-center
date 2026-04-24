@@ -703,6 +703,8 @@ function drawKpiCard(doc: jsPDF, x: number, y: number, w: number, h: number, lab
 export function exportExecSummaryPDF(history: MerHistoryRow[], rangeLabel: string, fileBase: string) {
   const doc = new jsPDF({ orientation: "portrait", unit: "pt", format: "letter" });
   const pageW = doc.internal.pageSize.getWidth();
+  const pageH = doc.internal.pageSize.getHeight();
+  const margin = 40;
   const aggClients = latestPerClient(history) as Client[];
   const kpi = getKPIMetrics(aggClients);
   const bd = getComplianceBreakdown(aggClients);
@@ -714,10 +716,18 @@ export function exportExecSummaryPDF(history: MerHistoryRow[], rangeLabel: strin
 
   pdfCover(doc, "Executive Summary", "1-page snapshot for leadership review", rangeLabel);
 
+  // Ensure-space helper: returns the (possibly new-page) y position
+  const ensureSpace = (y: number, needed: number): number => {
+    if (y + needed > pageH - PDF_FOOTER_RESERVE - 8) {
+      doc.addPage();
+      return margin + 10;
+    }
+    return y;
+  };
+
   // KPI cards
-  const cardY = 110;
-  const cardH = 60;
-  const margin = 40;
+  const cardY = PDF_CONTENT_START_Y;
+  const cardH = 64;
   const gap = 10;
   const cardW = (pageW - margin * 2 - gap * 3) / 4;
   drawKpiCard(doc, margin, cardY, cardW, cardH, "Total Clients", String(kpi.total), RGB.primary);
@@ -727,6 +737,7 @@ export function exportExecSummaryPDF(history: MerHistoryRow[], rangeLabel: strin
 
   // Headline
   let y = cardY + cardH + 28;
+  y = ensureSpace(y, 60);
   doc.setFont("helvetica", "bold");
   doc.setFontSize(13);
   doc.setTextColor(...RGB.primaryDark);
@@ -739,15 +750,17 @@ export function exportExecSummaryPDF(history: MerHistoryRow[], rangeLabel: strin
     ? `In ${lastTrend.month}, average completion ${headlineDirection} by ${Math.abs(headlineDelta)} pts to ${lastTrend.avg}%. Compliance rate stands at ${lastTrend.compliancePct}% (${lastTrend.compliant}/${lastTrend.total} clients).`
     : `${kpi.compliant} of ${kpi.total} clients are compliant. Average completion is ${kpi.avgCompletion}%.`;
   const lines = doc.splitTextToSize(headline, pageW - margin * 2);
+  y = ensureSpace(y, lines.length * 14 + 8);
   doc.text(lines, margin, y);
-  y += lines.length * 14 + 16;
+  y += lines.length * 14 + 18;
 
   // Top 3 risks
+  y = ensureSpace(y, 30);
   doc.setFont("helvetica", "bold");
   doc.setFontSize(13);
   doc.setTextColor(...RGB.danger);
   doc.text("Top 3 Risks", margin, y);
-  y += 16;
+  y += 18;
 
   const risks = [
     { label: "Missing Bank Statements", count: att.missingStatements.length, items: att.missingStatements.slice(0, 5).map((c) => c.name) },
@@ -756,6 +769,10 @@ export function exportExecSummaryPDF(history: MerHistoryRow[], rangeLabel: strin
   ].sort((a, b) => b.count - a.count).slice(0, 3);
 
   risks.forEach((risk) => {
+    const itemsText = risk.items.length === 0 ? "None" : risk.items.join(" · ");
+    const itemLines = doc.splitTextToSize(itemsText, pageW - margin * 2 - 18);
+    const blockNeeded = 14 + itemLines.length * 12 + 10;
+    y = ensureSpace(y, blockNeeded);
     doc.setFont("helvetica", "bold");
     doc.setFontSize(10);
     doc.setTextColor(...RGB.danger);
@@ -764,27 +781,19 @@ export function exportExecSummaryPDF(history: MerHistoryRow[], rangeLabel: strin
     doc.setFont("helvetica", "normal");
     doc.setFontSize(9);
     doc.setTextColor(80, 80, 80);
-    if (risk.items.length === 0) {
-      doc.text("  None", margin + 18, y);
-      y += 12;
-    } else {
-      const itemsText = risk.items.join(" · ");
-      const itemLines = doc.splitTextToSize(itemsText, pageW - margin * 2 - 18);
-      doc.text(itemLines, margin + 18, y);
-      y += itemLines.length * 12 + 4;
-    }
-    y += 4;
+    doc.text(itemLines, margin + 18, y);
+    y += itemLines.length * 12 + 10;
   });
 
-  // Compliance breakdown
-  y += 8;
+  // Compliance breakdown (table)
+  y += 6;
+  y = ensureSpace(y, 40);
   doc.setFont("helvetica", "bold");
   doc.setFontSize(13);
   doc.setTextColor(...RGB.primaryDark);
   doc.text("Compliance Breakdown", margin, y);
-  y += 4;
   autoTable(doc, {
-    startY: y + 4,
+    startY: y + 8,
     head: [["Criterion", "% Met"]],
     body: [
       ["Bank Transactions", `${bd.bankPct}%`],
@@ -793,16 +802,16 @@ export function exportExecSummaryPDF(history: MerHistoryRow[], rangeLabel: strin
       ["Statement Requests Received", `${bd.stmtPct}%`],
     ],
     theme: "grid",
-    headStyles: { fillColor: RGB.primary, textColor: 255, fontStyle: "bold", fontSize: 10 },
-    styles: { fontSize: 10, cellPadding: 6 },
-    columnStyles: { 0: { cellWidth: 320 }, 1: { halign: "right", fontStyle: "bold" } },
+    headStyles: { fillColor: RGB.primary, textColor: 255, fontStyle: "bold", fontSize: 10, cellPadding: 6 },
+    styles: { fontSize: 10, cellPadding: 6, lineColor: RGB.border, lineWidth: 0.25, valign: "middle" },
+    columnStyles: { 0: { cellWidth: pageW - margin * 2 - 100 }, 1: { cellWidth: 100, halign: "right", fontStyle: "bold" } },
     didParseCell: (d) => {
       if (d.section === "body" && d.column.index === 1) {
         const v = parseInt(String(d.cell.raw), 10);
         d.cell.styles.textColor = v >= 90 ? RGB.success : v >= 60 ? RGB.warn : RGB.danger;
       }
     },
-    margin: { left: margin, right: margin },
+    margin: { left: margin, right: margin, bottom: PDF_FOOTER_RESERVE },
   });
 
   pdfFooter(doc);
