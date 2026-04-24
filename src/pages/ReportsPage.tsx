@@ -38,7 +38,7 @@ interface ExportDef {
   accent: "primary" | "success" | "warning" | "destructive";
   formats: ("xlsx" | "pdf")[];
   countLabel: (h: MerHistoryRow[], c: CycleEntry[]) => string;
-  run: (fmt: "xlsx" | "pdf", h: MerHistoryRow[], c: CycleEntry[], rangeLabel: string, fileBase: string) => void;
+  run: (fmt: "xlsx" | "pdf", h: MerHistoryRow[], c: CycleEntry[], rangeLabel: string, fileBase: string) => ExportPayload;
 }
 
 const EXPORTS: ExportDef[] = [
