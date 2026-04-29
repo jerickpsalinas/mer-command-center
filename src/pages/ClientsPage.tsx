@@ -77,6 +77,14 @@ export default function ClientsPage() {
   const history = historyClient ? getClientHistory(data.merHistory, historyClient) : [];
   const monthDiff = history.length >= 2 ? diffClientMonths(history[history.length - 2], history[history.length - 1]) : [];
 
+  // Latest MerHistoryRow for the selected details client (carries month + submission meta)
+  const detailsRow = (() => {
+    if (!detailsClient) return null;
+    const rows = data.merHistory.filter((r) => r.name === detailsClient);
+    if (rows.length === 0) return null;
+    return rows.reduce((latest, r) => (r.timestampMs >= latest.timestampMs ? r : latest), rows[0]);
+  })();
+
   const toggleSort = (key: SortKey) => {
     if (sortKey === key) setSortDir((d) => (d === "asc" ? "desc" : "asc"));
     else { setSortKey(key); setSortDir(key === "completionPct" ? "asc" : "desc"); }
