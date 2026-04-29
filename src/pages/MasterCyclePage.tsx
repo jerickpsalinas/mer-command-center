@@ -122,6 +122,15 @@ export default function MasterCyclePage() {
       const latest = [...items].sort(
         (a, b) => (Date.parse(b.timestamp) || 0) - (Date.parse(a.timestamp) || 0),
       )[0];
+      // Fallback: compute days-in-stage from the latest entry's timestamp when
+      // the sheet doesn't provide it (column missing or 0).
+      let daysInStage = Number(latest.daysInStage) || 0;
+      if (!daysInStage && latest.timestamp) {
+        const t = Date.parse(latest.timestamp);
+        if (!Number.isNaN(t)) {
+          daysInStage = Math.max(0, Math.floor((Date.now() - t) / 86400000));
+        }
+      }
       const categorySet = new Set<string>();
       for (const it of items) {
         if (it.categoryTags && it.categoryTags !== "None") {
