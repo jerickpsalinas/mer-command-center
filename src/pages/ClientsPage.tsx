@@ -358,7 +358,7 @@ export default function ClientsPage() {
                 </div>
               )}
               <div className="mt-3 pt-2 border-t border-border/50 flex items-center justify-between text-[10px] text-muted-foreground/70 group-hover:text-primary transition-colors">
-                <span className="flex items-center gap-1"><History className="h-3 w-3" /> Tap to view history <span className="hidden sm:inline">· swipe ←</span></span>
+                <span className="flex items-center gap-1"><FileText className="h-3 w-3" /> Tap for details <span className="hidden sm:inline">· swipe ← for history</span></span>
                 <span>›</span>
               </div>
             </div>
