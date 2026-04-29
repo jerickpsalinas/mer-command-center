@@ -374,7 +374,7 @@ export default function ClientsPage() {
               className="rounded-xl border border-border bg-card shadow-card hover:shadow-card-hover transition-[box-shadow] duration-300"
             >
               <SwipeableCard
-                onTap={() => setHistoryClient(c.name)}
+                onTap={() => setDetailsClient(c.name)}
                 leftAction={{
                   label: "History",
                   icon: History,
