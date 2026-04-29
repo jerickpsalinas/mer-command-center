@@ -228,7 +228,31 @@ export default function ClientsPage() {
             <Search className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
             <input type="text" placeholder="Search clients…" value={search} onChange={(e) => setSearch(e.target.value)}
               className="bg-transparent outline-none text-sm text-foreground placeholder:text-muted-foreground w-full min-w-0" />
+            {search && (
+              <button
+                onClick={() => setSearch("")}
+                aria-label="Clear search"
+                className="shrink-0 h-4 w-4 rounded-full flex items-center justify-center text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors"
+              >
+                <X className="h-3 w-3" />
+              </button>
+            )}
           </div>
+
+          {hasActiveFilter && (
+            <button
+              onClick={() => {
+                setSearch("");
+                setStatusFilter("all");
+                setBookkeeperFilter("");
+                setTypeFilter("");
+                setMinCompletion(0);
+              }}
+              className="inline-flex items-center gap-1 text-[11px] font-semibold px-2.5 py-1.5 rounded-md bg-destructive/10 text-destructive border border-destructive/20 hover:bg-destructive/15 transition-colors"
+            >
+              <X className="h-3 w-3" />Clear filters
+            </button>
+          )}
 
           <MonthFilter
             value={monthFilter}
