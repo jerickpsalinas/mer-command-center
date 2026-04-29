@@ -8,13 +8,14 @@ import NotificationDropdown from "@/components/NotificationDropdown";
 import MobileTabBar from "@/components/MobileTabBar";
 import {
   LayoutDashboard, CalendarCheck, TrendingUp, Users, Download, Settings,
-  Menu, X, ChevronLeft, RefreshCw, Sun, Moon, Workflow, UserCheck,
+  Menu, X, ChevronLeft, RefreshCw, Sun, Moon, Workflow, UserCheck, HeartPulse,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import logo from "@/assets/logo.png";
 
 const navItems = [
   { title: "Dashboard", url: "/", icon: LayoutDashboard },
+  { title: "Compliance Health", url: "/health-pillars", icon: HeartPulse },
   { title: "Master Bookkeeping Cycle", url: "/master-cycle", icon: Workflow },
   { title: "Monthly Progress", url: "/monthly-progress", icon: CalendarCheck },
   { title: "Clients", url: "/clients", icon: Users },
