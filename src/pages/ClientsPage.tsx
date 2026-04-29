@@ -62,6 +62,7 @@ export default function ClientsPage() {
   const [sortKey, setSortKey] = useState<SortKey>("completionPct");
   const [sortDir, setSortDir] = useState<SortDir>("asc");
   const [historyClient, setHistoryClient] = useState<string | null>(null);
+  const [detailsClient, setDetailsClient] = useState<string | null>(null);
   const [showSaveDialog, setShowSaveDialog] = useState(false);
   const [newFilterName, setNewFilterName] = useState("");
   const [monthFilter, setMonthFilter] = useState<string>("current");
