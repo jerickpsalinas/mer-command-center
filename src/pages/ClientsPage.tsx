@@ -44,7 +44,7 @@ function getIssueDetails(c: { uncategorizedTransactions: number; bankTransaction
 export default function ClientsPage() {
   const { data, isLoading, error } = useSheetData();
   const { savedFilters, saveFilter, deleteFilter } = useUserSettings();
-  const [searchParams, setSearchParams] = useSearchParams();
+  const [searchParams] = useSearchParams();
 
   const [search, setSearch] = useState(searchParams.get("search") ?? "");
   const [statusFilter, setStatusFilter] = useState<SavedFilter["status"]>("all");
