@@ -291,67 +291,148 @@ export default function MasterCyclePage() {
           )}
         </header>
 
-        {/* Stage cards: responsive grid that gives each stage a labeled card */}
-        <ol className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-2">
-          {PIPELINE_STAGES.map((s) => {
-            const count = stageCounts.get(s.num) ?? 0;
-            const tone = stageTone(s.num);
-            const selected = filterStage === s.num;
-            return (
-              <li key={s.num}>
-                <button
-                  onClick={() => setFilterStage(selected ? null : s.num)}
-                  aria-pressed={selected}
-                  title={`${s.name} — ${s.who}${s.automove ? " · Automove ON" : ""}`}
-                  className={`w-full text-left rounded-xl border p-3 transition-all ${
-                    selected
-                      ? `${tone.bg} border-transparent ring-2 ${tone.ring}`
-                      : "bg-background/40 border-border hover:bg-accent/30"
-                  }`}
-                >
-                  <div className="flex items-center justify-between">
-                    <span
-                      className={`h-6 w-6 rounded-full flex items-center justify-center text-[11px] font-bold font-mono-data ${tone.bg} ${tone.text}`}
-                    >
-                      {s.num}
-                    </span>
-                    {s.automove && (
+        {/* Stage groups: 4 phase-boxes wrapping individual stage cards */}
+        {(() => {
+          const GROUPS: {
+            label: string;
+            sub: string;
+            stages: number[];
+            box: string;
+            chip: string;
+          }[] = [
+            {
+              label: "Intake & Outreach",
+              sub: "Stages 1–4",
+              stages: [1, 2, 3, 4],
+              box: "bg-muted/40 border-border",
+              chip: "bg-muted text-muted-foreground",
+            },
+            {
+              label: "Processing",
+              sub: "Stages 5–6",
+              stages: [5, 6],
+              box: "bg-primary/5 border-primary/20",
+              chip: "bg-primary/15 text-primary",
+            },
+            {
+              label: "Review",
+              sub: "Stage 7",
+              stages: [7],
+              box: "bg-warning/5 border-warning/20",
+              chip: "bg-warning/15 text-warning",
+            },
+            {
+              label: "Done",
+              sub: "Stage 8",
+              stages: [8],
+              box: "bg-success/5 border-success/20",
+              chip: "bg-success/15 text-success",
+            },
+          ];
+          return (
+            <div className="grid grid-cols-1 lg:grid-cols-[2fr_1fr_0.6fr_0.6fr] gap-3">
+              {GROUPS.map((g) => {
+                const total = g.stages.reduce((sum, n) => sum + (stageCounts.get(n) ?? 0), 0);
+                return (
+                  <section
+                    key={g.label}
+                    className={`rounded-2xl border ${g.box} p-3`}
+                    aria-label={`${g.label} (${g.sub})`}
+                  >
+                    <header className="flex items-center justify-between mb-2.5 px-1">
+                      <div className="min-w-0">
+                        <h3 className="text-[12px] font-semibold text-foreground leading-tight truncate">
+                          {g.label}
+                        </h3>
+                        <p className="text-[10px] font-mono-data uppercase tracking-wider text-muted-foreground">
+                          {g.sub}
+                        </p>
+                      </div>
                       <span
-                        className="text-[9px] font-mono-data uppercase tracking-wider px-1.5 py-0.5 rounded bg-success/10 text-success"
-                        title="Auto-advances to next stage"
+                        className={`shrink-0 inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-bold font-mono-data tabular-nums ${g.chip}`}
                       >
-                        Auto
+                        {total}
+                        <span className="font-medium opacity-70">
+                          {total === 1 ? "cycle" : "cycles"}
+                        </span>
                       </span>
-                    )}
-                  </div>
-                  <p className="mt-2 text-[12px] font-semibold text-foreground leading-tight break-words">
-                    {s.short}
-                  </p>
-                  <div className="mt-1.5 flex items-baseline gap-1">
-                    <span className={`text-2xl font-bold tabular-nums font-mono-data ${count > 0 ? "text-foreground" : "text-muted-foreground/60"}`}>
-                      {count}
-                    </span>
-                    <span className="text-[10px] text-muted-foreground">
-                      {count === 1 ? "cycle" : "cycles"}
-                    </span>
-                  </div>
-                  {/* progress bar to make density visible at a glance */}
-                  <div className="mt-2 h-1 w-full rounded-full bg-muted overflow-hidden">
-                    <div
-                      className={`h-full ${tone.bar} transition-all`}
-                      style={{
-                        width:
-                          totalCycles > 0
-                            ? `${Math.min(100, (count / totalCycles) * 100)}%`
-                            : "0%",
-                      }}
-                    />
-                  </div>
-                </button>
-              </li>
-            );
-          })}
-        </ol>
+                    </header>
+                    <ol
+                      className={`grid gap-2 ${
+                        g.stages.length >= 4
+                          ? "grid-cols-2 sm:grid-cols-4"
+                          : g.stages.length === 2
+                            ? "grid-cols-2"
+                            : "grid-cols-1"
+                      }`}
+                    >
+                      {g.stages.map((num) => {
+                        const s = PIPELINE_STAGES.find((p) => p.num === num)!;
+                        const count = stageCounts.get(num) ?? 0;
+                        const tone = stageTone(num);
+                        const selected = filterStage === num;
+                        return (
+                          <li key={num}>
+                            <button
+                              onClick={() => setFilterStage(selected ? null : num)}
+                              aria-pressed={selected}
+                              title={`${s.name} — ${s.who}${s.automove ? " · Automove ON" : ""}`}
+                              className={`w-full text-left rounded-xl border p-3 transition-all ${
+                                selected
+                                  ? `${tone.bg} border-transparent ring-2 ${tone.ring}`
+                                  : "bg-card border-border hover:bg-accent/30"
+                              }`}
+                            >
+                              <div className="flex items-center justify-between">
+                                <span
+                                  className={`h-6 w-6 rounded-full flex items-center justify-center text-[11px] font-bold font-mono-data ${tone.bg} ${tone.text}`}
+                                >
+                                  {s.num}
+                                </span>
+                                {s.automove && (
+                                  <span
+                                    className="text-[9px] font-mono-data uppercase tracking-wider px-1.5 py-0.5 rounded bg-success/10 text-success"
+                                    title="Auto-advances to next stage"
+                                  >
+                                    Auto
+                                  </span>
+                                )}
+                              </div>
+                              <p className="mt-2 text-[12px] font-semibold text-foreground leading-tight break-words">
+                                {s.short}
+                              </p>
+                              <div className="mt-1.5 flex items-baseline gap-1">
+                                <span
+                                  className={`text-2xl font-bold tabular-nums font-mono-data ${count > 0 ? "text-foreground" : "text-muted-foreground/60"}`}
+                                >
+                                  {count}
+                                </span>
+                                <span className="text-[10px] text-muted-foreground">
+                                  {count === 1 ? "cycle" : "cycles"}
+                                </span>
+                              </div>
+                              <div className="mt-2 h-1 w-full rounded-full bg-muted overflow-hidden">
+                                <div
+                                  className={`h-full ${tone.bar} transition-all`}
+                                  style={{
+                                    width:
+                                      totalCycles > 0
+                                        ? `${Math.min(100, (count / totalCycles) * 100)}%`
+                                        : "0%",
+                                  }}
+                                />
+                              </div>
+                            </button>
+                          </li>
+                        );
+                      })}
+                    </ol>
+                  </section>
+                );
+              })}
+            </div>
+          );
+        })()}
       </motion.section>
 
       {/* Filters */}
