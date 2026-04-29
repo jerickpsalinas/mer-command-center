@@ -397,6 +397,20 @@ export default function ClientsPage() {
         })}
       </div>
 
+      {/* Client details modal — grouped MER fields, live from sheet */}
+      <ClientDetailsModal
+        open={!!detailsClient}
+        onClose={() => setDetailsClient(null)}
+        client={detailsRow}
+        onViewHistory={() => {
+          if (detailsClient) {
+            const name = detailsClient;
+            setDetailsClient(null);
+            setHistoryClient(name);
+          }
+        }}
+      />
+
       {/* Per-client history dialog with MoM diff */}
       <Dialog open={!!historyClient} onOpenChange={(open) => !open && setHistoryClient(null)}>
         <DialogContent className="max-w-3xl w-[calc(100vw-1rem)] sm:w-auto max-h-[85vh] overflow-y-auto scrollbar-thin scrollbar-thumb-muted-foreground/20 hover:scrollbar-thumb-muted-foreground/40 scrollbar-track-transparent p-4 sm:p-6">
