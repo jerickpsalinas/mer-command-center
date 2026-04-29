@@ -10,7 +10,6 @@ import {
   enforcementFlags,
   cleanupLeaderboard,
   pillarHistory,
-  clientDots,
   type PillarScore,
   type WatchlistItem,
 } from "@/lib/healthPillars";
