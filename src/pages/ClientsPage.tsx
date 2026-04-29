@@ -14,6 +14,7 @@ import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContaine
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { diffClientMonths } from "@/lib/insights";
 import { toast } from "@/hooks/use-toast";
+import ClientDetailsModal from "@/components/ClientDetailsModal";
 
 type SortKey = "name" | "completionPct" | "complianceStatus" | "uncategorizedTransactions";
 type SortDir = "asc" | "desc";
