@@ -2,7 +2,8 @@ import StatusBadge from "@/components/StatusBadge";
 import StickyPageHeader from "@/components/StickyPageHeader";
 import ClientSparkline from "@/components/ClientSparkline";
 import SwipeableCard from "@/components/SwipeableCard";
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect } from "react";
+import { useSearchParams } from "react-router-dom";
 import { Search, AlertTriangle, ArrowUpDown, BarChart3, History, TrendingUp, Bookmark, BookmarkPlus, X, Filter, ArrowUp, ArrowDown, Minus } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useSheetData, getClientHistory, getClientsForMonth } from "@/hooks/useSheetData";
@@ -43,9 +44,17 @@ function getIssueDetails(c: { uncategorizedTransactions: number; bankTransaction
 export default function ClientsPage() {
   const { data, isLoading, error } = useSheetData();
   const { savedFilters, saveFilter, deleteFilter } = useUserSettings();
+  const [searchParams] = useSearchParams();
 
-  const [search, setSearch] = useState("");
+  const [search, setSearch] = useState(searchParams.get("search") ?? "");
   const [statusFilter, setStatusFilter] = useState<SavedFilter["status"]>("all");
+
+  // Sync ?search= on first mount / when URL changes externally (e.g. from Compliance Salon links)
+  useEffect(() => {
+    const q = searchParams.get("search");
+    if (q !== null && q !== search) setSearch(q);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchParams]);
   const [bookkeeperFilter, setBookkeeperFilter] = useState("");
   const [typeFilter, setTypeFilter] = useState("");
   const [minCompletion, setMinCompletion] = useState(0);
