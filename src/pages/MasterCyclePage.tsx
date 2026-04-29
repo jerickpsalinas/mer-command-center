@@ -150,7 +150,7 @@ export default function MasterCyclePage() {
         cycleStatus: latest.cycleStatus,
         currentStage: latest.stageNumber,
         currentStageName: latest.stageName || STAGE_NAME_BY_NUM.get(latest.stageNumber) || "",
-        daysInStage: latest.daysInStage,
+        daysInStage,
         escalated: items.some((i) => i.escalated),
         categories: Array.from(categorySet),
         entries: sorted,
