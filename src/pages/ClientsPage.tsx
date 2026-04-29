@@ -49,7 +49,7 @@ export default function ClientsPage() {
   const [search, setSearch] = useState(searchParams.get("search") ?? "");
   const [statusFilter, setStatusFilter] = useState<SavedFilter["status"]>("all");
 
-  // Sync ?search= on first mount / when URL changes externally (e.g. from Compliance Salon links)
+  // Sync ?search= on first mount / when URL changes externally (e.g. from Compliance Health links)
   useEffect(() => {
     const q = searchParams.get("search");
     if (q !== null && q !== search) setSearch(q);

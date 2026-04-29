@@ -317,7 +317,7 @@ export default function HealthPillarsPage() {
       >
         <div>
           <p className="text-[10px] uppercase tracking-[0.25em] text-muted-foreground font-medium mb-2">
-            Compliance Salon · Internal MER Ledger
+            Compliance Health · Internal MER Ledger
           </p>
           <h1 className="font-serif italic text-3xl sm:text-4xl text-primary tracking-tight text-balance">
             Compliance Health Pillars
