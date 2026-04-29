@@ -301,14 +301,14 @@ export default function MasterCyclePage() {
             chip: string;
           }[] = [
             {
-              label: "Intake & Outreach",
+              label: "Prep & Outreach",
               sub: "Stages 1–4",
               stages: [1, 2, 3, 4],
               box: "bg-muted/40 border-border",
               chip: "bg-muted text-muted-foreground",
             },
             {
-              label: "Processing",
+              label: "Books in Progress",
               sub: "Stages 5–6",
               stages: [5, 6],
               box: "bg-primary/5 border-primary/20",
