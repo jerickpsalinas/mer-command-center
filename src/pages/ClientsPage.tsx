@@ -44,9 +44,17 @@ function getIssueDetails(c: { uncategorizedTransactions: number; bankTransaction
 export default function ClientsPage() {
   const { data, isLoading, error } = useSheetData();
   const { savedFilters, saveFilter, deleteFilter } = useUserSettings();
+  const [searchParams, setSearchParams] = useSearchParams();
 
-  const [search, setSearch] = useState("");
+  const [search, setSearch] = useState(searchParams.get("search") ?? "");
   const [statusFilter, setStatusFilter] = useState<SavedFilter["status"]>("all");
+
+  // Sync ?search= on first mount / when URL changes externally (e.g. from Compliance Salon links)
+  useEffect(() => {
+    const q = searchParams.get("search");
+    if (q !== null && q !== search) setSearch(q);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchParams]);
   const [bookkeeperFilter, setBookkeeperFilter] = useState("");
   const [typeFilter, setTypeFilter] = useState("");
   const [minCompletion, setMinCompletion] = useState(0);
