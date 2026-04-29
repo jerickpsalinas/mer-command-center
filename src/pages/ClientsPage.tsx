@@ -4,7 +4,7 @@ import ClientSparkline from "@/components/ClientSparkline";
 import SwipeableCard from "@/components/SwipeableCard";
 import { useMemo, useState, useEffect } from "react";
 import { useSearchParams } from "react-router-dom";
-import { Search, AlertTriangle, ArrowUpDown, BarChart3, History, TrendingUp, Bookmark, BookmarkPlus, X, Filter, ArrowUp, ArrowDown, Minus } from "lucide-react";
+import { Search, AlertTriangle, ArrowUpDown, BarChart3, History, TrendingUp, Bookmark, BookmarkPlus, X, Filter, ArrowUp, ArrowDown, Minus, FileText } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useSheetData, getClientHistory, getClientsForMonth } from "@/hooks/useSheetData";
 import MonthFilter from "@/components/MonthFilter";
