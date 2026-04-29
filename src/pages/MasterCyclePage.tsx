@@ -581,46 +581,65 @@ export default function MasterCyclePage() {
                         Stage History
                       </h4>
                       <div className="space-y-2">
-                        {c.entries.map((e) => (
-                          <div
-                            key={e.id}
-                            className="flex flex-wrap items-start gap-3 rounded-lg border border-border bg-card p-3"
-                          >
-                            <div className="flex items-center gap-2 shrink-0">
+                        {(() => {
+                          // Sort by timestamp ascending so duration = next.ts - this.ts
+                          const byTime = [...c.entries].sort(
+                            (a, b) => (Date.parse(a.timestamp) || 0) - (Date.parse(b.timestamp) || 0),
+                          );
+                          return byTime.map((e, i) => {
+                            let days = Number(e.daysInStage) || 0;
+                            if (!days) {
+                              const start = Date.parse(e.timestamp);
+                              const end =
+                                i < byTime.length - 1
+                                  ? Date.parse(byTime[i + 1].timestamp)
+                                  : Date.now();
+                              if (!Number.isNaN(start) && !Number.isNaN(end)) {
+                                days = Math.max(0, Math.floor((end - start) / 86400000));
+                              }
+                            }
+                            return (
                               <div
-                                className={`h-7 w-7 rounded-full text-[11px] font-bold flex items-center justify-center font-mono-data ${stageTone(e.stageNumber).bg} ${stageTone(e.stageNumber).text}`}
+                                key={e.id}
+                                className="flex flex-wrap items-start gap-3 rounded-lg border border-border bg-card p-3"
                               >
-                                {e.stageNumber}
+                                <div className="flex items-center gap-2 shrink-0">
+                                  <div
+                                    className={`h-7 w-7 rounded-full text-[11px] font-bold flex items-center justify-center font-mono-data ${stageTone(e.stageNumber).bg} ${stageTone(e.stageNumber).text}`}
+                                  >
+                                    {e.stageNumber}
+                                  </div>
+                                  <div className="min-w-0">
+                                    <p className="text-[13px] font-semibold text-foreground">
+                                      {e.stageName || STAGE_NAME_BY_NUM.get(e.stageNumber)}
+                                    </p>
+                                    <p className="text-[11px] text-muted-foreground font-mono-data">
+                                      {e.timestamp}
+                                    </p>
+                                  </div>
+                                </div>
+                                <div className="flex-1 min-w-[200px]">
+                                  {e.notes && (
+                                    <p className="text-[12px] text-foreground/90 break-words">
+                                      {e.notes}
+                                    </p>
+                                  )}
+                                  <div className="flex flex-wrap items-center gap-2 mt-1.5">
+                                    <CategoryChips tags={e.categoryTags} />
+                                    {e.escalated && (
+                                      <span className="text-[10px] px-1.5 py-0.5 rounded bg-destructive/10 text-destructive font-semibold uppercase tracking-wider">
+                                        Escalated
+                                      </span>
+                                    )}
+                                    <span className="text-[10px] text-muted-foreground font-mono-data ml-auto tabular-nums">
+                                      {days}d in stage
+                                    </span>
+                                  </div>
+                                </div>
                               </div>
-                              <div className="min-w-0">
-                                <p className="text-[13px] font-semibold text-foreground">
-                                  {e.stageName || STAGE_NAME_BY_NUM.get(e.stageNumber)}
-                                </p>
-                                <p className="text-[11px] text-muted-foreground font-mono-data">
-                                  {e.timestamp}
-                                </p>
-                              </div>
-                            </div>
-                            <div className="flex-1 min-w-[200px]">
-                              {e.notes && (
-                                <p className="text-[12px] text-foreground/90 break-words">
-                                  {e.notes}
-                                </p>
-                              )}
-                              <div className="flex flex-wrap items-center gap-2 mt-1.5">
-                                <CategoryChips tags={e.categoryTags} />
-                                {e.escalated && (
-                                  <span className="text-[10px] px-1.5 py-0.5 rounded bg-destructive/10 text-destructive font-semibold uppercase tracking-wider">
-                                    Escalated
-                                  </span>
-                                )}
-                                <span className="text-[10px] text-muted-foreground font-mono-data ml-auto tabular-nums">
-                                  {e.daysInStage}d in stage
-                                </span>
-                              </div>
-                            </div>
-                          </div>
-                        ))}
+                            );
+                          });
+                        })()}
                       </div>
                     </div>
                   </div>
