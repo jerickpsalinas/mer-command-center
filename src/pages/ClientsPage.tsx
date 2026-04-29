@@ -4,7 +4,7 @@ import ClientSparkline from "@/components/ClientSparkline";
 import SwipeableCard from "@/components/SwipeableCard";
 import { useMemo, useState, useEffect } from "react";
 import { useSearchParams } from "react-router-dom";
-import { Search, AlertTriangle, ArrowUpDown, BarChart3, History, TrendingUp, Bookmark, BookmarkPlus, X, Filter, ArrowUp, ArrowDown, Minus } from "lucide-react";
+import { Search, AlertTriangle, ArrowUpDown, BarChart3, History, TrendingUp, Bookmark, BookmarkPlus, X, Filter, ArrowUp, ArrowDown, Minus, FileText } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useSheetData, getClientHistory, getClientsForMonth } from "@/hooks/useSheetData";
 import MonthFilter from "@/components/MonthFilter";
@@ -14,6 +14,7 @@ import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContaine
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { diffClientMonths } from "@/lib/insights";
 import { toast } from "@/hooks/use-toast";
+import ClientDetailsModal from "@/components/ClientDetailsModal";
 
 type SortKey = "name" | "completionPct" | "complianceStatus" | "uncategorizedTransactions";
 type SortDir = "asc" | "desc";
@@ -61,6 +62,7 @@ export default function ClientsPage() {
   const [sortKey, setSortKey] = useState<SortKey>("completionPct");
   const [sortDir, setSortDir] = useState<SortDir>("asc");
   const [historyClient, setHistoryClient] = useState<string | null>(null);
+  const [detailsClient, setDetailsClient] = useState<string | null>(null);
   const [showSaveDialog, setShowSaveDialog] = useState(false);
   const [newFilterName, setNewFilterName] = useState("");
   const [monthFilter, setMonthFilter] = useState<string>("current");
@@ -74,6 +76,14 @@ export default function ClientsPage() {
 
   const history = historyClient ? getClientHistory(data.merHistory, historyClient) : [];
   const monthDiff = history.length >= 2 ? diffClientMonths(history[history.length - 2], history[history.length - 1]) : [];
+
+  // Latest MerHistoryRow for the selected details client (carries month + submission meta)
+  const detailsRow = (() => {
+    if (!detailsClient) return null;
+    const rows = data.merHistory.filter((r) => r.name === detailsClient);
+    if (rows.length === 0) return null;
+    return rows.reduce((latest, r) => (r.timestampMs >= latest.timestampMs ? r : latest), rows[0]);
+  })();
 
   const toggleSort = (key: SortKey) => {
     if (sortKey === key) setSortDir((d) => (d === "asc" ? "desc" : "asc"));
@@ -356,7 +366,7 @@ export default function ClientsPage() {
                 </div>
               )}
               <div className="mt-3 pt-2 border-t border-border/50 flex items-center justify-between text-[10px] text-muted-foreground/70 group-hover:text-primary transition-colors">
-                <span className="flex items-center gap-1"><History className="h-3 w-3" /> Tap to view history <span className="hidden sm:inline">· swipe ←</span></span>
+                <span className="flex items-center gap-1"><FileText className="h-3 w-3" /> Tap for details <span className="hidden sm:inline">· swipe ← for history</span></span>
                 <span>›</span>
               </div>
             </div>
@@ -372,7 +382,7 @@ export default function ClientsPage() {
               className="rounded-xl border border-border bg-card shadow-card hover:shadow-card-hover transition-[box-shadow] duration-300"
             >
               <SwipeableCard
-                onTap={() => setHistoryClient(c.name)}
+                onTap={() => setDetailsClient(c.name)}
                 leftAction={{
                   label: "History",
                   icon: History,
@@ -386,6 +396,20 @@ export default function ClientsPage() {
           );
         })}
       </div>
+
+      {/* Client details modal — grouped MER fields, live from sheet */}
+      <ClientDetailsModal
+        open={!!detailsClient}
+        onClose={() => setDetailsClient(null)}
+        client={detailsRow}
+        onViewHistory={() => {
+          if (detailsClient) {
+            const name = detailsClient;
+            setDetailsClient(null);
+            setHistoryClient(name);
+          }
+        }}
+      />
 
       {/* Per-client history dialog with MoM diff */}
       <Dialog open={!!historyClient} onOpenChange={(open) => !open && setHistoryClient(null)}>

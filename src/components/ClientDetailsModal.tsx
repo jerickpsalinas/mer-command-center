@@ -1,0 +1,141 @@
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Building2, ShieldCheck, Banknote, Workflow, Clock, History, FileText } from "lucide-react";
+import StatusBadge from "@/components/StatusBadge";
+import type { MerHistoryRow } from "@/services/googleSheets";
+
+interface Props {
+  open: boolean;
+  onClose: () => void;
+  client: MerHistoryRow | null;
+  onViewHistory?: () => void;
+}
+
+type Field = {
+  label: string;
+  value: React.ReactNode;
+  mono?: boolean;
+};
+
+function Section({
+  icon: Icon,
+  title,
+  fields,
+}: {
+  icon: typeof Building2;
+  title: string;
+  fields: Field[];
+}) {
+  return (
+    <div className="rounded-lg border border-border bg-muted/20 p-4">
+      <div className="flex items-center gap-2 mb-3">
+        <Icon className="h-3.5 w-3.5 text-primary" />
+        <span className="text-[11px] font-semibold uppercase tracking-wider text-foreground">
+          {title}
+        </span>
+      </div>
+      <dl className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-2.5">
+        {fields.map((f, i) => (
+          <div key={i} className="flex flex-col gap-0.5 min-w-0">
+            <dt className="text-[10.5px] uppercase tracking-wide text-muted-foreground">
+              {f.label}
+            </dt>
+            <dd
+              className={`text-xs text-foreground break-words ${
+                f.mono ? "font-mono-data tabular-nums" : ""
+              }`}
+            >
+              {f.value === "" || f.value === null || f.value === undefined ? (
+                <span className="text-muted-foreground/60">—</span>
+              ) : (
+                f.value
+              )}
+            </dd>
+          </div>
+        ))}
+      </dl>
+    </div>
+  );
+}
+
+const yn = (b: boolean) => (
+  <span className={b ? "text-success font-semibold" : "text-destructive font-semibold"}>
+    {b ? "Yes" : "No"}
+  </span>
+);
+
+export default function ClientDetailsModal({ open, onClose, client, onViewHistory }: Props) {
+  if (!client) return null;
+
+  const clientInfo: Field[] = [
+    { label: "Client Name", value: client.name },
+    { label: "Client Type", value: client.clientType },
+    { label: "Bookkeeper", value: client.bookkeeper },
+    { label: "Reporting Month", value: client.month },
+  ];
+
+  const compliance: Field[] = [
+    {
+      label: "Compliance Status",
+      value: <StatusBadge status={client.complianceStatus} />,
+    },
+    { label: "Completion %", value: `${client.completionPct}%`, mono: true },
+    { label: "Statement Request Status", value: client.statementRequestStatus },
+    { label: "Bank Transactions", value: client.bankTransactions },
+  ];
+
+  const bankBooks: Field[] = [
+    { label: "Uncategorized Transactions", value: client.uncategorizedTransactions, mono: true },
+    { label: "Transactions Without Payees", value: client.transactionsWithoutPayees, mono: true },
+    { label: "Undeposited Funds", value: client.undepositedFunds, mono: true },
+    { label: "Unapplied Payments", value: client.unappliedPayments, mono: true },
+    { label: "Last Reconciled Date", value: client.lastReconciledDate, mono: true },
+    { label: "Books Closed In QB", value: yn(client.booksClosedInQB) },
+  ];
+
+  const workflow: Field[] = [
+    { label: "Prev Month Notes Approved", value: yn(client.prevMonthNotesApproved) },
+    { label: "Financials Sent To Client", value: yn(client.financialsSentToClient) },
+  ];
+
+  const meta: Field[] = [
+    { label: "Submitted By", value: client.submittedBy },
+    { label: "Submission Timestamp", value: client.timestamp, mono: true },
+  ];
+
+  return (
+    <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
+      <DialogContent className="max-w-3xl w-[calc(100vw-1rem)] sm:w-auto max-h-[88vh] overflow-y-auto scrollbar-thin scrollbar-thumb-muted-foreground/20 hover:scrollbar-thumb-muted-foreground/40 scrollbar-track-transparent p-4 sm:p-6">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2 pr-8">
+            <FileText className="h-4 w-4 text-primary shrink-0" />
+            <span className="truncate">{client.name} – MER Details</span>
+          </DialogTitle>
+          <p className="text-[11px] text-muted-foreground">
+            Live snapshot from the MER ledger ·{" "}
+            <span className="font-semibold text-foreground">{client.month}</span>
+          </p>
+        </DialogHeader>
+
+        <div className="space-y-3.5 mt-2">
+          <Section icon={Building2} title="Client Info" fields={clientInfo} />
+          <Section icon={ShieldCheck} title="Compliance" fields={compliance} />
+          <Section icon={Banknote} title="Bank & Books" fields={bankBooks} />
+          <Section icon={Workflow} title="Workflow" fields={workflow} />
+          <Section icon={Clock} title="Submission Meta" fields={meta} />
+        </div>
+
+        {onViewHistory && (
+          <div className="flex flex-wrap items-center justify-end gap-2 pt-2 border-t border-border/60 mt-2">
+            <button
+              onClick={onViewHistory}
+              className="inline-flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-md bg-primary/10 text-primary border border-primary/20 hover:bg-primary/15 transition-colors"
+            >
+              <History className="h-3.5 w-3.5" />
+              View monthly history
+            </button>
+          </div>
+        )}
+      </DialogContent>
+    </Dialog>
+  );
+}
