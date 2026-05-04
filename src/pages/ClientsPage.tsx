@@ -77,11 +77,20 @@ export default function ClientsPage() {
   const history = historyClient ? getClientHistory(data.merHistory, historyClient) : [];
   const monthDiff = history.length >= 2 ? diffClientMonths(history[history.length - 2], history[history.length - 1]) : [];
 
-  // Latest MerHistoryRow for the selected details client (carries month + submission meta)
+  // Latest MerHistoryRow for the selected details client (carries month + submission meta).
+  // Use a normalized (trim + lowercase) match so cards always open even when the snapshot
+  // name has different whitespace/casing from the historical rows.
   const detailsRow = (() => {
     if (!detailsClient) return null;
-    const rows = data.merHistory.filter((r) => r.name === detailsClient);
-    if (rows.length === 0) return null;
+    const norm = (s: string) => s.trim().toLowerCase();
+    const target = norm(detailsClient);
+    const rows = data.merHistory.filter((r) => norm(r.name) === target);
+    if (rows.length === 0) {
+      // Fallback: synthesize a minimal row from the current month snapshot so the modal
+      // still opens with whatever info we have, instead of silently doing nothing.
+      const snap = monthClients.find((c) => norm(c.name) === target);
+      return snap ? (snap as unknown as typeof data.merHistory[number]) : null;
+    }
     return rows.reduce((latest, r) => (r.timestampMs >= latest.timestampMs ? r : latest), rows[0]);
   })();
 
