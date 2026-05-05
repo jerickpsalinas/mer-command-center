@@ -339,6 +339,11 @@ export default function ClientsPage() {
                 <div className="min-w-0">
                   <h3 className="text-sm font-semibold text-foreground leading-tight truncate">{c.name}</h3>
                   <p className="text-xs text-muted-foreground mt-0.5 truncate">{c.clientType} · {c.bookkeeper}</p>
+                  {c.status?.trim() && (
+                    <p className="text-[11px] text-muted-foreground/80 mt-0.5 truncate italic">
+                      {c.status}
+                    </p>
+                  )}
                 </div>
                 <StatusBadge status={c.complianceStatus} />
               </div>

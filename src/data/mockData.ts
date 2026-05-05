@@ -3,6 +3,7 @@ export interface Client {
   name: string;
   clientType: "School" | "Non-Profit" | "For-Profit";
   bookkeeper: string;
+  status: string;
   bankTransactions: string;
   uncategorizedTransactions: number;
   transactionsWithoutPayees: number;

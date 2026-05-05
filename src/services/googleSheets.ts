@@ -85,6 +85,7 @@ function parseClient(row: Record<string, unknown>, index: number): Client {
     name: String(row["Client Name"] ?? "").trim(),
     clientType: (String(row["Client Type"] ?? "For-Profit").trim() as Client["clientType"]),
     bookkeeper: String(row["Bookkeeper"] ?? "").trim(),
+    status: String(row["Status"] ?? "").trim(),
     bankTransactions: String(row["Bank Transactions"] ?? "").trim(),
     uncategorizedTransactions: num(row["Uncategorized Transactions"]),
     transactionsWithoutPayees: num(row["Transactions Without Payees"]),

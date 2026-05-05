@@ -70,6 +70,7 @@ export default function ClientDetailsModal({ open, onClose, client, onViewHistor
     { label: "Client Name", value: client.name },
     { label: "Client Type", value: client.clientType },
     { label: "Bookkeeper", value: client.bookkeeper },
+    { label: "Status", value: client.status?.trim() ? client.status : "—" },
     { label: "Reporting Month", value: client.month },
   ];
 
