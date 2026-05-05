@@ -886,13 +886,14 @@ export function exportFullBackupXLSX(history: MerHistoryRow[], cycleEntries: Cyc
 
   // Sheet 1: All MER submissions (raw)
   const sub: XLSX.WorkSheet = { "!ref": "A1" };
-  const subHeaders = ["Month", "Submitted At", "Submitted By", "Client", "Type", "Bookkeeper", "Bank Txns", "Uncategorized", "No-Payee", "Undeposited", "Unapplied", "Stmt Status", "Last Reconciled", "Notes Approved", "Financials Sent", "Books Closed", "Completion %", "Status"];
+  const subHeaders = ["Month", "Submitted At", "Submitted By", "Client", "Type", "Bookkeeper", "Status", "Bank Txns", "Uncategorized", "No-Payee", "Undeposited", "Unapplied", "Stmt Status", "Last Reconciled", "Notes Approved", "Financials Sent", "Books Closed", "Completion %", "Compliance"];
   makeTitleHeader(sub, "All MER Submissions", `${history.length} rows · Range: ${rangeLabel}`, subHeaders.length);
   placeRow(sub, 3, subHeaders, Array(subHeaders.length).fill(headerStyle));
   history.forEach((r, i) => {
     const z = i % 2 === 1;
-    placeRow(sub, 4 + i, [r.month, r.timestamp, r.submittedBy, r.name, r.clientType, r.bookkeeper, r.bankTransactions || "-", r.uncategorizedTransactions, r.transactionsWithoutPayees, r.undepositedFunds, r.unappliedPayments, r.statementRequestStatus || "-", r.lastReconciledDate || "-", r.prevMonthNotesApproved ? "Yes" : "No", r.financialsSentToClient ? "Yes" : "No", r.booksClosedInQB ? "Yes" : "No", `${r.completionPct}%`, r.complianceStatus], [
+    placeRow(sub, 4 + i, [r.month, r.timestamp, r.submittedBy, r.name, r.clientType, r.bookkeeper, r.status || "-", r.bankTransactions || "-", r.uncategorizedTransactions, r.transactionsWithoutPayees, r.undepositedFunds, r.unappliedPayments, r.statementRequestStatus || "-", r.lastReconciledDate || "-", r.prevMonthNotesApproved ? "Yes" : "No", r.financialsSentToClient ? "Yes" : "No", r.booksClosedInQB ? "Yes" : "No", `${r.completionPct}%`, r.complianceStatus], [
       cellStyle(z), cellStyle(z), cellStyle(z), { ...cellStyle(z), font: { name: "Calibri", sz: 9, bold: true, color: { rgb: "333333" } } }, cellStyle(z), cellStyle(z),
+      cellStyle(z),
       cellStyle(z), numCellStyle(z), numCellStyle(z), numCellStyle(z), numCellStyle(z),
       cellStyle(z), cellStyle(z),
       { ...cellStyle(z), alignment: { horizontal: "center", vertical: "center" } },
@@ -902,7 +903,7 @@ export function exportFullBackupXLSX(history: MerHistoryRow[], cycleEntries: Cyc
       statusStyle(r.complianceStatus, z),
     ]);
   });
-  sub["!cols"] = [{ wch: 12 }, { wch: 18 }, { wch: 14 }, { wch: 28 }, { wch: 12 }, { wch: 14 }, { wch: 12 }, { wch: 14 }, { wch: 10 }, { wch: 12 }, { wch: 10 }, { wch: 16 }, { wch: 14 }, { wch: 12 }, { wch: 14 }, { wch: 14 }, { wch: 12 }, { wch: 14 }];
+  sub["!cols"] = [{ wch: 12 }, { wch: 18 }, { wch: 14 }, { wch: 28 }, { wch: 12 }, { wch: 14 }, { wch: 16 }, { wch: 12 }, { wch: 14 }, { wch: 10 }, { wch: 12 }, { wch: 10 }, { wch: 16 }, { wch: 14 }, { wch: 12 }, { wch: 14 }, { wch: 14 }, { wch: 12 }, { wch: 14 }];
   sub["!autofilter"] = { ref: XLSX.utils.encode_range({ s: { r: 3, c: 0 }, e: { r: 3 + history.length, c: subHeaders.length - 1 } }) };
   sub["!freeze"] = { xSplit: 0, ySplit: 4 };
   autoSizeRowHeights(sub);
