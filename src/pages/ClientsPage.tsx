@@ -212,7 +212,16 @@ export default function ClientsPage() {
             <XAxis type="number" domain={[0, 100]} tick={{ fontSize: 10, fill: "hsl(25, 10%, 50%)" }} unit="%" />
             <YAxis type="category" dataKey="name" width={100} tick={{ fontSize: 9, fill: "hsl(25, 10%, 50%)" }} />
             <Tooltip content={<CustomTooltip />} cursor={{ fill: "hsl(20, 8%, 14%)" }} />
-            <Bar dataKey="pct" radius={[0, 4, 4, 0]} name="Completion %">
+            <Bar
+              dataKey="pct"
+              radius={[0, 4, 4, 0]}
+              name="Completion %"
+              cursor="pointer"
+              onClick={(d: any) => {
+                const name = d?.payload?.full ?? d?.full;
+                if (name) setDetailsClient(name);
+              }}
+            >
               {chartData.map((entry, i) => (
                 <Cell key={i} fill={getBarColor(entry.pct)} />
               ))}
