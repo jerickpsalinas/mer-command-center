@@ -349,8 +349,9 @@ export default function ClientsPage() {
                   <h3 className="text-sm font-semibold text-foreground leading-tight truncate">{c.name}</h3>
                   <p className="text-xs text-muted-foreground mt-0.5 truncate">{c.clientType} · {c.bookkeeper}</p>
                   {c.status?.trim() && (
-                    <p className="text-[11px] text-muted-foreground/80 mt-0.5 truncate italic">
-                      {c.status}
+                    <p className="inline-flex items-center gap-1 mt-1 px-1.5 py-0.5 rounded-md bg-primary/10 border border-primary/20 text-[10px] font-semibold uppercase tracking-wider text-primary max-w-full truncate">
+                      <span className="h-1 w-1 rounded-full bg-primary shrink-0" />
+                      <span className="truncate">{c.status}</span>
                     </p>
                   )}
                 </div>
