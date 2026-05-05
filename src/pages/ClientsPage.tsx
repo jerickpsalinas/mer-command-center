@@ -212,7 +212,16 @@ export default function ClientsPage() {
             <XAxis type="number" domain={[0, 100]} tick={{ fontSize: 10, fill: "hsl(25, 10%, 50%)" }} unit="%" />
             <YAxis type="category" dataKey="name" width={100} tick={{ fontSize: 9, fill: "hsl(25, 10%, 50%)" }} />
             <Tooltip content={<CustomTooltip />} cursor={{ fill: "hsl(20, 8%, 14%)" }} />
-            <Bar dataKey="pct" radius={[0, 4, 4, 0]} name="Completion %">
+            <Bar
+              dataKey="pct"
+              radius={[0, 4, 4, 0]}
+              name="Completion %"
+              cursor="pointer"
+              onClick={(d: any) => {
+                const name = d?.payload?.full ?? d?.full;
+                if (name) setDetailsClient(name);
+              }}
+            >
               {chartData.map((entry, i) => (
                 <Cell key={i} fill={getBarColor(entry.pct)} />
               ))}
@@ -340,8 +349,9 @@ export default function ClientsPage() {
                   <h3 className="text-sm font-semibold text-foreground leading-tight truncate">{c.name}</h3>
                   <p className="text-xs text-muted-foreground mt-0.5 truncate">{c.clientType} · {c.bookkeeper}</p>
                   {c.status?.trim() && (
-                    <p className="text-[11px] text-muted-foreground/80 mt-0.5 truncate italic">
-                      {c.status}
+                    <p className="inline-flex items-center gap-1 mt-1 px-1.5 py-0.5 rounded-md bg-primary/10 border border-primary/20 text-[10px] font-semibold uppercase tracking-wider text-primary max-w-full truncate">
+                      <span className="h-1 w-1 rounded-full bg-primary shrink-0" />
+                      <span className="truncate">{c.status}</span>
                     </p>
                   )}
                 </div>
