@@ -268,14 +268,19 @@ export default function ClientDetailsModal({ open, onClose, client, onViewHistor
           if (result.success) {
             toast({
               title: "Action sent ✓",
-              description: `${m.label} for ${client.name} has been triggered.`,
+              description:
+                result.message ||
+                `${m.label} for ${client.name} has been triggered.`,
             });
             setPendingAction(null);
           } else {
-            toast({
-              title: "Action failed",
-              description: result.error || "Unknown error",
-              variant: "destructive",
+            setPendingAction(null);
+            setResponseModal({
+              open: true,
+              errorType: result.errorType ?? "UNKNOWN_ERROR",
+              message: result.message || "An unexpected error occurred.",
+              allowOverride: !!result.allowOverride,
+              overridePayload: result.overridePayload ?? null,
             });
           }
         };
