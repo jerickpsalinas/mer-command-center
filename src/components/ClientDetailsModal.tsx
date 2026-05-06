@@ -4,7 +4,12 @@ import { Building2, ShieldCheck, Banknote, Workflow, Clock, History, FileText, P
 import StatusBadge from "@/components/StatusBadge";
 import type { MerHistoryRow } from "@/services/googleSheets";
 import ActionConfirmModal from "@/components/ActionConfirmModal";
-import { fireDashboardAction, type ActionType } from "@/services/dashboardActions";
+import ActionResponseModal from "@/components/ActionResponseModal";
+import {
+  fireDashboardAction,
+  type ActionType,
+  type ActionPayload,
+} from "@/services/dashboardActions";
 import { toast } from "@/hooks/use-toast";
 
 interface Props {
