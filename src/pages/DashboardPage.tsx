@@ -505,7 +505,7 @@ export default function DashboardPage() {
 
       {/* Needs Attention + Bookkeepers */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-5">
-        <NeedsAttentionSection clients={clients} />
+        <NeedsAttentionSection clients={clients} merHistory={merHistory} />
         <BookkeepersSection clients={clients} bookkeepers={bookkeepers} />
       </div>
 
