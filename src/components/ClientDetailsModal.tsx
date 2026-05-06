@@ -4,7 +4,12 @@ import { Building2, ShieldCheck, Banknote, Workflow, Clock, History, FileText, P
 import StatusBadge from "@/components/StatusBadge";
 import type { MerHistoryRow } from "@/services/googleSheets";
 import ActionConfirmModal from "@/components/ActionConfirmModal";
-import { fireDashboardAction, type ActionType } from "@/services/dashboardActions";
+import ActionResponseModal from "@/components/ActionResponseModal";
+import {
+  fireDashboardAction,
+  type ActionType,
+  type ActionPayload,
+} from "@/services/dashboardActions";
 import { toast } from "@/hooks/use-toast";
 
 interface Props {
@@ -70,6 +75,20 @@ const yn = (b: boolean) => (
 export default function ClientDetailsModal({ open, onClose, client, onViewHistory }: Props) {
   const [pendingAction, setPendingAction] = useState<ActionType | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [responseModal, setResponseModal] = useState<{
+    open: boolean;
+    errorType: string | null;
+    message: string;
+    allowOverride: boolean;
+    overridePayload: ActionPayload | null;
+  }>({
+    open: false,
+    errorType: null,
+    message: "",
+    allowOverride: false,
+    overridePayload: null,
+  });
+  const [isOverrideLoading, setIsOverrideLoading] = useState(false);
 
   if (!client) return null;
 
@@ -249,14 +268,19 @@ export default function ClientDetailsModal({ open, onClose, client, onViewHistor
           if (result.success) {
             toast({
               title: "Action sent ✓",
-              description: `${m.label} for ${client.name} has been triggered.`,
+              description:
+                result.message ||
+                `${m.label} for ${client.name} has been triggered.`,
             });
             setPendingAction(null);
           } else {
-            toast({
-              title: "Action failed",
-              description: result.error || "Unknown error",
-              variant: "destructive",
+            setPendingAction(null);
+            setResponseModal({
+              open: true,
+              errorType: result.errorType ?? "UNKNOWN_ERROR",
+              message: result.message || "An unexpected error occurred.",
+              allowOverride: !!result.allowOverride,
+              overridePayload: result.overridePayload ?? null,
             });
           }
         };
@@ -274,6 +298,40 @@ export default function ClientDetailsModal({ open, onClose, client, onViewHistor
           />
         );
       })()}
+
+      <ActionResponseModal
+        open={responseModal.open}
+        onClose={() =>
+          setResponseModal((s) => ({ ...s, open: false }))
+        }
+        onConfirmOverride={async (payload) => {
+          setIsOverrideLoading(true);
+          const result = await fireDashboardAction(payload);
+          setIsOverrideLoading(false);
+          if (result.success) {
+            setResponseModal((s) => ({ ...s, open: false }));
+            toast({
+              title: "Action sent ✓",
+              description:
+                result.message ||
+                `Action for ${payload.clientName} has been triggered.`,
+            });
+          } else {
+            setResponseModal({
+              open: true,
+              errorType: result.errorType ?? "UNKNOWN_ERROR",
+              message: result.message || "An unexpected error occurred.",
+              allowOverride: !!result.allowOverride,
+              overridePayload: result.overridePayload ?? null,
+            });
+          }
+        }}
+        errorType={responseModal.errorType}
+        message={responseModal.message}
+        allowOverride={responseModal.allowOverride}
+        overridePayload={responseModal.overridePayload}
+        isLoading={isOverrideLoading}
+      />
     </Dialog>
   );
 }
