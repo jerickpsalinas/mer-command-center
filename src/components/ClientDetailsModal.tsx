@@ -1,7 +1,11 @@
+import { useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Building2, ShieldCheck, Banknote, Workflow, Clock, History, FileText } from "lucide-react";
+import { Building2, ShieldCheck, Banknote, Workflow, Clock, History, FileText, Plug, FileSearch, CheckCheck, BadgeCheck } from "lucide-react";
 import StatusBadge from "@/components/StatusBadge";
 import type { MerHistoryRow } from "@/services/googleSheets";
+import ActionConfirmModal from "@/components/ActionConfirmModal";
+import { fireDashboardAction, type ActionType } from "@/services/dashboardActions";
+import { toast } from "@/hooks/use-toast";
 
 interface Props {
   open: boolean;
