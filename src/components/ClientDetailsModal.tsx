@@ -298,6 +298,40 @@ export default function ClientDetailsModal({ open, onClose, client, onViewHistor
           />
         );
       })()}
+
+      <ActionResponseModal
+        open={responseModal.open}
+        onClose={() =>
+          setResponseModal((s) => ({ ...s, open: false }))
+        }
+        onConfirmOverride={async (payload) => {
+          setIsOverrideLoading(true);
+          const result = await fireDashboardAction(payload);
+          setIsOverrideLoading(false);
+          if (result.success) {
+            setResponseModal((s) => ({ ...s, open: false }));
+            toast({
+              title: "Action sent ✓",
+              description:
+                result.message ||
+                `Action for ${payload.clientName} has been triggered.`,
+            });
+          } else {
+            setResponseModal({
+              open: true,
+              errorType: result.errorType ?? "UNKNOWN_ERROR",
+              message: result.message || "An unexpected error occurred.",
+              allowOverride: !!result.allowOverride,
+              overridePayload: result.overridePayload ?? null,
+            });
+          }
+        }}
+        errorType={responseModal.errorType}
+        message={responseModal.message}
+        allowOverride={responseModal.allowOverride}
+        overridePayload={responseModal.overridePayload}
+        isLoading={isOverrideLoading}
+      />
     </Dialog>
   );
 }
