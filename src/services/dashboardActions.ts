@@ -11,11 +11,16 @@ export interface ActionPayload {
   merKey: string;
   cycleMonth: string;
   triggeredBy: "dashboard";
+  override?: boolean;
 }
 
 export interface ActionResult {
   success: boolean;
   error?: string;
+  errorType?: string;
+  message?: string;
+  allowOverride?: boolean;
+  overridePayload?: ActionPayload;
 }
 
 const WEBHOOK_URL =
@@ -30,12 +35,39 @@ export async function fireDashboardAction(
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(payload),
     });
-    if (!res.ok) return { success: false, error: `Server error: ${res.status}` };
-    return { success: true };
+    let data: any = {};
+    try {
+      data = await res.json();
+    } catch {
+      data = {};
+    }
+    if (res.ok && data.success) {
+      return { success: true, message: data.message };
+    }
+    if (res.status === 409 && data.allowOverride) {
+      return {
+        success: false,
+        errorType: data.errorType,
+        message: data.message,
+        allowOverride: true,
+        overridePayload: { ...payload, override: true },
+      };
+    }
+    return {
+      success: false,
+      errorType: data.errorType || "UNKNOWN_ERROR",
+      message: data.message || "An unexpected error occurred.",
+      allowOverride: false,
+      error: data.message,
+    };
   } catch {
     return {
       success: false,
-      error: "Network error — could not reach automation server.",
+      errorType: "NETWORK_ERROR",
+      message:
+        "Could not reach the automation server. Please check your connection and try again.",
+      allowOverride: false,
+      error: "Network error",
     };
   }
 }
