@@ -15,7 +15,9 @@ import { useSheetData, getKPIMetrics, getComplianceBreakdown, getNeedsAttention,
 import { DataLoading, DataError } from "@/components/DataStatus";
 import { toast } from "@/hooks/use-toast";
 import { motion } from "framer-motion";
+import ClientDetailsModal from "@/components/ClientDetailsModal";
 import type { Client } from "@/data/mockData";
+import type { MerHistoryRow } from "@/services/googleSheets";
 
 const CHART_COLORS = {
   primary: "hsl(340, 45%, 55%)",
