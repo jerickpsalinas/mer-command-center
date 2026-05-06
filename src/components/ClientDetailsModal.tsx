@@ -68,6 +68,9 @@ const yn = (b: boolean) => (
 );
 
 export default function ClientDetailsModal({ open, onClose, client, onViewHistory }: Props) {
+  const [pendingAction, setPendingAction] = useState<ActionType | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
+
   if (!client) return null;
 
   const clientInfo: Field[] = [
