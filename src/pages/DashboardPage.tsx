@@ -43,17 +43,31 @@ const CustomTooltip = ({ active, payload, label }: any) => {
   );
 };
 
-function NeedsAttentionSection({ clients }: { clients: Client[] }) {
+function NeedsAttentionSection({ clients, merHistory }: { clients: Client[]; merHistory: MerHistoryRow[] }) {
   const attention = getNeedsAttention(clients);
+  const [detailsClient, setDetailsClient] = useLocalState<string | null>(null);
+
+  const detailsRow = (() => {
+    if (!detailsClient) return null;
+    const norm = (s: string) => s.trim().toLowerCase();
+    const target = norm(detailsClient);
+    const rows = merHistory.filter((r) => norm(r.name) === target);
+    if (rows.length === 0) {
+      const snap = clients.find((c) => norm(c.name) === target);
+      return snap ? (snap as unknown as MerHistoryRow) : null;
+    }
+    return rows.reduce((latest, r) => (r.timestampMs >= latest.timestampMs ? r : latest), rows[0]);
+  })();
 
   const sections = [
     { title: "Missing Bank Statements", count: attention.missingStatements.length, icon: FileText, priority: "critical" as const,
-      items: attention.missingStatements.map(c => ({ id: c.id, label: c.name, badge: <StatusBadge status="Non-Compliant" /> })) },
+      items: attention.missingStatements.map(c => ({ id: c.id, name: c.name, label: c.name, badge: <StatusBadge status="Non-Compliant" /> })) },
     { title: "Unresolved Transactions", count: attention.unresolvedTransactions.length, icon: AlertCircle, priority: "high" as const,
-      items: attention.unresolvedTransactions.slice(0, 6).map(c => ({ id: c.id, label: c.name, badge: <span className="font-mono-data text-xs font-semibold text-destructive">{c.uncategorizedTransactions}</span> })) },
+      items: attention.unresolvedTransactions.slice(0, 6).map(c => ({ id: c.id, name: c.name, label: c.name, badge: <span className="font-mono-data text-xs font-semibold text-destructive">{c.uncategorizedTransactions}</span> })) },
     { title: "Not Reconciled", count: attention.notReconciled.length, icon: Clock, priority: "medium" as const,
-      items: attention.notReconciled.slice(0, 5).map(c => ({ id: c.id, label: c.name, badge: <span className="font-mono-data text-xs text-muted-foreground">{c.lastReconciledDate}</span> })) },
-    { title: "No Approved Notes", count: attention.noApprovedNotes.length, icon: StickyNote, priority: "medium" as const, items: [] },
+      items: attention.notReconciled.slice(0, 5).map(c => ({ id: c.id, name: c.name, label: c.name, badge: <span className="font-mono-data text-xs text-muted-foreground">{c.lastReconciledDate}</span> })) },
+    { title: "No Approved Notes", count: attention.noApprovedNotes.length, icon: StickyNote, priority: "medium" as const,
+      items: attention.noApprovedNotes.slice(0, 5).map(c => ({ id: c.id, name: c.name, label: c.name, badge: <span className="text-[10px] font-semibold text-destructive uppercase tracking-wider">Pending</span> })) },
   ];
 
   const priorityStyles = {
@@ -85,21 +99,31 @@ function NeedsAttentionSection({ clients }: { clients: Client[] }) {
             {section.items.length > 0 ? (
               <div className="space-y-0">
                 {section.items.map(item => (
-                  <div key={item.id} className="flex items-center justify-between text-sm py-2 border-b border-border/50 last:border-0 group cursor-pointer hover:bg-accent/30 -mx-2 px-2 rounded-md transition-colors gap-2">
+                  <button
+                    key={item.id}
+                    type="button"
+                    onClick={() => setDetailsClient(item.name)}
+                    className="w-full flex items-center justify-between text-sm py-2 border-b border-border/50 last:border-0 group cursor-pointer hover:bg-accent/30 -mx-2 px-2 rounded-md transition-colors gap-2 text-left"
+                  >
                     <span className="text-foreground text-[13px] break-words min-w-0">{item.label}</span>
                     <div className="flex items-center gap-1.5 shrink-0">{item.badge}<ChevronRight className="h-3 w-3 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" /></div>
-                  </div>
+                  </button>
                 ))}
               </div>
             ) : (
               <div className="text-center py-3">
-                <p className="text-3xl font-mono-data font-bold text-destructive">{section.count}</p>
-                <p className="text-xs text-muted-foreground mt-1">clients without approved notes</p>
+                <p className="text-3xl font-mono-data font-bold text-success">0</p>
+                <p className="text-xs text-muted-foreground mt-1">all clear</p>
               </div>
             )}
           </div>
         ))}
       </div>
+      <ClientDetailsModal
+        open={!!detailsClient}
+        onClose={() => setDetailsClient(null)}
+        client={detailsRow}
+      />
     </motion.div>
   );
 }
