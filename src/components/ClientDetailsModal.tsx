@@ -1,7 +1,11 @@
+import { useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Building2, ShieldCheck, Banknote, Workflow, Clock, History, FileText } from "lucide-react";
+import { Building2, ShieldCheck, Banknote, Workflow, Clock, History, FileText, Plug, FileSearch, CheckCheck, BadgeCheck } from "lucide-react";
 import StatusBadge from "@/components/StatusBadge";
 import type { MerHistoryRow } from "@/services/googleSheets";
+import ActionConfirmModal from "@/components/ActionConfirmModal";
+import { fireDashboardAction, type ActionType } from "@/services/dashboardActions";
+import { toast } from "@/hooks/use-toast";
 
 interface Props {
   open: boolean;
@@ -64,6 +68,9 @@ const yn = (b: boolean) => (
 );
 
 export default function ClientDetailsModal({ open, onClose, client, onViewHistory }: Props) {
+  const [pendingAction, setPendingAction] = useState<ActionType | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
+
   if (!client) return null;
 
   const clientInfo: Field[] = [
@@ -125,6 +132,59 @@ export default function ClientDetailsModal({ open, onClose, client, onViewHistor
           <Section icon={Clock} title="Submission Meta" fields={meta} />
         </div>
 
+        {(() => {
+          const notesApproved = client.prevMonthNotesApproved;
+          const actions: {
+            type: ActionType;
+            label: string;
+            icon: typeof Plug;
+            cls: string;
+            disabled?: boolean;
+          }[] = [
+            {
+              type: "bank-reconnection",
+              label: "Send Bank Reconnection",
+              icon: Plug,
+              cls: "bg-destructive/10 text-destructive border-destructive/20 hover:bg-destructive/15",
+            },
+            {
+              type: "missing-statement",
+              label: "Request Bank Statement",
+              icon: FileSearch,
+              cls: "bg-warning/10 text-warning border-warning/20 hover:bg-warning/15",
+            },
+            {
+              type: "notes-approval",
+              label: notesApproved ? "Notes Approved" : "Approve Notes",
+              icon: notesApproved ? BadgeCheck : CheckCheck,
+              cls: "bg-success/10 text-success border-success/20 hover:bg-success/15",
+              disabled: notesApproved,
+            },
+            {
+              type: "mark-resolved",
+              label: "Mark Bank Reconnected",
+              icon: CheckCheck,
+              cls: "bg-success/10 text-success border-success/20 hover:bg-success/15",
+            },
+          ];
+
+          return (
+            <div className="grid grid-cols-2 gap-2 mt-4">
+              {actions.map((a) => (
+                <button
+                  key={a.type}
+                  onClick={() => setPendingAction(a.type)}
+                  disabled={a.disabled}
+                  className={`text-xs font-semibold px-3 py-2 rounded-lg border transition-colors inline-flex items-center gap-1.5 ${a.cls} ${a.disabled ? "opacity-50 cursor-not-allowed" : ""}`}
+                >
+                  <a.icon className="h-3.5 w-3.5 shrink-0" />
+                  <span className="truncate">{a.label}</span>
+                </button>
+              ))}
+            </div>
+          );
+        })()}
+
         {onViewHistory && (
           <div className="flex flex-wrap items-center justify-end gap-2 pt-2 border-t border-border/60 mt-2">
             <button
@@ -137,6 +197,83 @@ export default function ClientDetailsModal({ open, onClose, client, onViewHistor
           </div>
         )}
       </DialogContent>
+
+      {(() => {
+        if (!pendingAction) return null;
+        const meta: Record<
+          ActionType,
+          {
+            label: string;
+            description: string;
+            confirmLabel: string;
+            variant: "destructive" | "warning" | "success" | "primary";
+          }
+        > = {
+          "bank-reconnection": {
+            label: "Send Bank Reconnection",
+            description: `This will start an automated SMS sequence to ${client.name} — Day 1, Day 3, and Day 5 reminders. The sequence stops when marked resolved.`,
+            confirmLabel: "Start Sequence",
+            variant: "destructive",
+          },
+          "missing-statement": {
+            label: "Request Bank Statement",
+            description: `This will send an automated statement request sequence to ${client.name} via SMS — Day 1, Day 3, and Day 5 follow-ups.`,
+            confirmLabel: "Send Request",
+            variant: "warning",
+          },
+          "notes-approval": {
+            label: "Approve Notes",
+            description: `This will approve the previous month's notes for ${client.name} and log the approval. A GHL tag will be applied and the team will be notified in Slack.`,
+            confirmLabel: "Approve Notes",
+            variant: "success",
+          },
+          "mark-resolved": {
+            label: "Mark Bank Reconnected",
+            description: `This will mark the bank reconnection issue as resolved for ${client.name}. The GHL sequence will be stopped and the team will be notified.`,
+            confirmLabel: "Mark Resolved",
+            variant: "success",
+          },
+        };
+        const m = meta[pendingAction];
+        const handleConfirm = async () => {
+          setIsLoading(true);
+          const result = await fireDashboardAction({
+            action: pendingAction,
+            clientName: client.name,
+            bookkeeper: client.bookkeeper,
+            merKey: `${client.name}_${client.month}`,
+            cycleMonth: client.month,
+            triggeredBy: "dashboard",
+          });
+          setIsLoading(false);
+          if (result.success) {
+            toast({
+              title: "Action sent ✓",
+              description: `${m.label} for ${client.name} has been triggered.`,
+            });
+            setPendingAction(null);
+          } else {
+            toast({
+              title: "Action failed",
+              description: result.error || "Unknown error",
+              variant: "destructive",
+            });
+          }
+        };
+        return (
+          <ActionConfirmModal
+            open={true}
+            onClose={() => setPendingAction(null)}
+            onConfirm={handleConfirm}
+            actionLabel={m.label}
+            clientName={client.name}
+            description={m.description}
+            confirmLabel={m.confirmLabel}
+            isLoading={isLoading}
+            variant={m.variant}
+          />
+        );
+      })()}
     </Dialog>
   );
 }
