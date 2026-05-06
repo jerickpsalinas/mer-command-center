@@ -75,6 +75,20 @@ const yn = (b: boolean) => (
 export default function ClientDetailsModal({ open, onClose, client, onViewHistory }: Props) {
   const [pendingAction, setPendingAction] = useState<ActionType | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [responseModal, setResponseModal] = useState<{
+    open: boolean;
+    errorType: string | null;
+    message: string;
+    allowOverride: boolean;
+    overridePayload: ActionPayload | null;
+  }>({
+    open: false,
+    errorType: null,
+    message: "",
+    allowOverride: false,
+    overridePayload: null,
+  });
+  const [isOverrideLoading, setIsOverrideLoading] = useState(false);
 
   if (!client) return null;
 
