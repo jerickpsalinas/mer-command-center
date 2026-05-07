@@ -294,6 +294,7 @@ export default function ClientDetailsModal({ open, onClose, client, onViewHistor
           });
           setIsLoading(false);
           if (result.success) {
+            recordSessionAction(client.merKey ?? "", client.month, pendingAction);
             toast({
               title: "Action sent ✓",
               description:
@@ -346,6 +347,7 @@ export default function ClientDetailsModal({ open, onClose, client, onViewHistor
           const result = await fireDashboardAction(payload);
           setIsOverrideLoading(false);
           if (result.success) {
+            recordSessionAction(payload.merKey, payload.cycleMonth, payload.action);
             setResponseModal((s) => ({ ...s, open: false }));
             toast({
               title: "Action sent ✓",
