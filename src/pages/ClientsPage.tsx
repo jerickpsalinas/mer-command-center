@@ -68,6 +68,7 @@ export default function ClientsPage() {
   const [showSaveDialog, setShowSaveDialog] = useState(false);
   const [newFilterName, setNewFilterName] = useState("");
   const [monthFilter, setMonthFilter] = useState<string>("current");
+  const [sequenceFilter, setSequenceFilter] = useState<"all" | "active" | "resolved" | "approved">("all");
 
   if (isLoading) return <DataLoading />;
   if (error || !data) return <DataError message={error?.message} />;
