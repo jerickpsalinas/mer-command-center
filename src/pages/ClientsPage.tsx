@@ -68,6 +68,7 @@ export default function ClientsPage() {
   const [showSaveDialog, setShowSaveDialog] = useState(false);
   const [newFilterName, setNewFilterName] = useState("");
   const [monthFilter, setMonthFilter] = useState<string>("current");
+  const [sequenceFilter, setSequenceFilter] = useState<"all" | "active" | "resolved" | "approved">("all");
 
   if (isLoading) return <DataLoading />;
   if (error || !data) return <DataError message={error?.message} />;
@@ -107,6 +108,20 @@ export default function ClientsPage() {
     .filter((c) => !bookkeeperFilter || c.bookkeeper === bookkeeperFilter)
     .filter((c) => !typeFilter || c.clientType === typeFilter)
     .filter((c) => c.completionPct >= minCompletion)
+    .filter((c) => {
+      if (sequenceFilter === "all") return true;
+      const ghlId = (c as any).ghlContactId || (((c as any).merKey as string) || "").split("_")[0] || "";
+      const seqMonth = data.clientMonths[c.name] || data.latestMonth;
+      const seq = getSequenceInfoForClient(ghlId, seqMonth, data.actionLog);
+      if (sequenceFilter === "active") return seq.hasActiveSequence;
+      if (sequenceFilter === "resolved")
+        return (
+          seq.bankReconnection.status === "resolved" ||
+          seq.statementRequest.status === "resolved"
+        );
+      if (sequenceFilter === "approved") return seq.notesApproval.status === "approved";
+      return true;
+    })
     .sort((a, b) => {
       const mul = sortDir === "asc" ? 1 : -1;
       if (sortKey === "name") return mul * a.name.localeCompare(b.name);
@@ -310,6 +325,17 @@ export default function ClientsPage() {
             className="rounded-lg border border-border bg-card px-2.5 py-1.5 text-xs font-medium text-foreground flex-1 sm:flex-none min-w-0 max-w-[50%] sm:max-w-none">
             <option value="">All types</option>
             {clientTypes.map((t) => <option key={t} value={t}>{t}</option>)}
+          </select>
+
+          <select
+            value={sequenceFilter}
+            onChange={(e) => setSequenceFilter(e.target.value as typeof sequenceFilter)}
+            className="rounded-lg border border-border bg-card px-2.5 py-1.5 text-xs font-medium text-foreground flex-1 sm:flex-none min-w-0 max-w-[50%] sm:max-w-none"
+          >
+            <option value="all">All sequences</option>
+            <option value="active">🟡 Active sequences</option>
+            <option value="resolved">✅ Resolved sequences</option>
+            <option value="approved">📝 Notes approved</option>
           </select>
 
           <label className="inline-flex items-center gap-2 text-[11px] text-muted-foreground">
