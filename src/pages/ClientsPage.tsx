@@ -108,6 +108,20 @@ export default function ClientsPage() {
     .filter((c) => !bookkeeperFilter || c.bookkeeper === bookkeeperFilter)
     .filter((c) => !typeFilter || c.clientType === typeFilter)
     .filter((c) => c.completionPct >= minCompletion)
+    .filter((c) => {
+      if (sequenceFilter === "all") return true;
+      const ghlId = (c as any).ghlContactId || (((c as any).merKey as string) || "").split("_")[0] || "";
+      const seqMonth = data.clientMonths[c.name] || data.latestMonth;
+      const seq = getSequenceInfoForClient(ghlId, seqMonth, data.actionLog);
+      if (sequenceFilter === "active") return seq.hasActiveSequence;
+      if (sequenceFilter === "resolved")
+        return (
+          seq.bankReconnection.status === "resolved" ||
+          seq.statementRequest.status === "resolved"
+        );
+      if (sequenceFilter === "approved") return seq.notesApproval.status === "approved";
+      return true;
+    })
     .sort((a, b) => {
       const mul = sortDir === "asc" ? 1 : -1;
       if (sortKey === "name") return mul * a.name.localeCompare(b.name);
