@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Building2, ShieldCheck, Banknote, Workflow, Clock, History, FileText, Plug, FileSearch, CheckCheck, BadgeCheck } from "lucide-react";
+import { Building2, ShieldCheck, Banknote, Workflow, Clock, History, FileText, Plug, FileSearch, CheckCheck, BadgeCheck, Loader2 } from "lucide-react";
 import StatusBadge from "@/components/StatusBadge";
 import type { MerHistoryRow } from "@/services/googleSheets";
 import ActionConfirmModal from "@/components/ActionConfirmModal";
@@ -197,19 +197,39 @@ export default function ClientDetailsModal({ open, onClose, client, onViewHistor
             },
           ];
 
+          const stmtTypes: ActionType[] = [
+            "missing-statement",
+            "mark-statement-resolved",
+          ];
+
           return (
             <div className="grid grid-cols-2 gap-2 mt-4">
-              {actions.map((a) => (
-                <button
-                  key={a.type}
-                  onClick={() => setPendingAction(a.type)}
-                  disabled={a.disabled}
-                  className={`text-xs font-semibold px-3 py-2 rounded-lg border transition-colors inline-flex items-center gap-1.5 ${a.cls} ${a.disabled ? "opacity-50 cursor-not-allowed" : ""}`}
-                >
-                  <a.icon className="h-3.5 w-3.5 shrink-0" />
-                  <span className="truncate">{a.label}</span>
-                </button>
-              ))}
+              {actions.map((a) => {
+                const isStmt = stmtTypes.includes(a.type);
+                const isPending =
+                  isStmt &&
+                  isLoading &&
+                  pendingAction !== null &&
+                  stmtTypes.includes(pendingAction);
+                const disabled = a.disabled || isPending;
+                return (
+                  <button
+                    key={a.type}
+                    onClick={() => setPendingAction(a.type)}
+                    disabled={disabled}
+                    className={`text-xs font-semibold px-3 py-2 rounded-lg border transition-colors inline-flex items-center gap-1.5 ${a.cls} ${disabled ? "opacity-50 cursor-not-allowed" : ""}`}
+                  >
+                    {isPending ? (
+                      <Loader2 className="h-3.5 w-3.5 shrink-0 animate-spin" />
+                    ) : (
+                      <a.icon className="h-3.5 w-3.5 shrink-0" />
+                    )}
+                    <span className="truncate">
+                      {isPending ? "Sending…" : a.label}
+                    </span>
+                  </button>
+                );
+              })}
             </div>
           );
         })()}
