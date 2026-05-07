@@ -38,6 +38,8 @@ export default function ActionResponseModal({
   isLoading,
 }: Props) {
   const title = (errorType && TITLES[errorType]) || "Action Failed";
+  const overrideLabel =
+    (errorType && OVERRIDE_LABELS[errorType]) || "Send Anyway";
   const isWarning = allowOverride;
   const Icon = isWarning ? AlertTriangle : XCircle;
   const iconCls = isWarning ? "text-warning" : "text-destructive";
