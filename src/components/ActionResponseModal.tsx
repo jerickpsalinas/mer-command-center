@@ -77,12 +77,14 @@ export default function ActionResponseModal({
                 Cancel
               </button>
               <button
-                onClick={() => onConfirmOverride(overridePayload)}
+                onClick={() =>
+                  onConfirmOverride({ ...overridePayload, forceOverride: true })
+                }
                 disabled={isLoading}
                 className="inline-flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-md bg-warning/15 text-warning border border-warning/30 hover:bg-warning/25 transition-colors disabled:opacity-50"
               >
                 {isLoading && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
-                {isLoading ? "Sending…" : "Send Anyway"}
+                {isLoading ? "Sending…" : overrideLabel}
               </button>
             </>
           ) : (
