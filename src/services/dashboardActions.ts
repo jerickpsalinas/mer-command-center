@@ -9,6 +9,7 @@ export interface ActionPayload {
   clientName: string;
   bookkeeper: string;
   merKey: string;
+  ghlContactId: string;
   cycleMonth: string;
   triggeredBy: "dashboard";
   override?: boolean;
