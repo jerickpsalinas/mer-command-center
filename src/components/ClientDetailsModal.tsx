@@ -80,9 +80,10 @@ const yn = (b: boolean) => (
   </span>
 );
 
-export default function ClientDetailsModal({ open, onClose, client, onViewHistory }: Props) {
+export default function ClientDetailsModal({ open, onClose, client, onViewHistory, actionLog = [] }: Props) {
   const [pendingAction, setPendingAction] = useState<ActionType | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [showSequenceHistory, setShowSequenceHistory] = useState(false);
   const [responseModal, setResponseModal] = useState<{
     open: boolean;
     errorType: string | null;
@@ -99,6 +100,15 @@ export default function ClientDetailsModal({ open, onClose, client, onViewHistor
   const [isOverrideLoading, setIsOverrideLoading] = useState(false);
 
   if (!client) return null;
+
+  const ghlContactId =
+    client.ghlContactId ||
+    (client.merKey?.includes("_") ? client.merKey.split("_")[0] : "");
+  const currentSummary = getSequenceInfoForClient(ghlContactId, client.month, actionLog);
+  const allMonths = getCycleMonthsForContact(ghlContactId, actionLog);
+  const allCycleSummaries = allMonths.map((m) =>
+    getSequenceInfoForClient(ghlContactId, m, actionLog),
+  );
 
   const clientInfo: Field[] = [
     { label: "Client Name", value: client.name },
