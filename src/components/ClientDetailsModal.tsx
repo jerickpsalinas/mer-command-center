@@ -205,13 +205,10 @@ export default function ClientDetailsModal({ open, onClose, client, onViewHistor
           return (
             <div className="grid grid-cols-2 gap-2 mt-4">
               {actions.map((a) => {
-                const isStmt = stmtTypes.includes(a.type);
-                const isPending =
-                  isStmt &&
-                  isLoading &&
-                  pendingAction !== null &&
-                  stmtTypes.includes(pendingAction);
-                const disabled = a.disabled || isPending;
+                const isPending = isLoading && pendingAction === a.type;
+                const isOtherPending =
+                  isLoading && pendingAction !== null && pendingAction !== a.type;
+                const disabled = a.disabled || isPending || isOtherPending;
                 return (
                   <button
                     key={a.type}
