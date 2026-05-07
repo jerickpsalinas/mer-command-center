@@ -43,7 +43,7 @@ const CustomTooltip = ({ active, payload, label }: any) => {
   );
 };
 
-function NeedsAttentionSection({ clients, merHistory }: { clients: Client[]; merHistory: MerHistoryRow[] }) {
+function NeedsAttentionSection({ clients, merHistory, actionLog }: { clients: Client[]; merHistory: MerHistoryRow[]; actionLog: import("@/services/googleSheets").ActionLogEntry[] }) {
   const attention = getNeedsAttention(clients);
   const [detailsClient, setDetailsClient] = useLocalState<string | null>(null);
 
