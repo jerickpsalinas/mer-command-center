@@ -255,6 +255,13 @@ export default function ClientDetailsModal({ open, onClose, client, onViewHistor
         };
         const m = meta[pendingAction];
         const handleConfirm = async () => {
+          setResponseModal({
+            open: false,
+            errorType: null,
+            message: "",
+            allowOverride: false,
+            overridePayload: null,
+          });
           setIsLoading(true);
           const result = await fireDashboardAction({
             action: pendingAction,
@@ -292,7 +299,16 @@ export default function ClientDetailsModal({ open, onClose, client, onViewHistor
         return (
           <ActionConfirmModal
             open={true}
-            onClose={() => setPendingAction(null)}
+            onClose={() => {
+              setPendingAction(null);
+              setResponseModal({
+                open: false,
+                errorType: null,
+                message: "",
+                allowOverride: false,
+                overridePayload: null,
+              });
+            }}
             onConfirm={handleConfirm}
             actionLabel={m.label}
             clientName={client.name}
