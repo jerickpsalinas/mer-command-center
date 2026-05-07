@@ -260,7 +260,12 @@ export default function ClientDetailsModal({ open, onClose, client, onViewHistor
             action: pendingAction,
             clientName: client.name,
             bookkeeper: client.bookkeeper,
-            merKey: `${client.name}_${client.month}`,
+            merKey: client.merKey ?? "",
+            ghlContactId:
+              client.ghlContactId ??
+              (client.merKey?.includes("_")
+                ? client.merKey.split("_")[0]
+                : ""),
             cycleMonth: client.month,
             triggeredBy: "dashboard",
           });

@@ -80,8 +80,14 @@ function deriveCompletionPct(row: Record<string, unknown>): number {
 
 function parseClient(row: Record<string, unknown>, index: number): Client {
   const status = deriveComplianceStatus(row);
+  const merKey = String(row["MER Key"] ?? row["merKey"] ?? "").trim();
+  const ghlContactId =
+    String(row["GHL Contact ID"] ?? "").trim() ||
+    (merKey.includes("_") ? merKey.split("_")[0] : "");
   return {
     id: String(index + 1),
+    merKey,
+    ghlContactId,
     name: String(row["Client Name"] ?? "").trim(),
     clientType: (String(row["Client Type"] ?? "For-Profit").trim() as Client["clientType"]),
     bookkeeper: String(row["Bookkeeper"] ?? "").trim(),

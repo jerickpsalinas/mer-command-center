@@ -16,6 +16,8 @@ export interface Client {
   booksClosedInQB: boolean;
   completionPct: number;
   complianceStatus: "Compliant" | "Non-Compliant" | "On Hold";
+  merKey?: string;
+  ghlContactId?: string;
 }
 
 export const clients: Client[] = [
