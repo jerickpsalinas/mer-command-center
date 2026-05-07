@@ -2,9 +2,14 @@ import { useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Building2, ShieldCheck, Banknote, Workflow, Clock, History, FileText, Plug, FileSearch, CheckCheck, BadgeCheck, Loader2 } from "lucide-react";
 import StatusBadge from "@/components/StatusBadge";
-import type { MerHistoryRow } from "@/services/googleSheets";
+import type { ActionLogEntry, MerHistoryRow } from "@/services/googleSheets";
 import ActionConfirmModal from "@/components/ActionConfirmModal";
 import ActionResponseModal from "@/components/ActionResponseModal";
+import SequenceStatusTable from "@/components/SequenceStatusTable";
+import {
+  getCycleMonthsForContact,
+  getSequenceInfoForClient,
+} from "@/utils/sequenceStatus";
 import {
   fireDashboardAction,
   isStatementRequestActive,
@@ -19,6 +24,7 @@ interface Props {
   onClose: () => void;
   client: MerHistoryRow | null;
   onViewHistory?: () => void;
+  actionLog?: ActionLogEntry[];
 }
 
 type Field = {
