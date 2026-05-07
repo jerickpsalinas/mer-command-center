@@ -15,6 +15,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { diffClientMonths } from "@/lib/insights";
 import { toast } from "@/hooks/use-toast";
 import ClientDetailsModal from "@/components/ClientDetailsModal";
+import { getSequenceInfoForClient } from "@/utils/sequenceStatus";
+import { Tooltip as UTooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 type SortKey = "name" | "completionPct" | "complianceStatus" | "uncategorizedTransactions";
 type SortDir = "asc" | "desc";
