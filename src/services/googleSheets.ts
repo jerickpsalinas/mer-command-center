@@ -229,6 +229,8 @@ export async function fetchSheetData(): Promise<SheetData> {
 
   const merRows: Record<string, unknown>[] = raw["MER Dashboard Data"] ?? [];
   const logRows: Record<string, unknown>[] = raw["Bookkeeping Log"] ?? [];
+  const actionLogRows: Record<string, string>[] = raw["Action Log"] ?? [];
+  const actionLog = parseActionLog(actionLogRows);
 
   // Build full MER history (one parsed Client per row, with month metadata)
   const merHistory: MerHistoryRow[] = [];
