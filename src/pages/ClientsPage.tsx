@@ -458,6 +458,7 @@ export default function ClientsPage() {
         open={!!detailsClient}
         onClose={() => setDetailsClient(null)}
         client={detailsRow}
+        actionLog={data.actionLog}
         onViewHistory={() => {
           if (detailsClient) {
             const name = detailsClient;
