@@ -197,10 +197,6 @@ export default function ClientDetailsModal({ open, onClose, client, onViewHistor
             },
           ];
 
-          const stmtTypes: ActionType[] = [
-            "missing-statement",
-            "mark-statement-resolved",
-          ];
 
           return (
             <div className="grid grid-cols-2 gap-2 mt-4">
