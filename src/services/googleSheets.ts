@@ -315,5 +315,6 @@ export async function fetchSheetData(): Promise<SheetData> {
     merHistory,
     availableMonths,
     latestMonth,
+    actionLog,
   };
 }
