@@ -327,6 +327,17 @@ export default function ClientsPage() {
             {clientTypes.map((t) => <option key={t} value={t}>{t}</option>)}
           </select>
 
+          <select
+            value={sequenceFilter}
+            onChange={(e) => setSequenceFilter(e.target.value as typeof sequenceFilter)}
+            className="rounded-lg border border-border bg-card px-2.5 py-1.5 text-xs font-medium text-foreground flex-1 sm:flex-none min-w-0 max-w-[50%] sm:max-w-none"
+          >
+            <option value="all">All sequences</option>
+            <option value="active">🟡 Active sequences</option>
+            <option value="resolved">✅ Resolved sequences</option>
+            <option value="approved">📝 Notes approved</option>
+          </select>
+
           <label className="inline-flex items-center gap-2 text-[11px] text-muted-foreground">
             Min %
             <input type="number" min={0} max={100} value={minCompletion} onChange={(e) => setMinCompletion(Number(e.target.value))}
