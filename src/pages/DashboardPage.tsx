@@ -43,7 +43,7 @@ const CustomTooltip = ({ active, payload, label }: any) => {
   );
 };
 
-function NeedsAttentionSection({ clients, merHistory }: { clients: Client[]; merHistory: MerHistoryRow[] }) {
+function NeedsAttentionSection({ clients, merHistory, actionLog }: { clients: Client[]; merHistory: MerHistoryRow[]; actionLog: import("@/services/googleSheets").ActionLogEntry[] }) {
   const attention = getNeedsAttention(clients);
   const [detailsClient, setDetailsClient] = useLocalState<string | null>(null);
 
@@ -123,6 +123,7 @@ function NeedsAttentionSection({ clients, merHistory }: { clients: Client[]; mer
         open={!!detailsClient}
         onClose={() => setDetailsClient(null)}
         client={detailsRow}
+        actionLog={actionLog}
       />
     </motion.div>
   );
@@ -505,7 +506,7 @@ export default function DashboardPage() {
 
       {/* Needs Attention + Bookkeepers */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-5">
-        <NeedsAttentionSection clients={clients} merHistory={merHistory} />
+        <NeedsAttentionSection clients={clients} merHistory={merHistory} actionLog={data.actionLog} />
         <BookkeepersSection clients={clients} bookkeepers={bookkeepers} />
       </div>
 

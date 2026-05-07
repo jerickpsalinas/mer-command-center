@@ -2,9 +2,14 @@ import { useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Building2, ShieldCheck, Banknote, Workflow, Clock, History, FileText, Plug, FileSearch, CheckCheck, BadgeCheck, Loader2 } from "lucide-react";
 import StatusBadge from "@/components/StatusBadge";
-import type { MerHistoryRow } from "@/services/googleSheets";
+import type { ActionLogEntry, MerHistoryRow } from "@/services/googleSheets";
 import ActionConfirmModal from "@/components/ActionConfirmModal";
 import ActionResponseModal from "@/components/ActionResponseModal";
+import SequenceStatusTable from "@/components/SequenceStatusTable";
+import {
+  getCycleMonthsForContact,
+  getSequenceInfoForClient,
+} from "@/utils/sequenceStatus";
 import {
   fireDashboardAction,
   isStatementRequestActive,
@@ -19,6 +24,7 @@ interface Props {
   onClose: () => void;
   client: MerHistoryRow | null;
   onViewHistory?: () => void;
+  actionLog?: ActionLogEntry[];
 }
 
 type Field = {
@@ -74,9 +80,10 @@ const yn = (b: boolean) => (
   </span>
 );
 
-export default function ClientDetailsModal({ open, onClose, client, onViewHistory }: Props) {
+export default function ClientDetailsModal({ open, onClose, client, onViewHistory, actionLog = [] }: Props) {
   const [pendingAction, setPendingAction] = useState<ActionType | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [showSequenceHistory, setShowSequenceHistory] = useState(false);
   const [responseModal, setResponseModal] = useState<{
     open: boolean;
     errorType: string | null;
@@ -93,6 +100,15 @@ export default function ClientDetailsModal({ open, onClose, client, onViewHistor
   const [isOverrideLoading, setIsOverrideLoading] = useState(false);
 
   if (!client) return null;
+
+  const ghlContactId =
+    client.ghlContactId ||
+    (client.merKey?.includes("_") ? client.merKey.split("_")[0] : "");
+  const currentSummary = getSequenceInfoForClient(ghlContactId, client.month, actionLog);
+  const allMonths = getCycleMonthsForContact(ghlContactId, actionLog);
+  const allCycleSummaries = allMonths.map((m) =>
+    getSequenceInfoForClient(ghlContactId, m, actionLog),
+  );
 
   const clientInfo: Field[] = [
     { label: "Client Name", value: client.name },
@@ -226,6 +242,15 @@ export default function ClientDetailsModal({ open, onClose, client, onViewHistor
             </div>
           );
         })()}
+
+        <div className="mt-4">
+          <SequenceStatusTable
+            summary={currentSummary}
+            showHistory={showSequenceHistory}
+            allCycleSummaries={allCycleSummaries}
+            onToggleHistory={() => setShowSequenceHistory((prev) => !prev)}
+          />
+        </div>
 
         {onViewHistory && (
           <div className="flex flex-wrap items-center justify-end gap-2 pt-2 border-t border-border/60 mt-2">

@@ -15,6 +15,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { diffClientMonths } from "@/lib/insights";
 import { toast } from "@/hooks/use-toast";
 import ClientDetailsModal from "@/components/ClientDetailsModal";
+import { getSequenceInfoForClient } from "@/utils/sequenceStatus";
+import { Tooltip as UTooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 type SortKey = "name" | "completionPct" | "complianceStatus" | "uncategorizedTransactions";
 type SortDir = "asc" | "desc";
@@ -342,6 +344,19 @@ export default function ClientsPage() {
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 density-gap-3">
         {filtered.map((c, i) => {
           const issues = getIssueDetails(c);
+          const ghlId = (c as any).ghlContactId || (((c as any).merKey as string) || "").split("_")[0] || "";
+          const seqMonth = data.clientMonths[c.name] || data.latestMonth;
+          const seq = getSequenceInfoForClient(ghlId, seqMonth, data.actionLog);
+          const dotCls = seq.hasActiveSequence
+            ? "bg-destructive"
+            : seq.hasAnySequenceThisCycle
+              ? "bg-success"
+              : "bg-muted-foreground/40";
+          const dotTip = seq.hasActiveSequence
+            ? "Active sequence"
+            : seq.hasAnySequenceThisCycle
+              ? "All resolved"
+              : "No sequences this cycle";
           const cardInner = (
             <div className="text-left p-4 density-card group">
               <div className="flex items-start justify-between mb-3 gap-2">
@@ -355,7 +370,24 @@ export default function ClientsPage() {
                     </p>
                   )}
                 </div>
-                <StatusBadge status={c.complianceStatus} />
+                <div className="flex items-center gap-2 shrink-0">
+                  <TooltipProvider delayDuration={150}>
+                    <UTooltip>
+                      <TooltipTrigger asChild>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setDetailsClient(c.name);
+                          }}
+                          aria-label={dotTip}
+                          className={`h-2.5 w-2.5 rounded-full ${dotCls} ring-2 ring-transparent hover:ring-border transition`}
+                        />
+                      </TooltipTrigger>
+                      <TooltipContent side="left" className="text-[11px]">{dotTip}</TooltipContent>
+                    </UTooltip>
+                  </TooltipProvider>
+                  <StatusBadge status={c.complianceStatus} />
+                </div>
               </div>
               <div className="mb-2">
                 <div className="flex items-center justify-between text-[11px] mb-1 gap-2">
@@ -426,6 +458,7 @@ export default function ClientsPage() {
         open={!!detailsClient}
         onClose={() => setDetailsClient(null)}
         client={detailsRow}
+        actionLog={data.actionLog}
         onViewHistory={() => {
           if (detailsClient) {
             const name = detailsClient;

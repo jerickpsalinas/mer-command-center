@@ -30,6 +30,32 @@ export interface MerHistoryRow extends Client {
   submittedBy: string;
 }
 
+export interface ActionLogEntry {
+  timestamp: string;
+  actionType: string;
+  clientName: string;
+  ghlContactId: string;
+  cycleMonth: string;
+  triggeredBy: string;
+  status: string;
+  notes: string;
+}
+
+export function parseActionLog(rows: Record<string, string>[]): ActionLogEntry[] {
+  return rows
+    .filter((row) => row["Action Type"] && row["GHL Contact ID"])
+    .map((row) => ({
+      timestamp: row["Timestamp"] || "",
+      actionType: row["Action Type"] || "",
+      clientName: row["Client Name"] || "",
+      ghlContactId: row["GHL Contact ID"] || "",
+      cycleMonth: row["Cycle Month"] || "",
+      triggeredBy: row["Triggered By"] || "",
+      status: row["Status"] || "",
+      notes: row["Notes"] || "",
+    }));
+}
+
 export interface SheetData {
   clients: Client[];
   monthlyTrends: MonthlyTrend[];
@@ -40,6 +66,7 @@ export interface SheetData {
   merHistory: MerHistoryRow[];         // every MER row parsed
   availableMonths: string[];           // sorted "Mon YYYY" labels (asc)
   latestMonth: string;                 // most recent available month label
+  actionLog: ActionLogEntry[];         // entries from "Action Log" tab
 }
 
 function yesNo(val: unknown): boolean {
@@ -202,6 +229,8 @@ export async function fetchSheetData(): Promise<SheetData> {
 
   const merRows: Record<string, unknown>[] = raw["MER Dashboard Data"] ?? [];
   const logRows: Record<string, unknown>[] = raw["Bookkeeping Log"] ?? [];
+  const actionLogRows: Record<string, string>[] = raw["Action Log"] ?? [];
+  const actionLog = parseActionLog(actionLogRows);
 
   // Build full MER history (one parsed Client per row, with month metadata)
   const merHistory: MerHistoryRow[] = [];
@@ -286,5 +315,6 @@ export async function fetchSheetData(): Promise<SheetData> {
     merHistory,
     availableMonths,
     latestMonth,
+    actionLog,
   };
 }
