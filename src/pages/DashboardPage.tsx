@@ -123,6 +123,7 @@ function NeedsAttentionSection({ clients, merHistory, actionLog }: { clients: Cl
         open={!!detailsClient}
         onClose={() => setDetailsClient(null)}
         client={detailsRow}
+        actionLog={actionLog}
       />
     </motion.div>
   );
