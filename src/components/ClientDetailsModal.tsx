@@ -7,6 +7,8 @@ import ActionConfirmModal from "@/components/ActionConfirmModal";
 import ActionResponseModal from "@/components/ActionResponseModal";
 import {
   fireDashboardAction,
+  isStatementRequestActive,
+  recordSessionAction,
   type ActionType,
   type ActionPayload,
 } from "@/services/dashboardActions";
@@ -153,6 +155,10 @@ export default function ClientDetailsModal({ open, onClose, client, onViewHistor
 
         {(() => {
           const notesApproved = client.prevMonthNotesApproved;
+          const stmtActive = isStatementRequestActive(
+            client.merKey ?? "",
+            client.month,
+          );
           const actions: {
             type: ActionType;
             label: string;
@@ -167,10 +173,14 @@ export default function ClientDetailsModal({ open, onClose, client, onViewHistor
               cls: "bg-destructive/10 text-destructive border-destructive/20 hover:bg-destructive/15",
             },
             {
-              type: "missing-statement",
-              label: "Request Bank Statement",
-              icon: FileSearch,
-              cls: "bg-warning/10 text-warning border-warning/20 hover:bg-warning/15",
+              type: stmtActive ? "mark-statement-resolved" : "missing-statement",
+              label: stmtActive
+                ? "📄 Mark Statement Received"
+                : "Request Bank Statement",
+              icon: stmtActive ? CheckCheck : FileSearch,
+              cls: stmtActive
+                ? "bg-success/10 text-success border-success/20 hover:bg-success/15"
+                : "bg-warning/10 text-warning border-warning/20 hover:bg-warning/15",
             },
             {
               type: "notes-approval",
@@ -250,6 +260,12 @@ export default function ClientDetailsModal({ open, onClose, client, onViewHistor
             label: "Mark Bank Reconnected",
             description: `This will mark the bank reconnection issue as resolved for ${client.name}. The GHL sequence will be stopped and the team will be notified.`,
             confirmLabel: "Mark Resolved",
+            variant: "success",
+          },
+          "mark-statement-resolved": {
+            label: "Mark Statement Received",
+            description: `This will stop the statement request sequence for ${client.name} and mark the statement as received.`,
+            confirmLabel: "Mark Received",
             variant: "success",
           },
         };
