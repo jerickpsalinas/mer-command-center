@@ -2,7 +2,8 @@ export type ActionType =
   | "bank-reconnection"
   | "missing-statement"
   | "notes-approval"
-  | "mark-resolved";
+  | "mark-resolved"
+  | "mark-statement-resolved";
 
 export interface ActionPayload {
   action: ActionType;
@@ -13,6 +14,39 @@ export interface ActionPayload {
   cycleMonth: string;
   triggeredBy: "dashboard";
   override?: boolean;
+  forceOverride?: boolean;
+}
+
+// In-session tracker for fired actions (used to derive toggle state for
+// statement-request buttons since no Action Log sheet is available client-side).
+type LogEntry = { action: ActionType; ts: number };
+const sessionActionLog = new Map<string, LogEntry[]>();
+const logKey = (merKey: string, cycleMonth: string) => `${merKey}__${cycleMonth}`;
+
+export function recordSessionAction(
+  merKey: string,
+  cycleMonth: string,
+  action: ActionType,
+) {
+  if (!merKey) return;
+  const k = logKey(merKey, cycleMonth);
+  const list = sessionActionLog.get(k) ?? [];
+  list.push({ action, ts: Date.now() });
+  sessionActionLog.set(k, list);
+}
+
+export function isStatementRequestActive(
+  merKey: string,
+  cycleMonth: string,
+): boolean {
+  if (!merKey) return false;
+  const list = sessionActionLog.get(logKey(merKey, cycleMonth)) ?? [];
+  let active = false;
+  for (const e of list) {
+    if (e.action === "missing-statement") active = true;
+    else if (e.action === "mark-statement-resolved") active = false;
+  }
+  return active;
 }
 
 export interface ActionResult {

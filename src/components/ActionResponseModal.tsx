@@ -14,12 +14,17 @@ interface Props {
 }
 
 const TITLES: Record<string, string> = {
-  DUPLICATE_ACTION: "Already Triggered",
-  ALREADY_ACTIVE: "Already Active",
+  DUPLICATE_ACTION: "Send Follow-Up?",
+  ALREADY_ACTIVE: "Send Follow-Up?",
   CONTACT_NOT_FOUND: "Client Not Found",
   VALIDATION_ERROR: "Missing Information",
   NETWORK_ERROR: "Connection Error",
   UNKNOWN_ERROR: "Connection Error",
+};
+
+const OVERRIDE_LABELS: Record<string, string> = {
+  DUPLICATE_ACTION: "Send Next Follow-Up",
+  ALREADY_ACTIVE: "Send Next Follow-Up",
 };
 
 export default function ActionResponseModal({
