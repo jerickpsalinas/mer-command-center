@@ -243,6 +243,15 @@ export default function ClientDetailsModal({ open, onClose, client, onViewHistor
           );
         })()}
 
+        <div className="mt-4">
+          <SequenceStatusTable
+            summary={currentSummary}
+            showHistory={showSequenceHistory}
+            allCycleSummaries={allCycleSummaries}
+            onToggleHistory={() => setShowSequenceHistory((prev) => !prev)}
+          />
+        </div>
+
         {onViewHistory && (
           <div className="flex flex-wrap items-center justify-end gap-2 pt-2 border-t border-border/60 mt-2">
             <button
