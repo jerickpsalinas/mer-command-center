@@ -187,7 +187,7 @@ export default function ClientDetailsModal({ open, onClose, client, onViewHistor
         {(() => {
           const bankActive = currentSummary.bankReconnection.status === "active";
           const stmtActive = currentSummary.statementRequest.status === "active";
-          const notesApproved = currentSummary.notesApprovalCount > 0;
+          const notesApproved = client.prevMonthNotesApproved === true;
 
           const slot1: { type: ActionType; label: string; cls: string } = bankActive
             ? {
