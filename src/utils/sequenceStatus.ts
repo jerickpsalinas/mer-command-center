@@ -2,6 +2,56 @@ import type { ActionLogEntry } from "@/services/googleSheets";
 
 export type SequenceStatus = "active" | "resolved" | "approved" | null;
 
+const MONTH_MAP: Record<string, string> = {
+  january: "Jan", jan: "Jan",
+  february: "Feb", feb: "Feb",
+  march: "Mar", mar: "Mar",
+  april: "Apr", apr: "Apr",
+  may: "May",
+  june: "Jun", jun: "Jun",
+  july: "Jul", jul: "Jul",
+  august: "Aug", aug: "Aug",
+  september: "Sep", sept: "Sep", sep: "Sep",
+  october: "Oct", oct: "Oct",
+  november: "Nov", nov: "Nov",
+  december: "Dec", dec: "Dec",
+};
+
+/**
+ * Normalize cycle month strings so MER ("Apr 2026") and Action Log
+ * ("April 2026", "2026-04", "4/2026", etc.) compare equal.
+ */
+export function normalizeCycleMonth(input: string): string {
+  if (!input) return "";
+  const s = input.trim();
+
+  // ISO-ish: 2026-04 or 2026-04-01
+  const iso = s.match(/^(\d{4})-(\d{1,2})/);
+  if (iso) {
+    const months = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+    const m = months[Number(iso[2]) - 1];
+    if (m) return `${m} ${iso[1]}`;
+  }
+
+  // M/YYYY or MM/YYYY
+  const slash = s.match(/^(\d{1,2})\/(\d{4})$/);
+  if (slash) {
+    const months = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+    const m = months[Number(slash[1]) - 1];
+    if (m) return `${m} ${slash[2]}`;
+  }
+
+  // "<MonthName> YYYY" / "<Mon> YYYY"
+  const named = s.match(/^([A-Za-z]+)\.?\s+(\d{4})$/);
+  if (named) {
+    const key = named[1].toLowerCase().replace(/\.$/, "");
+    const short = MONTH_MAP[key];
+    if (short) return `${short} ${named[2]}`;
+  }
+
+  return s;
+}
+
 export interface SequenceInfo {
   status: SequenceStatus;
   startedDate: string | null;
