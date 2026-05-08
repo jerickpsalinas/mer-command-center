@@ -2,166 +2,189 @@ import type { ActionLogEntry } from "@/services/googleSheets";
 
 export type SequenceStatus = "active" | "resolved" | "approved" | null;
 
-const MONTH_MAP: Record<string, string> = {
-  january: "Jan", jan: "Jan",
-  february: "Feb", feb: "Feb",
-  march: "Mar", mar: "Mar",
-  april: "Apr", apr: "Apr",
-  may: "May",
-  june: "Jun", jun: "Jun",
-  july: "Jul", jul: "Jul",
-  august: "Aug", aug: "Aug",
-  september: "Sep", sept: "Sep", sep: "Sep",
-  october: "Oct", oct: "Oct",
-  november: "Nov", nov: "Nov",
-  december: "Dec", dec: "Dec",
+export type SequenceKind = "bank-reconnection" | "statement-request";
+
+const PAIRS: Record<SequenceKind, { start: string; resolve: string }> = {
+  "bank-reconnection": { start: "bank-reconnection", resolve: "mark-resolved" },
+  "statement-request": { start: "missing-statement", resolve: "mark-statement-resolved" },
 };
 
-/**
- * Normalize cycle month strings so MER ("Apr 2026") and Action Log
- * ("April 2026", "2026-04", "4/2026", etc.) compare equal.
- */
-export function normalizeCycleMonth(input: string): string {
-  if (!input) return "";
-  const s = input.trim();
-
-  // ISO-ish: 2026-04 or 2026-04-01
-  const iso = s.match(/^(\d{4})-(\d{1,2})/);
-  if (iso) {
-    const months = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
-    const m = months[Number(iso[2]) - 1];
-    if (m) return `${m} ${iso[1]}`;
+/** Parse "MM/DD/YYYY H:MM AM/PM" or fallback to Date(). Returns ms epoch or null. */
+export function parseTimestamp(ts: string | null | undefined): number | null {
+  if (!ts) return null;
+  const parts = ts.trim().split(/\s+/);
+  if (parts.length >= 2) {
+    const [datePart, timePart, ampm] = parts;
+    const [m, d, y] = datePart.split("/");
+    if (m && d && y) {
+      let [h, min] = (timePart || "0:0").split(":").map(Number);
+      if (isNaN(h)) h = 0;
+      if (isNaN(min)) min = 0;
+      if (ampm === "PM" && h !== 12) h += 12;
+      if (ampm === "AM" && h === 12) h = 0;
+      const dt = new Date(Number(y), Number(m) - 1, Number(d), h, min);
+      if (!isNaN(dt.getTime())) return dt.getTime();
+    }
   }
-
-  // M/YYYY or MM/YYYY
-  const slash = s.match(/^(\d{1,2})\/(\d{4})$/);
-  if (slash) {
-    const months = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
-    const m = months[Number(slash[1]) - 1];
-    if (m) return `${m} ${slash[2]}`;
-  }
-
-  // "<MonthName> YYYY" / "<Mon> YYYY"
-  const named = s.match(/^([A-Za-z]+)\.?\s+(\d{4})$/);
-  if (named) {
-    const key = named[1].toLowerCase().replace(/\.$/, "");
-    const short = MONTH_MAP[key];
-    if (short) return `${short} ${named[2]}`;
-  }
-
-  return s;
+  const fb = new Date(ts);
+  return isNaN(fb.getTime()) ? null : fb.getTime();
 }
 
-export interface SequenceInfo {
-  status: SequenceStatus;
-  startedDate: string | null;
-  resolvedDate: string | null;
-  daysActive: number | null;
+export function getDaysActive(timestamp: string | null): number | null {
+  const t = parseTimestamp(timestamp);
+  if (t === null) return null;
+  return Math.floor((Date.now() - t) / (1000 * 60 * 60 * 24));
+}
+
+export interface SequenceEvent {
+  startedAt: string;
+  startedBy: string;
+  startedTs: number;
+  resolvedAt: string | null;
+  resolvedBy: string | null;
+  daysOpen: number | null; // days between start and resolve (or now if active)
   cycleMonth: string;
+  status: "active" | "resolved";
+}
+
+export interface CurrentSequenceInfo {
+  status: "active" | "resolved" | null;
+  startedAt: string | null;
+  startedBy: string | null;
+  resolvedAt: string | null;
+  daysActive: number | null;
+  cycleMonth: string | null;
+  triggerCount: number; // total times this sequence has been started for this client
 }
 
 export interface ClientSequenceSummary {
   ghlContactId: string;
   clientName: string;
-  cycleMonth: string;
-  bankReconnection: SequenceInfo;
-  statementRequest: SequenceInfo;
-  notesApproval: SequenceInfo;
+  bankReconnection: CurrentSequenceInfo;
+  statementRequest: CurrentSequenceInfo;
+  notesApprovalCount: number;
   hasActiveSequence: boolean;
-  hasAnySequenceThisCycle: boolean;
+  hasAnyActivity: boolean;
 }
 
-export function getDaysActive(timestamp: string): number | null {
-  if (!timestamp) return null;
-  const parts = timestamp.split(" ");
-  if (parts.length < 2) {
-    const fallback = new Date(timestamp);
-    if (isNaN(fallback.getTime())) return null;
-    return Math.floor((Date.now() - fallback.getTime()) / (1000 * 60 * 60 * 24));
+/** Build chronological event pairs (start → resolve) for one sequence kind. */
+export function getSequenceEvents(
+  ghlContactId: string,
+  kind: SequenceKind,
+  actionLog: ActionLogEntry[],
+): SequenceEvent[] {
+  const { start, resolve } = PAIRS[kind];
+  const entries = (actionLog || []).filter((e) => e.ghlContactId === ghlContactId);
+
+  const starts = entries
+    .filter((e) => e.actionType === start)
+    .map((e) => ({ entry: e, ts: parseTimestamp(e.timestamp) ?? 0 }))
+    .sort((a, b) => a.ts - b.ts);
+
+  const resolves = entries
+    .filter((e) => e.actionType === resolve)
+    .map((e) => ({ entry: e, ts: parseTimestamp(e.timestamp) ?? 0 }))
+    .sort((a, b) => a.ts - b.ts);
+
+  const usedResolve = new Set<number>();
+  const events: SequenceEvent[] = [];
+
+  for (const s of starts) {
+    // find earliest unmatched resolve after this start
+    let matchIdx = -1;
+    for (let i = 0; i < resolves.length; i++) {
+      if (usedResolve.has(i)) continue;
+      if (resolves[i].ts >= s.ts) { matchIdx = i; break; }
+    }
+    if (matchIdx >= 0) {
+      usedResolve.add(matchIdx);
+      const r = resolves[matchIdx];
+      events.push({
+        startedAt: s.entry.timestamp,
+        startedBy: s.entry.triggeredBy || "",
+        startedTs: s.ts,
+        resolvedAt: r.entry.timestamp,
+        resolvedBy: r.entry.triggeredBy || "",
+        daysOpen: Math.max(0, Math.floor((r.ts - s.ts) / (1000 * 60 * 60 * 24))),
+        cycleMonth: s.entry.cycleMonth || "",
+        status: "resolved",
+      });
+    } else {
+      events.push({
+        startedAt: s.entry.timestamp,
+        startedBy: s.entry.triggeredBy || "",
+        startedTs: s.ts,
+        resolvedAt: null,
+        resolvedBy: null,
+        daysOpen: getDaysActive(s.entry.timestamp),
+        cycleMonth: s.entry.cycleMonth || "",
+        status: "active",
+      });
+    }
   }
-  const [datePart, timePart, ampm] = parts;
-  const [month, day, year] = datePart.split("/");
-  if (!month || !day || !year) return null;
-  let [hours, minutes] = (timePart || "0:0").split(":").map(Number);
-  if (isNaN(hours)) hours = 0;
-  if (isNaN(minutes)) minutes = 0;
-  if (ampm === "PM" && hours !== 12) hours += 12;
-  if (ampm === "AM" && hours === 12) hours = 0;
-  const sent = new Date(Number(year), Number(month) - 1, Number(day), hours, minutes);
-  if (isNaN(sent.getTime())) return null;
-  return Math.floor((Date.now() - sent.getTime()) / (1000 * 60 * 60 * 24));
+
+  return events;
+}
+
+function currentFromEvents(events: SequenceEvent[]): CurrentSequenceInfo {
+  if (events.length === 0) {
+    return {
+      status: null,
+      startedAt: null,
+      startedBy: null,
+      resolvedAt: null,
+      daysActive: null,
+      cycleMonth: null,
+      triggerCount: 0,
+    };
+  }
+  const latest = events[events.length - 1];
+  return {
+    status: latest.status,
+    startedAt: latest.startedAt,
+    startedBy: latest.startedBy,
+    resolvedAt: latest.resolvedAt,
+    daysActive: latest.daysOpen,
+    cycleMonth: latest.cycleMonth,
+    triggerCount: events.length,
+  };
 }
 
 export function getSequenceInfoForClient(
   ghlContactId: string,
-  cycleMonth: string,
+  _cycleMonthIgnored: string,
   actionLog: ActionLogEntry[],
 ): ClientSequenceSummary {
-  const targetMonth = normalizeCycleMonth(cycleMonth);
-  const entries = (actionLog || []).filter(
-    (e) => e.ghlContactId === ghlContactId && normalizeCycleMonth(e.cycleMonth) === targetMonth,
-  );
+  const bankEvents = getSequenceEvents(ghlContactId, "bank-reconnection", actionLog);
+  const stmtEvents = getSequenceEvents(ghlContactId, "statement-request", actionLog);
+  const bankReconnection = currentFromEvents(bankEvents);
+  const statementRequest = currentFromEvents(stmtEvents);
 
-  const getInfo = (startType: string, resolveType: string | null): SequenceInfo => {
-    const startEntry = entries.find((e) => e.actionType === startType);
-    const resolveEntry = resolveType ? entries.find((e) => e.actionType === resolveType) : null;
+  const notesApprovalCount = (actionLog || []).filter(
+    (e) => e.ghlContactId === ghlContactId && e.actionType === "notes-approval",
+  ).length;
 
-    if (!startEntry) {
-      return { status: null, startedDate: null, resolvedDate: null, daysActive: null, cycleMonth };
-    }
-
-    if (resolveEntry) {
-      return {
-        status: "resolved",
-        startedDate: startEntry.timestamp,
-        resolvedDate: resolveEntry.timestamp,
-        daysActive: getDaysActive(startEntry.timestamp),
-        cycleMonth,
-      };
-    }
-
-    return {
-      status: startType === "notes-approval" ? "approved" : "active",
-      startedDate: startEntry.timestamp,
-      resolvedDate: null,
-      daysActive: getDaysActive(startEntry.timestamp),
-      cycleMonth,
-    };
-  };
-
-  const bankReconnection = getInfo("bank-reconnection", "mark-resolved");
-  const statementRequest = getInfo("missing-statement", "mark-statement-resolved");
-  const notesApproval = getInfo("notes-approval", null);
+  const clientName =
+    (actionLog || []).find((e) => e.ghlContactId === ghlContactId)?.clientName || "";
 
   const hasActiveSequence =
     bankReconnection.status === "active" || statementRequest.status === "active";
-
-  const hasAnySequenceThisCycle =
-    bankReconnection.status !== null ||
-    statementRequest.status !== null ||
-    notesApproval.status !== null;
+  const hasAnyActivity =
+    bankEvents.length > 0 || stmtEvents.length > 0 || notesApprovalCount > 0;
 
   return {
     ghlContactId,
-    clientName: entries[0]?.clientName || "",
-    cycleMonth,
+    clientName,
     bankReconnection,
     statementRequest,
-    notesApproval,
+    notesApprovalCount,
     hasActiveSequence,
-    hasAnySequenceThisCycle,
+    hasAnyActivity,
   };
 }
 
-export function getCycleMonthsForContact(
-  ghlContactId: string,
-  actionLog: ActionLogEntry[],
-): string[] {
-  const set = new Set<string>();
-  for (const e of actionLog || []) {
-    if (e.ghlContactId === ghlContactId && e.cycleMonth) {
-      set.add(normalizeCycleMonth(e.cycleMonth));
-    }
-  }
-  return Array.from(set);
+// Back-compat: ClientsPage filter checks `notesApproval.status === "approved"`.
+// Provide a derived getter via a small adapter so existing code keeps working.
+export function hasApprovedNotes(summary: ClientSequenceSummary): boolean {
+  return summary.notesApprovalCount > 0;
 }
