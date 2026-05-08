@@ -7,7 +7,7 @@ import ActionConfirmModal from "@/components/ActionConfirmModal";
 import ActionResponseModal from "@/components/ActionResponseModal";
 import SequenceStatusTable from "@/components/SequenceStatusTable";
 import {
-  getCycleMonthsForContact,
+  getSequenceEvents,
   getSequenceInfoForClient,
 } from "@/utils/sequenceStatus";
 import {
@@ -105,10 +105,8 @@ export default function ClientDetailsModal({ open, onClose, client, onViewHistor
     client.ghlContactId ||
     (client.merKey?.includes("_") ? client.merKey.split("_")[0] : "");
   const currentSummary = getSequenceInfoForClient(ghlContactId, client.month, actionLog);
-  const allMonths = getCycleMonthsForContact(ghlContactId, actionLog);
-  const allCycleSummaries = allMonths.map((m) =>
-    getSequenceInfoForClient(ghlContactId, m, actionLog),
-  );
+  const bankHistory = getSequenceEvents(ghlContactId, "bank-reconnection", actionLog);
+  const statementHistory = getSequenceEvents(ghlContactId, "statement-request", actionLog);
 
   const clientInfo: Field[] = [
     { label: "Client Name", value: client.name },
@@ -246,8 +244,10 @@ export default function ClientDetailsModal({ open, onClose, client, onViewHistor
         <div className="mt-4">
           <SequenceStatusTable
             summary={currentSummary}
+            bankHistory={bankHistory}
+            statementHistory={statementHistory}
+            notesApprovalCount={currentSummary.notesApprovalCount}
             showHistory={showSequenceHistory}
-            allCycleSummaries={allCycleSummaries}
             onToggleHistory={() => setShowSequenceHistory((prev) => !prev)}
           />
         </div>

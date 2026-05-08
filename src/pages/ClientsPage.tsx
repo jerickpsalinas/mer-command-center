@@ -119,7 +119,7 @@ export default function ClientsPage() {
           seq.bankReconnection.status === "resolved" ||
           seq.statementRequest.status === "resolved"
         );
-      if (sequenceFilter === "approved") return seq.notesApproval.status === "approved";
+      if (sequenceFilter === "approved") return seq.notesApprovalCount > 0;
       return true;
     })
     .sort((a, b) => {
@@ -375,14 +375,14 @@ export default function ClientsPage() {
           const seq = getSequenceInfoForClient(ghlId, seqMonth, data.actionLog);
           const dotCls = seq.hasActiveSequence
             ? "bg-destructive"
-            : seq.hasAnySequenceThisCycle
+            : seq.hasAnyActivity
               ? "bg-success"
               : "bg-muted-foreground/40";
           const dotTip = seq.hasActiveSequence
             ? "Active sequence"
-            : seq.hasAnySequenceThisCycle
+            : seq.hasAnyActivity
               ? "All resolved"
-              : "No sequences this cycle";
+              : "No sequence activity";
           const cardInner = (
             <div className="text-left p-4 density-card group">
               <div className="flex items-start justify-between mb-3 gap-2">
