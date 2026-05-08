@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Building2, ShieldCheck, Banknote, Workflow, Clock, History, FileText, Plug, FileSearch, CheckCheck, BadgeCheck, Loader2 } from "lucide-react";
+import { Building2, ShieldCheck, Banknote, Workflow, Clock, History, FileText, Loader2 } from "lucide-react";
 import StatusBadge from "@/components/StatusBadge";
 import type { ActionLogEntry, MerHistoryRow } from "@/services/googleSheets";
 import ActionConfirmModal from "@/components/ActionConfirmModal";
@@ -12,7 +12,6 @@ import {
 } from "@/utils/sequenceStatus";
 import {
   fireDashboardAction,
-  isStatementRequestActive,
   recordSessionAction,
   type ActionType,
   type ActionPayload,
@@ -168,75 +167,82 @@ export default function ClientDetailsModal({ open, onClose, client, onViewHistor
         </div>
 
         {(() => {
-          const notesApproved = client.prevMonthNotesApproved;
-          const stmtActive = isStatementRequestActive(
-            client.merKey ?? "",
-            client.month,
-          );
-          const actions: {
+          const bankActive = currentSummary.bankReconnection.status === "active";
+          const stmtActive = currentSummary.statementRequest.status === "active";
+          const notesApproved = currentSummary.notesApprovalCount > 0;
+
+          const slot1: { type: ActionType; label: string; cls: string } = bankActive
+            ? {
+                type: "mark-resolved",
+                label: "✅ Mark Bank Reconnected",
+                cls: "bg-success/10 text-success border-success/20 hover:bg-success/15",
+              }
+            : {
+                type: "bank-reconnection",
+                label: "🔌 Send Bank Reconnection",
+                cls: "bg-destructive/10 text-destructive border-destructive/20 hover:bg-destructive/15",
+              };
+
+          const slot2: { type: ActionType; label: string; cls: string } = stmtActive
+            ? {
+                type: "mark-statement-resolved",
+                label: "📄 Mark Statement Received",
+                cls: "bg-success/10 text-success border-success/20 hover:bg-success/15",
+              }
+            : {
+                type: "missing-statement",
+                label: "📄 Request Bank Statement",
+                cls: "bg-warning/10 text-warning border-warning/20 hover:bg-warning/15",
+              };
+
+          const slot3: {
             type: ActionType;
             label: string;
-            icon: typeof Plug;
             cls: string;
             disabled?: boolean;
-          }[] = [
-            {
-              type: "bank-reconnection",
-              label: "Send Bank Reconnection",
-              icon: Plug,
-              cls: "bg-destructive/10 text-destructive border-destructive/20 hover:bg-destructive/15",
-            },
-            {
-              type: stmtActive ? "mark-statement-resolved" : "missing-statement",
-              label: stmtActive
-                ? "📄 Mark Statement Received"
-                : "Request Bank Statement",
-              icon: stmtActive ? CheckCheck : FileSearch,
-              cls: stmtActive
-                ? "bg-success/10 text-success border-success/20 hover:bg-success/15"
-                : "bg-warning/10 text-warning border-warning/20 hover:bg-warning/15",
-            },
-            {
-              type: "notes-approval",
-              label: notesApproved ? "Notes Approved" : "Approve Notes",
-              icon: notesApproved ? BadgeCheck : CheckCheck,
-              cls: "bg-success/10 text-success border-success/20 hover:bg-success/15",
-              disabled: notesApproved,
-            },
-            {
-              type: "mark-resolved",
-              label: "Mark Bank Reconnected",
-              icon: CheckCheck,
-              cls: "bg-success/10 text-success border-success/20 hover:bg-success/15",
-            },
-          ];
+          } = notesApproved
+            ? {
+                type: "notes-approval",
+                label: "✅ Notes Approved",
+                cls: "bg-muted text-muted-foreground border-border",
+                disabled: true,
+              }
+            : {
+                type: "notes-approval",
+                label: "✅ Approve Notes",
+                cls: "bg-success/10 text-success border-success/20 hover:bg-success/15",
+              };
 
+          const renderBtn = (
+            slot: { type: ActionType; label: string; cls: string; disabled?: boolean },
+            fullWidth = false,
+          ) => {
+            const isPending = isLoading && pendingAction === slot.type;
+            const isOtherPending =
+              isLoading && pendingAction !== null && pendingAction !== slot.type;
+            const disabled = !!slot.disabled || isPending || isOtherPending;
+            return (
+              <button
+                key={`${slot.type}-${fullWidth ? "full" : "half"}`}
+                onClick={() => !slot.disabled && setPendingAction(slot.type)}
+                disabled={disabled}
+                className={`text-xs font-semibold px-3 py-2 rounded-lg border transition-colors inline-flex items-center justify-center gap-1.5 ${slot.cls} ${disabled ? "opacity-60 cursor-not-allowed" : ""} ${fullWidth ? "col-span-2" : ""}`}
+              >
+                {isPending ? (
+                  <Loader2 className="h-3.5 w-3.5 shrink-0 animate-spin" />
+                ) : null}
+                <span className="truncate">
+                  {isPending ? "Sending…" : slot.label}
+                </span>
+              </button>
+            );
+          };
 
           return (
             <div className="grid grid-cols-2 gap-2 mt-4">
-              {actions.map((a) => {
-                const isPending = isLoading && pendingAction === a.type;
-                const isOtherPending =
-                  isLoading && pendingAction !== null && pendingAction !== a.type;
-                const disabled = a.disabled || isPending || isOtherPending;
-                return (
-                  <button
-                    key={a.type}
-                    onClick={() => setPendingAction(a.type)}
-                    disabled={disabled}
-                    className={`text-xs font-semibold px-3 py-2 rounded-lg border transition-colors inline-flex items-center gap-1.5 ${a.cls} ${disabled ? "opacity-50 cursor-not-allowed" : ""}`}
-                  >
-                    {isPending ? (
-                      <Loader2 className="h-3.5 w-3.5 shrink-0 animate-spin" />
-                    ) : (
-                      <a.icon className="h-3.5 w-3.5 shrink-0" />
-                    )}
-                    <span className="truncate">
-                      {isPending ? "Sending…" : a.label}
-                    </span>
-                  </button>
-                );
-              })}
+              {renderBtn(slot1)}
+              {renderBtn(slot2)}
+              {renderBtn(slot3, true)}
             </div>
           );
         })()}
@@ -278,25 +284,25 @@ export default function ClientDetailsModal({ open, onClose, client, onViewHistor
         > = {
           "bank-reconnection": {
             label: "Send Bank Reconnection",
-            description: `This will start an automated SMS sequence to ${client.name} — Day 1, Day 3, and Day 5 reminders. The sequence stops when marked resolved.`,
+            description: `This will start an automated email sequence to ${client.name} — Day 1, Day 3, and Day 5 reminders.`,
             confirmLabel: "Start Sequence",
             variant: "destructive",
           },
           "missing-statement": {
             label: "Request Bank Statement",
-            description: `This will send an automated statement request sequence to ${client.name} via SMS — Day 1, Day 3, and Day 5 follow-ups.`,
+            description: `This will send an automated statement request sequence to ${client.name} — Day 1, Day 3, and Day 5 follow-ups.`,
             confirmLabel: "Send Request",
             variant: "warning",
           },
           "notes-approval": {
             label: "Approve Notes",
-            description: `This will approve the previous month's notes for ${client.name} and log the approval. A GHL tag will be applied and the team will be notified in Slack.`,
+            description: `This will approve the previous month's notes for ${client.name} and notify the team.`,
             confirmLabel: "Approve Notes",
             variant: "success",
           },
           "mark-resolved": {
             label: "Mark Bank Reconnected",
-            description: `This will mark the bank reconnection issue as resolved for ${client.name}. The GHL sequence will be stopped and the team will be notified.`,
+            description: `This will stop the bank reconnection sequence for ${client.name} and mark it as resolved.`,
             confirmLabel: "Mark Resolved",
             variant: "success",
           },
