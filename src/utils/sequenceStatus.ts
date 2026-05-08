@@ -159,7 +159,9 @@ export function getCycleMonthsForContact(
 ): string[] {
   const set = new Set<string>();
   for (const e of actionLog || []) {
-    if (e.ghlContactId === ghlContactId && e.cycleMonth) set.add(e.cycleMonth);
+    if (e.ghlContactId === ghlContactId && e.cycleMonth) {
+      set.add(normalizeCycleMonth(e.cycleMonth));
+    }
   }
   return Array.from(set);
 }
