@@ -8,7 +8,7 @@ import NotificationDropdown from "@/components/NotificationDropdown";
 import MobileTabBar from "@/components/MobileTabBar";
 import {
   LayoutDashboard, CalendarCheck, TrendingUp, Users, Download, Settings,
-  Menu, X, ChevronLeft, RefreshCw, Sun, Moon, Workflow, UserCheck, HeartPulse,
+  Menu, X, ChevronLeft, RefreshCw, Sun, Moon, Workflow, UserCheck, HeartPulse, BookOpen,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import logo from "@/assets/logo.png";
@@ -22,6 +22,7 @@ const navItems = [
   { title: "Bookkeepers", url: "/bookkeepers", icon: UserCheck },
   { title: "Monthly Trends", url: "/monthly-trends", icon: TrendingUp },
   { title: "Export Center", url: "/reports", icon: Download },
+  { title: "User Guide", url: "/user-guide", icon: BookOpen },
   { title: "Settings", url: "/settings", icon: Settings },
 ];
 
