@@ -220,10 +220,9 @@ export default function ClientDetailsModal({ open, onClose, client, onViewHistor
             disabled?: boolean;
           } = notesApproved
             ? {
-                type: "notes-approval",
-                label: "✅ Notes Approved",
-                cls: "bg-muted text-muted-foreground border-border",
-                disabled: true,
+                type: "undo-notes-approval",
+                label: "↩️ Undo Notes Approval",
+                cls: "bg-warning/10 text-warning border-warning/20 hover:bg-warning/15",
               }
             : {
                 type: "notes-approval",
