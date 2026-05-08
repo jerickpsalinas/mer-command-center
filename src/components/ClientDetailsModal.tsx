@@ -433,6 +433,13 @@ export default function ClientDetailsModal({ open, onClose, client, onViewHistor
         overridePayload={responseModal.overridePayload}
         isLoading={isOverrideLoading}
       />
+
+      <StatusHistoryModal
+        open={showStatusHistory}
+        onClose={() => setShowStatusHistory(false)}
+        ghlContactId={ghlContactId}
+        clientName={client.name}
+      />
     </Dialog>
   );
 }
