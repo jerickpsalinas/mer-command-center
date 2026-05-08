@@ -152,7 +152,7 @@ function currentFromEvents(events: SequenceEvent[]): CurrentSequenceInfo {
 
 export function getSequenceInfoForClient(
   ghlContactId: string,
-  _cycleMonthIgnored: string,
+  cycleMonth: string,
   actionLog: ActionLogEntry[],
 ): ClientSequenceSummary {
   const bankEvents = getSequenceEvents(ghlContactId, "bank-reconnection", actionLog);
@@ -161,7 +161,10 @@ export function getSequenceInfoForClient(
   const statementRequest = currentFromEvents(stmtEvents);
 
   const notesApprovalCount = (actionLog || []).filter(
-    (e) => e.ghlContactId === ghlContactId && e.actionType === "notes-approval",
+    (e) =>
+      e.ghlContactId === ghlContactId &&
+      e.actionType === "notes-approval" &&
+      e.cycleMonth === cycleMonth,
   ).length;
 
   const clientName =
