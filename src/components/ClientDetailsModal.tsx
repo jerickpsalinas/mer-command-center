@@ -264,6 +264,14 @@ export default function ClientDetailsModal({ open, onClose, client, onViewHistor
           );
         })()}
 
+        {client.prevMonthNotesApproved === true && (
+          <div className="mt-4 flex justify-start">
+            <span className="inline-flex items-center gap-1.5 rounded-full border border-success/20 bg-success/10 px-2.5 py-1 text-[11px] font-semibold text-success">
+              ✅ Note Approved
+            </span>
+          </div>
+        )}
+
         <div className="mt-4">
           <SequenceStatusTable
             summary={currentSummary}
