@@ -14,7 +14,33 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      client_status_history: {
+        Row: {
+          client_name: string
+          ghl_contact_id: string
+          id: string
+          recorded_at: string
+          source: string
+          status: string
+        }
+        Insert: {
+          client_name: string
+          ghl_contact_id: string
+          id?: string
+          recorded_at?: string
+          source?: string
+          status: string
+        }
+        Update: {
+          client_name?: string
+          ghl_contact_id?: string
+          id?: string
+          recorded_at?: string
+          source?: string
+          status?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
