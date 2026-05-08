@@ -1,9 +1,11 @@
 import { useQuery } from "@tanstack/react-query";
+import { useEffect } from "react";
 import { fetchSheetData, type SheetData, type MerHistoryRow } from "@/services/googleSheets";
 import type { Client, MonthlyTrend } from "@/data/mockData";
+import { recordStatusSnapshots } from "@/utils/statusHistory";
 
 export function useSheetData(autoRefresh = true) {
-  return useQuery<SheetData>({
+  const query = useQuery<SheetData>({
     queryKey: ["sheet-data"],
     queryFn: fetchSheetData,
     staleTime: 0,
@@ -11,6 +13,14 @@ export function useSheetData(autoRefresh = true) {
     refetchOnWindowFocus: true,
     refetchInterval: autoRefresh ? 60_000 : false,
   });
+
+  useEffect(() => {
+    if (query.data?.merHistory?.length) {
+      void recordStatusSnapshots(query.data.merHistory);
+    }
+  }, [query.data]);
+
+  return query;
 }
 
 /**
