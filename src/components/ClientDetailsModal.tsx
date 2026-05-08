@@ -220,10 +220,9 @@ export default function ClientDetailsModal({ open, onClose, client, onViewHistor
             disabled?: boolean;
           } = notesApproved
             ? {
-                type: "notes-approval",
-                label: "✅ Notes Approved",
-                cls: "bg-muted text-muted-foreground border-border",
-                disabled: true,
+                type: "undo-notes-approval",
+                label: "↩️ Undo Notes Approval",
+                cls: "bg-warning/10 text-warning border-warning/20 hover:bg-warning/15",
               }
             : {
                 type: "notes-approval",
@@ -317,6 +316,12 @@ export default function ClientDetailsModal({ open, onClose, client, onViewHistor
             description: `This will approve the previous month's notes for ${client.name} and notify the team.`,
             confirmLabel: "Approve Notes",
             variant: "success",
+          },
+          "undo-notes-approval": {
+            label: "Undo Notes Approval",
+            description: `This will undo the notes approval for ${client.name}, update the sheet back to No, remove the GHL tag, and notify the team.`,
+            confirmLabel: "Undo Approval",
+            variant: "warning",
           },
           "mark-resolved": {
             label: "Mark Bank Reconnected",
