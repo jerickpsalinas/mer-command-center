@@ -317,6 +317,12 @@ export default function ClientDetailsModal({ open, onClose, client, onViewHistor
             confirmLabel: "Approve Notes",
             variant: "success",
           },
+          "undo-notes-approval": {
+            label: "Undo Notes Approval",
+            description: `This will undo the notes approval for ${client.name}, update the sheet back to No, remove the GHL tag, and notify the team.`,
+            confirmLabel: "Undo Approval",
+            variant: "warning",
+          },
           "mark-resolved": {
             label: "Mark Bank Reconnected",
             description: `This will stop the bank reconnection sequence for ${client.name} and mark it as resolved.`,
