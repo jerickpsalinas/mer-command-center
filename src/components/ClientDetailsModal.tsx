@@ -6,6 +6,7 @@ import type { ActionLogEntry, MerHistoryRow } from "@/services/googleSheets";
 import ActionConfirmModal from "@/components/ActionConfirmModal";
 import ActionResponseModal from "@/components/ActionResponseModal";
 import SequenceStatusTable from "@/components/SequenceStatusTable";
+import StatusHistoryModal from "@/components/StatusHistoryModal";
 import {
   getSequenceEvents,
   getSequenceInfoForClient,
@@ -83,6 +84,7 @@ export default function ClientDetailsModal({ open, onClose, client, onViewHistor
   const [pendingAction, setPendingAction] = useState<ActionType | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [showSequenceHistory, setShowSequenceHistory] = useState(false);
+  const [showStatusHistory, setShowStatusHistory] = useState(false);
   const [responseModal, setResponseModal] = useState<{
     open: boolean;
     errorType: string | null;
@@ -111,7 +113,23 @@ export default function ClientDetailsModal({ open, onClose, client, onViewHistor
     { label: "Client Name", value: client.name },
     { label: "Client Type", value: client.clientType },
     { label: "Bookkeeper", value: client.bookkeeper },
-    { label: "Status", value: client.status?.trim() ? client.status : "—" },
+    {
+      label: "Status",
+      value: (
+        <span className="inline-flex items-center gap-1.5 flex-wrap">
+          <span>{client.status?.trim() ? client.status : "—"}</span>
+          <button
+            type="button"
+            onClick={() => setShowStatusHistory(true)}
+            className="inline-flex items-center gap-1 text-[10px] font-semibold px-1.5 py-0.5 rounded border border-primary/20 bg-primary/10 text-primary hover:bg-primary/15 transition-colors"
+            title="View status history"
+          >
+            <History className="h-3 w-3" />
+            History
+          </button>
+        </span>
+      ),
+    },
     { label: "Reporting Month", value: client.month },
   ];
 
