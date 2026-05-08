@@ -97,8 +97,9 @@ export function getSequenceInfoForClient(
   cycleMonth: string,
   actionLog: ActionLogEntry[],
 ): ClientSequenceSummary {
+  const targetMonth = normalizeCycleMonth(cycleMonth);
   const entries = (actionLog || []).filter(
-    (e) => e.ghlContactId === ghlContactId && e.cycleMonth === cycleMonth,
+    (e) => e.ghlContactId === ghlContactId && normalizeCycleMonth(e.cycleMonth) === targetMonth,
   );
 
   const getInfo = (startType: string, resolveType: string | null): SequenceInfo => {
