@@ -14,6 +14,7 @@ import BookkeepersPage from "@/pages/BookkeepersPage";
 import MasterCyclePage from "@/pages/MasterCyclePage";
 import HealthPillarsPage from "@/pages/HealthPillarsPage";
 import ReportsPage from "@/pages/ReportsPage";
+import UserGuidePage from "@/pages/UserGuidePage";
 import SettingsPage from "@/pages/SettingsPage";
 import NotFound from "@/pages/NotFound";
 
@@ -37,6 +38,7 @@ const App = () => (
                 <Route path="/master-cycle" element={<MasterCyclePage />} />
                 <Route path="/health-pillars" element={<HealthPillarsPage />} />
                 <Route path="/reports" element={<ReportsPage />} />
+                <Route path="/user-guide" element={<UserGuidePage />} />
                 <Route path="/settings" element={<SettingsPage />} />
               </Route>
               <Route path="*" element={<NotFound />} />
