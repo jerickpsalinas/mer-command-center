@@ -2,6 +2,7 @@ export type ActionType =
   | "bank-reconnection"
   | "missing-statement"
   | "notes-approval"
+  | "undo-notes-approval"
   | "mark-resolved"
   | "mark-statement-resolved";
 
