@@ -16,6 +16,7 @@ import {
 import { useSheetData } from "@/hooks/useSheetData";
 import { DataLoading, DataError } from "@/components/DataStatus";
 import type { CycleEntry } from "@/services/googleSheets";
+import { useClientDetails } from "@/hooks/useClientDetails";
 
 /* ────────────────────────────────────────────────────────────────────────────
  * Pipeline 1 — Master Bookkeeping Cycle (8 canonical stages)
@@ -105,6 +106,7 @@ export default function MasterCyclePage() {
   const [filterCategory, setFilterCategory] = useState("");
   const [filterStage, setFilterStage] = useState<number | null>(null);
   const [expanded, setExpanded] = useState<string | null>(null);
+  const { open: openClient, modal: clientModal } = useClientDetails();
 
   const entries = data?.cycleEntries ?? [];
 
@@ -530,9 +532,12 @@ export default function MasterCyclePage() {
               transition={{ delay: 0.04 + idx * 0.015 }}
               className="rounded-xl border border-border bg-card shadow-card overflow-hidden"
             >
-              <button
+              <div
+                role="button"
+                tabIndex={0}
                 onClick={() => setExpanded(open ? null : c.key)}
-                className="w-full text-left p-4 lg:p-5 hover:bg-accent/30 transition-colors"
+                onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); setExpanded(open ? null : c.key); } }}
+                className="w-full text-left p-4 lg:p-5 hover:bg-accent/30 transition-colors cursor-pointer"
               >
                 <div className="flex flex-wrap items-start gap-4">
                   {/* Stage badge — large, scannable */}
@@ -546,9 +551,12 @@ export default function MasterCyclePage() {
 
                   <div className="min-w-0 flex-1">
                     <div className="flex flex-wrap items-center gap-2">
-                      <h3 className="text-[15px] font-semibold text-foreground break-words">
+                      <button
+                        onClick={(e) => { e.stopPropagation(); openClient(c.clientName); }}
+                        className="text-[15px] font-semibold text-foreground break-words text-left hover:text-primary transition-colors"
+                      >
                         {c.clientName}
-                      </h3>
+                      </button>
                       {c.escalated && (
                         <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-destructive/10 text-destructive border border-destructive/20">
                           <AlertTriangle className="h-3 w-3" />
@@ -625,7 +633,7 @@ export default function MasterCyclePage() {
                     );
                   })}
                 </div>
-              </button>
+              </div>
 
               {open && (
                 <motion.div
@@ -730,6 +738,7 @@ export default function MasterCyclePage() {
           );
         })}
       </div>
+      {clientModal}
     </div>
   );
 }

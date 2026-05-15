@@ -7,6 +7,7 @@ import { DataLoading, DataError } from "@/components/DataStatus";
 import { getBookkeeperPerformance, getBookkeeperPerformanceForMonth, type BookkeeperPerformance } from "@/lib/insights";
 import KPICard from "@/components/KPICard";
 import MonthFilter from "@/components/MonthFilter";
+import { useClientDetails } from "@/hooks/useClientDetails";
 
 const tooltipStyle = {
   background: "hsl(var(--popover))",
@@ -20,7 +21,8 @@ export default function BookkeepersPage() {
   const { data, isLoading, error } = useSheetData();
   const [search, setSearch] = useState("");
   const [selected, setSelected] = useState<string | null>(null);
-  const [monthFilter, setMonthFilter] = useState<string>("current"); // "current" or month label
+  const [monthFilter, setMonthFilter] = useState<string>("current");
+  const { open: openClient, modal: clientModal } = useClientDetails();
 
   // Available months (most recent first) derived from MER history
   const monthOptions = useMemo(() => {
@@ -247,7 +249,7 @@ export default function BookkeepersPage() {
               <ResponsiveContainer width="100%" height={Math.max(200, focusClients.length * 22)}>
                 <BarChart
                   data={focusClients
-                    .map((c) => ({ name: c.name.length > 16 ? c.name.slice(0, 14) + "…" : c.name, pct: c.completionPct }))
+                    .map((c) => ({ name: c.name.length > 16 ? c.name.slice(0, 14) + "…" : c.name, pct: c.completionPct, full: c.name }))
                     .sort((a, b) => a.pct - b.pct)}
                   layout="vertical"
                   margin={{ left: 0, right: 10 }}
@@ -256,9 +258,29 @@ export default function BookkeepersPage() {
                   <XAxis type="number" domain={[0, 100]} tick={{ fontSize: 10, fill: "hsl(25, 10%, 50%)" }} unit="%" />
                   <YAxis type="category" dataKey="name" width={90} tick={{ fontSize: 9, fill: "hsl(25, 10%, 50%)" }} />
                   <Tooltip contentStyle={tooltipStyle} />
-                  <Bar dataKey="pct" fill="hsl(340, 45%, 55%)" radius={[0, 4, 4, 0]} />
+                  <Bar
+                    dataKey="pct"
+                    fill="hsl(340, 45%, 55%)"
+                    radius={[0, 4, 4, 0]}
+                    cursor="pointer"
+                    onClick={(d: any) => d?.full && openClient(d.full)}
+                  />
                 </BarChart>
               </ResponsiveContainer>
+              <div className="mt-3 flex flex-wrap gap-1.5">
+                {focusClients
+                  .slice()
+                  .sort((a, b) => a.completionPct - b.completionPct)
+                  .map((c) => (
+                    <button
+                      key={c.id}
+                      onClick={() => openClient(c.name)}
+                      className="text-[10.5px] px-2 py-1 rounded-md border border-border bg-card hover:border-primary/40 hover:text-primary transition-colors text-muted-foreground"
+                    >
+                      {c.name} <span className="font-mono-data text-foreground/80 ml-1">{c.completionPct}%</span>
+                    </button>
+                  ))}
+              </div>
             </div>
 
             {/* Issue breakdown */}
@@ -271,6 +293,7 @@ export default function BookkeepersPage() {
           </div>
         </motion.div>
       )}
+      {clientModal}
     </div>
   );
 }

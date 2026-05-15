@@ -1,9 +1,32 @@
-import { useState, useRef, useEffect, useSyncExternalStore } from "react";
-import { Bell, CheckCircle2, XCircle, AlertTriangle, FileText, TrendingUp, TrendingDown, Clock, Users, Filter as FilterIcon, X, Activity, Trash2 } from "lucide-react";
+import { useState, useRef, useEffect } from "react";
+import { Activity as ActivityIcon, CheckCircle2, XCircle, AlertTriangle, FileText, TrendingUp, TrendingDown, Clock, Users, Filter as FilterIcon, X } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import type { Client, MonthlyTrend } from "@/data/mockData";
 import { useUserSettings } from "@/hooks/useUserSettings";
-import { getToastLog, subscribeToastLog, clearToastLog, markAllRead, relativeTime } from "@/lib/toastLog";
+import { supabase } from "@/integrations/supabase/client";
+import { relativeTime } from "@/lib/toastLog";
+
+interface ActivityRow {
+  id: string;
+  action: string;
+  client_name: string | null;
+  bookkeeper: string | null;
+  cycle_month: string | null;
+  triggered_by: string | null;
+  success: boolean;
+  message: string | null;
+  created_at: string;
+}
+
+const ACTION_LABEL: Record<string, string> = {
+  "bank-reconnection": "Bank reconnection requested",
+  "missing-statement": "Statement requested",
+  "notes-approval": "Notes approved",
+  "undo-notes-approval": "Notes approval undone",
+  "mark-resolved": "Marked resolved",
+  "mark-statement-resolved": "Statement marked resolved",
+  "clear-mer-data": "Cleared MER data",
+};
 
 interface Notification {
   id: string;
@@ -145,9 +168,40 @@ export default function NotificationDropdown({ clients, trends }: { clients: Cli
   const { notifPrefs, setNotifPrefs } = useUserSettings();
   const allBookkeepers = Array.from(new Set(clients.map((c) => c.bookkeeper).filter(Boolean))).sort();
 
-  // #14 — subscribe to the toast log so dismissed toasts remain reviewable here
-  const toastLog = useSyncExternalStore(subscribeToastLog, getToastLog, getToastLog);
-  const unreadToastCount = toastLog.filter((t) => !t.read).length;
+  // Shared activity feed (Supabase-backed, all users)
+  const [activity, setActivity] = useState<ActivityRow[]>([]);
+  const [lastSeenAt, setLastSeenAt] = useState<number>(() => {
+    const v = Number(localStorage.getItem("activity-last-seen-at") || 0);
+    return Number.isFinite(v) ? v : 0;
+  });
+
+  useEffect(() => {
+    let mounted = true;
+    supabase
+      .from("activity_log")
+      .select("*")
+      .order("created_at", { ascending: false })
+      .limit(30)
+      .then(({ data }) => {
+        if (mounted && data) setActivity(data as ActivityRow[]);
+      });
+    const channel = supabase
+      .channel("activity_log_feed")
+      .on(
+        "postgres_changes",
+        { event: "INSERT", schema: "public", table: "activity_log" },
+        (payload) => {
+          setActivity((prev) => [payload.new as ActivityRow, ...prev].slice(0, 30));
+        },
+      )
+      .subscribe();
+    return () => {
+      mounted = false;
+      supabase.removeChannel(channel);
+    };
+  }, []);
+
+  const unreadActivityCount = activity.filter((a) => new Date(a.created_at).getTime() > lastSeenAt).length;
 
   const allNotifications = generateNotifications(clients, trends);
 
@@ -180,24 +234,28 @@ export default function NotificationDropdown({ clients, trends }: { clients: Cli
     setFilterVariant(prev => prev === variant ? null : variant);
   };
 
-  // Mark recent toasts as read once user opens the dropdown
+  // Mark as read once dropdown opens
   useEffect(() => {
-    if (open && unreadToastCount > 0) {
-      const t = setTimeout(() => markAllRead(), 600);
+    if (open && unreadActivityCount > 0) {
+      const t = setTimeout(() => {
+        const now = Date.now();
+        localStorage.setItem("activity-last-seen-at", String(now));
+        setLastSeenAt(now);
+      }, 600);
       return () => clearTimeout(t);
     }
-  }, [open, unreadToastCount]);
+  }, [open, unreadActivityCount]);
 
-  const totalBadge = notifications.length + unreadToastCount;
+  const totalBadge = notifications.length + unreadActivityCount;
 
   return (
     <div className="relative" ref={ref}>
       <button
         onClick={() => setOpen(!open)}
         className="relative h-9 w-9 flex items-center justify-center rounded-lg text-muted-foreground hover:bg-accent hover:text-foreground transition-colors"
-        aria-label="Notifications"
+        aria-label="Activity"
       >
-        <Bell className="h-[18px] w-[18px]" />
+        <ActivityIcon className="h-[18px] w-[18px]" />
         {totalBadge > 0 && (
           <span className="absolute top-1 right-1 min-w-4 h-4 px-1 rounded-full bg-primary text-[9px] font-bold text-primary-foreground flex items-center justify-center ring-2 ring-card tabular-nums">
             {totalBadge > 99 ? "99+" : totalBadge}
@@ -217,7 +275,7 @@ export default function NotificationDropdown({ clients, trends }: { clients: Cli
           >
             <div className="px-4 py-3 border-b border-border">
               <div className="flex items-center justify-between">
-                <p className="text-xs font-semibold text-foreground">Notifications</p>
+                <p className="text-xs font-semibold text-foreground">Activity</p>
                 <div className="flex items-center gap-1.5">
                   {criticalCount > 0 && (
                     <button onClick={() => toggleFilter("destructive")}
@@ -264,44 +322,45 @@ export default function NotificationDropdown({ clients, trends }: { clients: Cli
               </div>
             </div>
             <div className="max-h-[420px] overflow-y-auto scrollbar-thin scrollbar-thumb-muted-foreground/20 hover:scrollbar-thumb-muted-foreground/40 scrollbar-track-transparent">
-              {/* Recent activity from toast log (#14) */}
-              {toastLog.length > 0 && (
+              {/* Shared activity feed (Supabase, all users) */}
+              {activity.length > 0 && (
                 <div className="border-b border-border/50">
                   <div className="flex items-center justify-between px-4 pt-3 pb-1.5">
                     <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground inline-flex items-center gap-1.5">
-                      <Activity className="h-3 w-3" /> Recent activity
+                      <ActivityIcon className="h-3 w-3" /> Team activity
                     </p>
-                    <button
-                      onClick={() => clearToastLog()}
-                      className="text-[10px] text-muted-foreground hover:text-destructive inline-flex items-center gap-1 transition-colors"
-                      title="Clear recent activity"
-                    >
-                      <Trash2 className="h-2.5 w-2.5" /> Clear
-                    </button>
+                    <span className="text-[10px] text-muted-foreground">{activity.length}</span>
                   </div>
-                  {toastLog.slice(0, 5).map((t) => (
-                    <div
-                      key={t.id}
-                      className={`flex items-start gap-3 px-4 py-2 hover:bg-accent/30 transition-colors ${!t.read ? "bg-primary/[0.04]" : ""}`}
-                    >
-                      <div className={`mt-0.5 h-6 w-6 rounded-lg flex items-center justify-center shrink-0 ${
-                        t.variant === "destructive" ? "bg-destructive/10" :
-                        t.variant === "warning" ? "bg-warning/10" :
-                        t.variant === "success" ? "bg-success/10" : "bg-primary/10"
-                      }`}>
-                        <Activity className={`h-3 w-3 ${
-                          t.variant === "destructive" ? "text-destructive" :
-                          t.variant === "warning" ? "text-warning" :
-                          t.variant === "success" ? "text-success" : "text-primary"
-                        }`} />
+                  {activity.slice(0, 8).map((a) => {
+                    const isUnread = new Date(a.created_at).getTime() > lastSeenAt;
+                    const variant = a.success ? "success" : "destructive";
+                    const label = ACTION_LABEL[a.action] || a.action;
+                    return (
+                      <div
+                        key={a.id}
+                        className={`flex items-start gap-3 px-4 py-2 hover:bg-accent/30 transition-colors ${isUnread ? "bg-primary/[0.04]" : ""}`}
+                      >
+                        <div className={`mt-0.5 h-6 w-6 rounded-lg flex items-center justify-center shrink-0 ${
+                          variant === "destructive" ? "bg-destructive/10" : "bg-success/10"
+                        }`}>
+                          <ActivityIcon className={`h-3 w-3 ${
+                            variant === "destructive" ? "text-destructive" : "text-success"
+                          }`} />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-[12px] text-foreground leading-tight font-medium truncate">
+                            {label}{a.client_name ? ` · ${a.client_name}` : ""}
+                          </p>
+                          <p className="text-[11px] text-muted-foreground mt-0.5 leading-snug truncate">
+                            {a.bookkeeper || "—"}{a.cycle_month ? ` · ${a.cycle_month}` : ""}{a.message ? ` · ${a.message}` : ""}
+                          </p>
+                        </div>
+                        <span className="text-[10px] text-muted-foreground whitespace-nowrap shrink-0 mt-0.5">
+                          {relativeTime(new Date(a.created_at).getTime())}
+                        </span>
                       </div>
-                      <div className="flex-1 min-w-0">
-                        {t.title && <p className="text-[12px] text-foreground leading-tight font-medium">{t.title}</p>}
-                        {t.description && <p className="text-[11px] text-muted-foreground mt-0.5 leading-snug">{t.description}</p>}
-                      </div>
-                      <span className="text-[10px] text-muted-foreground whitespace-nowrap shrink-0 mt-0.5">{relativeTime(t.at)}</span>
-                    </div>
-                  ))}
+                    );
+                  })}
                   <div className="px-4 pb-1.5 pt-2">
                     <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Live data alerts</p>
                   </div>

@@ -63,6 +63,28 @@ export interface ActionResult {
 const WEBHOOK_URL =
   "https://n8n.srv1482383.hstgr.cloud/webhook/dashboard-action";
 
+import { supabase } from "@/integrations/supabase/client";
+
+async function logActivity(
+  payload: ActionPayload,
+  success: boolean,
+  message?: string,
+) {
+  try {
+    await supabase.from("activity_log").insert({
+      action: payload.action,
+      client_name: payload.clientName,
+      bookkeeper: payload.bookkeeper,
+      cycle_month: payload.cycleMonth,
+      triggered_by: payload.triggeredBy,
+      success,
+      message: message ?? null,
+    });
+  } catch {
+    /* non-blocking */
+  }
+}
+
 export async function fireDashboardAction(
   payload: ActionPayload,
 ): Promise<ActionResult> {
@@ -79,6 +101,7 @@ export async function fireDashboardAction(
       data = {};
     }
     if (res.ok && data.success) {
+      void logActivity(payload, true, data.message);
       return { success: true, message: data.message };
     }
     if (res.status === 409 && data.allowOverride) {
@@ -90,6 +113,7 @@ export async function fireDashboardAction(
         overridePayload: { ...payload, override: true },
       };
     }
+    void logActivity(payload, false, data.message || "Failed");
     return {
       success: false,
       errorType: data.errorType || "UNKNOWN_ERROR",
