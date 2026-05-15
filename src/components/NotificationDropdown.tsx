@@ -275,7 +275,7 @@ export default function NotificationDropdown({ clients, trends }: { clients: Cli
           >
             <div className="px-4 py-3 border-b border-border">
               <div className="flex items-center justify-between">
-                <p className="text-xs font-semibold text-foreground">Notifications</p>
+                <p className="text-xs font-semibold text-foreground">Activity</p>
                 <div className="flex items-center gap-1.5">
                   {criticalCount > 0 && (
                     <button onClick={() => toggleFilter("destructive")}
