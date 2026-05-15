@@ -253,9 +253,9 @@ export default function NotificationDropdown({ clients, trends }: { clients: Cli
       <button
         onClick={() => setOpen(!open)}
         className="relative h-9 w-9 flex items-center justify-center rounded-lg text-muted-foreground hover:bg-accent hover:text-foreground transition-colors"
-        aria-label="Notifications"
+        aria-label="Activity"
       >
-        <Bell className="h-[18px] w-[18px]" />
+        <ActivityIcon className="h-[18px] w-[18px]" />
         {totalBadge > 0 && (
           <span className="absolute top-1 right-1 min-w-4 h-4 px-1 rounded-full bg-primary text-[9px] font-bold text-primary-foreground flex items-center justify-center ring-2 ring-card tabular-nums">
             {totalBadge > 99 ? "99+" : totalBadge}
