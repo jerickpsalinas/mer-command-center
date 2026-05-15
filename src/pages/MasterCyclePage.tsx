@@ -738,6 +738,7 @@ export default function MasterCyclePage() {
           );
         })}
       </div>
+      {clientModal}
     </div>
   );
 }
