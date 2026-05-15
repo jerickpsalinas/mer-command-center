@@ -532,9 +532,12 @@ export default function MasterCyclePage() {
               transition={{ delay: 0.04 + idx * 0.015 }}
               className="rounded-xl border border-border bg-card shadow-card overflow-hidden"
             >
-              <button
+              <div
+                role="button"
+                tabIndex={0}
                 onClick={() => setExpanded(open ? null : c.key)}
-                className="w-full text-left p-4 lg:p-5 hover:bg-accent/30 transition-colors"
+                onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); setExpanded(open ? null : c.key); } }}
+                className="w-full text-left p-4 lg:p-5 hover:bg-accent/30 transition-colors cursor-pointer"
               >
                 <div className="flex flex-wrap items-start gap-4">
                   {/* Stage badge — large, scannable */}
