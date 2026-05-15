@@ -21,7 +21,8 @@ export default function BookkeepersPage() {
   const { data, isLoading, error } = useSheetData();
   const [search, setSearch] = useState("");
   const [selected, setSelected] = useState<string | null>(null);
-  const [monthFilter, setMonthFilter] = useState<string>("current"); // "current" or month label
+  const [monthFilter, setMonthFilter] = useState<string>("current");
+  const { open: openClient, modal: clientModal } = useClientDetails();
 
   // Available months (most recent first) derived from MER history
   const monthOptions = useMemo(() => {
