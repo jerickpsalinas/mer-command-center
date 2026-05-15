@@ -14,6 +14,42 @@ export type Database = {
   }
   public: {
     Tables: {
+      activity_log: {
+        Row: {
+          action: string
+          bookkeeper: string | null
+          client_name: string | null
+          created_at: string
+          cycle_month: string | null
+          id: string
+          message: string | null
+          success: boolean
+          triggered_by: string | null
+        }
+        Insert: {
+          action: string
+          bookkeeper?: string | null
+          client_name?: string | null
+          created_at?: string
+          cycle_month?: string | null
+          id?: string
+          message?: string | null
+          success?: boolean
+          triggered_by?: string | null
+        }
+        Update: {
+          action?: string
+          bookkeeper?: string | null
+          client_name?: string | null
+          created_at?: string
+          cycle_month?: string | null
+          id?: string
+          message?: string | null
+          success?: boolean
+          triggered_by?: string | null
+        }
+        Relationships: []
+      }
       client_status_history: {
         Row: {
           client_name: string
