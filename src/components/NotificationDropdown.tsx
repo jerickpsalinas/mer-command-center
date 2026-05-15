@@ -168,9 +168,40 @@ export default function NotificationDropdown({ clients, trends }: { clients: Cli
   const { notifPrefs, setNotifPrefs } = useUserSettings();
   const allBookkeepers = Array.from(new Set(clients.map((c) => c.bookkeeper).filter(Boolean))).sort();
 
-  // #14 — subscribe to the toast log so dismissed toasts remain reviewable here
-  const toastLog = useSyncExternalStore(subscribeToastLog, getToastLog, getToastLog);
-  const unreadToastCount = toastLog.filter((t) => !t.read).length;
+  // Shared activity feed (Supabase-backed, all users)
+  const [activity, setActivity] = useState<ActivityRow[]>([]);
+  const [lastSeenAt, setLastSeenAt] = useState<number>(() => {
+    const v = Number(localStorage.getItem("activity-last-seen-at") || 0);
+    return Number.isFinite(v) ? v : 0;
+  });
+
+  useEffect(() => {
+    let mounted = true;
+    supabase
+      .from("activity_log")
+      .select("*")
+      .order("created_at", { ascending: false })
+      .limit(30)
+      .then(({ data }) => {
+        if (mounted && data) setActivity(data as ActivityRow[]);
+      });
+    const channel = supabase
+      .channel("activity_log_feed")
+      .on(
+        "postgres_changes",
+        { event: "INSERT", schema: "public", table: "activity_log" },
+        (payload) => {
+          setActivity((prev) => [payload.new as ActivityRow, ...prev].slice(0, 30));
+        },
+      )
+      .subscribe();
+    return () => {
+      mounted = false;
+      supabase.removeChannel(channel);
+    };
+  }, []);
+
+  const unreadActivityCount = activity.filter((a) => new Date(a.created_at).getTime() > lastSeenAt).length;
 
   const allNotifications = generateNotifications(clients, trends);
 
@@ -203,15 +234,19 @@ export default function NotificationDropdown({ clients, trends }: { clients: Cli
     setFilterVariant(prev => prev === variant ? null : variant);
   };
 
-  // Mark recent toasts as read once user opens the dropdown
+  // Mark as read once dropdown opens
   useEffect(() => {
-    if (open && unreadToastCount > 0) {
-      const t = setTimeout(() => markAllRead(), 600);
+    if (open && unreadActivityCount > 0) {
+      const t = setTimeout(() => {
+        const now = Date.now();
+        localStorage.setItem("activity-last-seen-at", String(now));
+        setLastSeenAt(now);
+      }, 600);
       return () => clearTimeout(t);
     }
-  }, [open, unreadToastCount]);
+  }, [open, unreadActivityCount]);
 
-  const totalBadge = notifications.length + unreadToastCount;
+  const totalBadge = notifications.length + unreadActivityCount;
 
   return (
     <div className="relative" ref={ref}>
