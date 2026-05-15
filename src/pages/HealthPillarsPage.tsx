@@ -1,6 +1,7 @@
 import { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
+import { useClientDetails } from "@/hooks/useClientDetails";
 import { useIsFetching } from "@tanstack/react-query";
 import { useSheetData } from "@/hooks/useSheetData";
 import {
@@ -144,6 +145,7 @@ function Watchlist({
   emptyLabel,
   icon: Icon,
   i,
+  onOpen,
 }: {
   title: string;
   subtitle: string;
@@ -151,6 +153,7 @@ function Watchlist({
   emptyLabel: string;
   icon: LucideIcon;
   i: number;
+  onOpen: (name: string) => void;
 }) {
   const [search, setSearch] = useState("");
   const [sort, setSort] = useState<SortKey>("severity");
@@ -229,10 +232,11 @@ function Watchlist({
           <p className="text-xs italic text-muted-foreground py-4 text-center">No matches.</p>
         ) : (
           filtered.map((it) => (
-            <Link
+            <button
               key={it.client.id + it.client.name}
-              to={`/clients?search=${encodeURIComponent(it.client.name)}`}
-              className="block rounded-md px-2 py-2 -mx-2 hover:bg-accent transition-colors group/row border-b border-border/40 last:border-0"
+              type="button"
+              onClick={() => onOpen(it.client.name)}
+              className="w-full text-left block rounded-md px-2 py-2 -mx-2 hover:bg-accent transition-colors group/row border-b border-border/40 last:border-0"
             >
               <div className="flex justify-between gap-2 items-baseline">
                 <span className="text-xs text-foreground/90 font-medium break-words min-w-0 flex-1 group-hover/row:text-primary transition-colors">
@@ -248,7 +252,7 @@ function Watchlist({
                 </p>
                 <ArrowRight className="h-3 w-3 text-muted-foreground/0 group-hover/row:text-primary group-hover/row:translate-x-0.5 transition-all shrink-0" />
               </div>
-            </Link>
+            </button>
           ))
         )}
       </div>
