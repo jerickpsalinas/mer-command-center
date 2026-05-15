@@ -1,5 +1,5 @@
 import { useState, useMemo, useCallback } from "react";
-import { useNavigate } from "react-router-dom";
+import { useClientDetails } from "@/hooks/useClientDetails";
 
 function formatDateToISO(dateStr: string): string {
   if (!dateStr || dateStr.trim() === "") return "—";
