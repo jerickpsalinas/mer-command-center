@@ -548,9 +548,12 @@ export default function MasterCyclePage() {
 
                   <div className="min-w-0 flex-1">
                     <div className="flex flex-wrap items-center gap-2">
-                      <h3 className="text-[15px] font-semibold text-foreground break-words">
+                      <button
+                        onClick={(e) => { e.stopPropagation(); openClient(c.clientName); }}
+                        className="text-[15px] font-semibold text-foreground break-words text-left hover:text-primary transition-colors"
+                      >
                         {c.clientName}
-                      </h3>
+                      </button>
                       {c.escalated && (
                         <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-destructive/10 text-destructive border border-destructive/20">
                           <AlertTriangle className="h-3 w-3" />
