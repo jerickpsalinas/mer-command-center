@@ -113,6 +113,7 @@ export default function AtRiskAlerts() {
           </motion.div>
         )}
       </AnimatePresence>
+      {clientModal}
     </motion.div>
   );
 }
