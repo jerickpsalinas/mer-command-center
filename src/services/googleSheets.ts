@@ -92,7 +92,8 @@ function deriveComplianceStatus(row: Record<string, unknown>): Client["complianc
 
 function deriveCompletionPct(row: Record<string, unknown>): number {
   const checks = [
-    num(row["Bank Transactions"]) === 0,
+    !String(row["Bank Transactions"]).toLowerCase().includes("missing") &&
+    String(row["Bank Transactions"]).trim() !== "",
     num(row["Uncategorized Transactions"]) === 0,
     num(row["Transactions Without Payees"]) === 0,
     num(row["Unapplied Payments"]) === 0,
