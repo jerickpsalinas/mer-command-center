@@ -264,6 +264,7 @@ function Watchlist({
 
 export default function HealthPillarsPage() {
   const { data, isLoading } = useSheetData();
+  const { open: openClient, modal: clientModal } = useClientDetails();
 
   const view = useMemo(() => {
     if (!data) return null;
@@ -364,6 +365,7 @@ export default function HealthPillarsPage() {
             emptyLabel="All Feeds Live"
             icon={Banknote}
             i={0}
+            onOpen={openClient}
           />
           <Watchlist
             title="Cleanup Backlog"
@@ -372,6 +374,7 @@ export default function HealthPillarsPage() {
             emptyLabel="Nothing to Clean"
             icon={FileSpreadsheet}
             i={1}
+            onOpen={openClient}
           />
           <Watchlist
             title="Statement Chase Queue"
@@ -380,6 +383,7 @@ export default function HealthPillarsPage() {
             emptyLabel="All Statements In"
             icon={FileText}
             i={2}
+            onOpen={openClient}
           />
           <Watchlist
             title="Workflow Skips"
@@ -388,6 +392,7 @@ export default function HealthPillarsPage() {
             emptyLabel="Workflow Clean"
             icon={WorkflowIcon}
             i={3}
+            onOpen={openClient}
           />
         </div>
       </section>
@@ -415,9 +420,10 @@ export default function HealthPillarsPage() {
             <ul className="space-y-2 max-h-[280px] overflow-y-auto pr-1">
               {flags.map((f, i) => (
                 <li key={i}>
-                  <Link
-                    to={`/clients?search=${encodeURIComponent(f.client.name)}`}
-                    className="flex items-start gap-3 text-sm border-b border-border/40 pb-2 last:border-0 hover:bg-accent rounded-md px-2 py-1.5 -mx-2 transition-colors group/row"
+                  <button
+                    type="button"
+                    onClick={() => openClient(f.client.name)}
+                    className="w-full text-left flex items-start gap-3 text-sm border-b border-border/40 pb-2 last:border-0 hover:bg-accent rounded-md px-2 py-1.5 -mx-2 transition-colors group/row"
                   >
                     <AlertTriangle className="h-4 w-4 text-destructive shrink-0 mt-0.5" />
                     <div className="min-w-0 flex-1">
@@ -431,7 +437,7 @@ export default function HealthPillarsPage() {
                       </div>
                       <p className="text-xs text-muted-foreground mt-0.5 break-words">{f.message}</p>
                     </div>
-                  </Link>
+                  </button>
                 </li>
               ))}
             </ul>
@@ -481,6 +487,7 @@ export default function HealthPillarsPage() {
           Back to Dashboard
         </Link>
       </footer>
+      {clientModal}
     </div>
   );
 }
