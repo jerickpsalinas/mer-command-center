@@ -48,6 +48,7 @@ export default function MonthlyProgressPage() {
   const [sortKey, setSortKey] = useState<SortKey>("name");
   const [sortDir, setSortDir] = useState<SortDir>("asc");
   const [monthFilter, setMonthFilter] = useState<string>("current");
+  const navigate = useNavigate();
 
   const toggleSort = (key: SortKey) => {
     if (sortKey === key) setSortDir(d => (d === "asc" ? "desc" : "asc"));
