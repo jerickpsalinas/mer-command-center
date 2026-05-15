@@ -370,6 +370,7 @@ function ReportsSummarySection({ clients, bookkeepers }: { clients: Client[]; bo
           </div>
         </div>
       </div>
+      {clientModal}
     </motion.div>
   );
 }
