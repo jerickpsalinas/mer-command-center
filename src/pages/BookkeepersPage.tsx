@@ -293,6 +293,7 @@ export default function BookkeepersPage() {
           </div>
         </motion.div>
       )}
+      {clientModal}
     </div>
   );
 }
