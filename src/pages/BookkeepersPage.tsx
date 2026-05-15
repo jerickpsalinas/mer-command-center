@@ -7,6 +7,7 @@ import { DataLoading, DataError } from "@/components/DataStatus";
 import { getBookkeeperPerformance, getBookkeeperPerformanceForMonth, type BookkeeperPerformance } from "@/lib/insights";
 import KPICard from "@/components/KPICard";
 import MonthFilter from "@/components/MonthFilter";
+import { useClientDetails } from "@/hooks/useClientDetails";
 
 const tooltipStyle = {
   background: "hsl(var(--popover))",
