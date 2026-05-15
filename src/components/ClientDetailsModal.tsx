@@ -354,6 +354,12 @@ export default function ClientDetailsModal({ open, onClose, client, onViewHistor
             confirmLabel: "Mark Received",
             variant: "success",
           },
+          "clear-mer-data": {
+            label: "Clear MER Data",
+            description: `This will permanently remove ${client.name} from the MER Dashboard. They will reappear when a new MER is submitted via /add. Are you sure?`,
+            confirmLabel: "Clear MER Data",
+            variant: "destructive",
+          },
         };
         const m = meta[pendingAction];
         const handleConfirm = async () => {
