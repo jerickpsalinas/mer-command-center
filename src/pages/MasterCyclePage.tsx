@@ -633,7 +633,7 @@ export default function MasterCyclePage() {
                     );
                   })}
                 </div>
-              </button>
+              </div>
 
               {open && (
                 <motion.div
