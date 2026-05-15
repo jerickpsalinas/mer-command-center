@@ -4,7 +4,8 @@ export type ActionType =
   | "notes-approval"
   | "undo-notes-approval"
   | "mark-resolved"
-  | "mark-statement-resolved";
+  | "mark-statement-resolved"
+  | "clear-mer-data";
 
 export interface ActionPayload {
   action: ActionType;
