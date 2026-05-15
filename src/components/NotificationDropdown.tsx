@@ -1,9 +1,32 @@
-import { useState, useRef, useEffect, useSyncExternalStore } from "react";
-import { Bell, CheckCircle2, XCircle, AlertTriangle, FileText, TrendingUp, TrendingDown, Clock, Users, Filter as FilterIcon, X, Activity, Trash2 } from "lucide-react";
+import { useState, useRef, useEffect } from "react";
+import { Activity as ActivityIcon, CheckCircle2, XCircle, AlertTriangle, FileText, TrendingUp, TrendingDown, Clock, Users, Filter as FilterIcon, X } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import type { Client, MonthlyTrend } from "@/data/mockData";
 import { useUserSettings } from "@/hooks/useUserSettings";
-import { getToastLog, subscribeToastLog, clearToastLog, markAllRead, relativeTime } from "@/lib/toastLog";
+import { supabase } from "@/integrations/supabase/client";
+import { relativeTime } from "@/lib/toastLog";
+
+interface ActivityRow {
+  id: string;
+  action: string;
+  client_name: string | null;
+  bookkeeper: string | null;
+  cycle_month: string | null;
+  triggered_by: string | null;
+  success: boolean;
+  message: string | null;
+  created_at: string;
+}
+
+const ACTION_LABEL: Record<string, string> = {
+  "bank-reconnection": "Bank reconnection requested",
+  "missing-statement": "Statement requested",
+  "notes-approval": "Notes approved",
+  "undo-notes-approval": "Notes approval undone",
+  "mark-resolved": "Marked resolved",
+  "mark-statement-resolved": "Statement marked resolved",
+  "clear-mer-data": "Cleared MER data",
+};
 
 interface Notification {
   id: string;
