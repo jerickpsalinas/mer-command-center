@@ -16,6 +16,7 @@ import { DataLoading, DataError } from "@/components/DataStatus";
 import { toast } from "@/hooks/use-toast";
 import { motion } from "framer-motion";
 import ClientDetailsModal from "@/components/ClientDetailsModal";
+import { useClientDetails } from "@/hooks/useClientDetails";
 import type { Client } from "@/data/mockData";
 import type { MerHistoryRow } from "@/services/googleSheets";
 
