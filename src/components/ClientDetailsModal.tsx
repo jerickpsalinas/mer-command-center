@@ -256,11 +256,22 @@ export default function ClientDetailsModal({ open, onClose, client, onViewHistor
           };
 
           return (
-            <div className="grid grid-cols-2 gap-2 mt-4">
-              {renderBtn(slot1)}
-              {renderBtn(slot2)}
-              {renderBtn(slot3, true)}
-            </div>
+            <>
+              <div className="grid grid-cols-2 gap-2 mt-4">
+                {renderBtn(slot1)}
+                {renderBtn(slot2)}
+                {renderBtn(slot3, true)}
+              </div>
+              <div className="mt-4 pt-3 border-t border-border/60 flex justify-end">
+                {renderBtn(
+                  {
+                    type: "clear-mer-data",
+                    label: "🗑️ Clear MER Data",
+                    cls: "bg-destructive/10 text-destructive border-destructive/30 hover:bg-destructive/20",
+                  },
+                )}
+              </div>
+            </>
           );
         })()}
 
@@ -342,6 +353,12 @@ export default function ClientDetailsModal({ open, onClose, client, onViewHistor
             description: `This will stop the statement request sequence for ${client.name} and mark the statement as received.`,
             confirmLabel: "Mark Received",
             variant: "success",
+          },
+          "clear-mer-data": {
+            label: "Clear MER Data",
+            description: `This will permanently remove ${client.name} from the MER Dashboard. They will reappear when a new MER is submitted via /add. Are you sure?`,
+            confirmLabel: "Clear MER Data",
+            variant: "destructive",
           },
         };
         const m = meta[pendingAction];
