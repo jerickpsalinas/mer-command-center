@@ -48,7 +48,7 @@ export default function MonthlyProgressPage() {
   const [sortKey, setSortKey] = useState<SortKey>("name");
   const [sortDir, setSortDir] = useState<SortDir>("asc");
   const [monthFilter, setMonthFilter] = useState<string>("current");
-  const navigate = useNavigate();
+  const { open: openClient, modal: clientModal } = useClientDetails();
 
   const toggleSort = (key: SortKey) => {
     if (sortKey === key) setSortDir(d => (d === "asc" ? "desc" : "asc"));
@@ -158,7 +158,7 @@ export default function MonthlyProgressPage() {
                 const needsAttention = c.complianceStatus === "Non-Compliant" && c.completionPct < 50;
                 return (
                   <motion.tr key={c.id} initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.12 + i * 0.015 }}
-                    onClick={() => navigate(`/clients?search=${encodeURIComponent(c.name)}`)}
+                    onClick={() => openClient(c.name)}
                     className={`border-b border-border/60 hover:bg-accent/40 transition-colors cursor-pointer ${needsAttention ? "bg-destructive/[0.03]" : ""}`}>
                     <td className="px-4 py-3 font-semibold text-foreground whitespace-nowrap text-[13px]">
                       <div className="flex items-center gap-2">{needsAttention && <span className="h-1.5 w-1.5 rounded-full bg-destructive shrink-0" />}{c.name}</div>
@@ -190,6 +190,7 @@ export default function MonthlyProgressPage() {
           </table>
         </div>
       </motion.div>
+      {clientModal}
     </div>
   );
 }
