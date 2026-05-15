@@ -5,6 +5,7 @@ import { Link } from "react-router-dom";
 import { getAtRiskClients } from "@/lib/insights";
 import { useSheetData } from "@/hooks/useSheetData";
 import { useUserSettings } from "@/hooks/useUserSettings";
+import { useClientDetails } from "@/hooks/useClientDetails";
 
 const REASON_LABEL: Record<string, string> = {
   consecutiveNonCompliant: "Consecutive non-compliant",
@@ -17,6 +18,7 @@ export default function AtRiskAlerts() {
   const { data } = useSheetData();
   const { thresholds } = useUserSettings();
   const [expanded, setExpanded] = useState(true);
+  const { open: openClient, modal: clientModal } = useClientDetails();
 
   if (!data) return null;
   const atRisk = getAtRiskClients(data.clients, data.merHistory, data.cycleEntries, thresholds);
@@ -68,12 +70,14 @@ export default function AtRiskAlerts() {
             ) : (
               <div className="divide-y divide-border max-h-[320px] overflow-auto scrollbar-thin scrollbar-thumb-muted-foreground/20 hover:scrollbar-thumb-muted-foreground/40 scrollbar-track-transparent">
                 {atRisk.slice(0, 12).map((c, i) => (
-                  <motion.div
+                  <motion.button
                     key={c.name}
+                    type="button"
+                    onClick={() => openClient(c.name)}
                     initial={{ opacity: 0, x: -6 }}
                     animate={{ opacity: 1, x: 0 }}
                     transition={{ delay: i * 0.02 }}
-                    className="px-4 sm:px-6 py-3 hover:bg-accent/30 transition-colors"
+                    className="w-full text-left px-4 sm:px-6 py-3 hover:bg-accent/30 transition-colors block"
                   >
                     <div className="flex items-start justify-between gap-3">
                       <div className="min-w-0 flex-1">
@@ -97,7 +101,7 @@ export default function AtRiskAlerts() {
                         sev {c.severity}
                       </span>
                     </div>
-                  </motion.div>
+                  </motion.button>
                 ))}
                 {atRisk.length > 12 && (
                   <div className="px-6 py-3 text-center text-[11px] text-muted-foreground">
@@ -109,6 +113,7 @@ export default function AtRiskAlerts() {
           </motion.div>
         )}
       </AnimatePresence>
+      {clientModal}
     </motion.div>
   );
 }

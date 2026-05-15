@@ -16,6 +16,7 @@ import { DataLoading, DataError } from "@/components/DataStatus";
 import { toast } from "@/hooks/use-toast";
 import { motion } from "framer-motion";
 import ClientDetailsModal from "@/components/ClientDetailsModal";
+import { useClientDetails } from "@/hooks/useClientDetails";
 import type { Client } from "@/data/mockData";
 import type { MerHistoryRow } from "@/services/googleSheets";
 
@@ -302,6 +303,7 @@ function ReportsSummarySection({ clients, bookkeepers }: { clients: Client[]; bo
   const attention = getNeedsAttention(clients);
   const bkStats = getBookkeeperStats(clients, bookkeepers);
   const highRisk = clients.filter(c => c.completionPct < 40).sort((a, b) => a.completionPct - b.completionPct);
+  const { open: openClient, modal: clientModal } = useClientDetails();
 
   return (
     <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4, delay: 1.0 }}
@@ -329,10 +331,15 @@ function ReportsSummarySection({ clients, bookkeepers }: { clients: Client[]; bo
               <p className="text-[11px] font-semibold text-muted-foreground mb-2">High-risk ({highRisk.length})</p>
               <div className="space-y-1">
                 {highRisk.slice(0, 5).map(c => (
-                  <div key={c.id} className="flex items-center justify-between text-xs py-1">
+                  <button
+                    key={c.id}
+                    type="button"
+                    onClick={() => openClient(c.name)}
+                    className="w-full flex items-center justify-between text-xs py-1 hover:bg-accent/40 -mx-2 px-2 rounded-md transition-colors text-left cursor-pointer"
+                  >
                     <span className="text-foreground truncate mr-2">{c.name}</span>
                     <span className="font-mono-data text-destructive font-semibold">{c.completionPct}%</span>
-                  </div>
+                  </button>
                 ))}
               </div>
             </div>
@@ -363,6 +370,7 @@ function ReportsSummarySection({ clients, bookkeepers }: { clients: Client[]; bo
           </div>
         </div>
       </div>
+      {clientModal}
     </motion.div>
   );
 }
