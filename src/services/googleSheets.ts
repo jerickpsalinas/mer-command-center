@@ -69,21 +69,41 @@ export interface SheetData {
   actionLog: ActionLogEntry[];         // entries from "Action Log" tab
 }
 
+function norm(val: unknown): string {
+  return String(val ?? "").trim().toLowerCase();
+}
+
 function yesNo(val: unknown): boolean {
-  return String(val).trim().toLowerCase() === "yes";
+  const v = norm(val);
+  return v === "yes" || v === "y" || v === "approved" || v === "true";
 }
 
 function num(val: unknown): number {
-  const n = Number(String(val).replace(/,/g, ""));
+  const n = Number(String(val ?? "").replace(/,/g, ""));
   return isNaN(n) ? 0 : n;
 }
 
+function bankTransactionsOk(val: unknown): boolean {
+  const v = norm(val);
+  return v !== "" && !v.includes("missing");
+}
+
+function statementReceived(val: unknown): boolean {
+  return norm(val) === "received";
+}
+
+export function isUnreconciled(val: unknown): boolean {
+  const v = norm(val);
+  return v === "" || v === "n/a" || v === "-" || v === "none" || v === "null";
+}
+
 function deriveComplianceStatus(row: Record<string, unknown>): Client["complianceStatus"] {
+  if (norm(row["Status"]).includes("hold")) return "On Hold";
   const allGood =
-    String(row["Bank Transactions"]).trim() === "Received" &&
+    bankTransactionsOk(row["Bank Transactions"]) &&
     num(row["Uncategorized Transactions"]) === 0 &&
     num(row["Unapplied Payments"]) === 0 &&
-    String(row["Statement Request Status"]).trim() === "Received" &&
+    statementReceived(row["Statement Request Status"]) &&
     yesNo(row["Prev Month Notes Approved"]) &&
     yesNo(row["Financials Sent To Client"]) &&
     yesNo(row["Books Closed In QB"]);
@@ -92,16 +112,15 @@ function deriveComplianceStatus(row: Record<string, unknown>): Client["complianc
 
 function deriveCompletionPct(row: Record<string, unknown>): number {
   const checks = [
-    !String(row["Bank Transactions"]).toLowerCase().includes("missing") &&
-    String(row["Bank Transactions"]).trim() !== "",
+    bankTransactionsOk(row["Bank Transactions"]),
     num(row["Uncategorized Transactions"]) === 0,
     num(row["Transactions Without Payees"]) === 0,
     num(row["Unapplied Payments"]) === 0,
-    String(row["Statement Request Status"]).trim() === "Received",
+    statementReceived(row["Statement Request Status"]),
     yesNo(row["Prev Month Notes Approved"]),
     yesNo(row["Financials Sent To Client"]),
     yesNo(row["Books Closed In QB"]),
-    String(row["Last Reconciled Date"]).trim() !== "",
+    !isUnreconciled(row["Last Reconciled Date"]),
   ];
   return Math.round((checks.filter(Boolean).length / checks.length) * 100);
 }
