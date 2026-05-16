@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { useEffect } from "react";
-import { fetchSheetData, type SheetData, type MerHistoryRow } from "@/services/googleSheets";
+import { fetchSheetData, isUnreconciled, type SheetData, type MerHistoryRow } from "@/services/googleSheets";
 import type { Client, MonthlyTrend } from "@/data/mockData";
 import { recordStatusSnapshots } from "@/utils/statusHistory";
 
