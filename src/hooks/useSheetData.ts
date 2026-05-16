@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { useEffect } from "react";
-import { fetchSheetData, type SheetData, type MerHistoryRow } from "@/services/googleSheets";
+import { fetchSheetData, isUnreconciled, type SheetData, type MerHistoryRow } from "@/services/googleSheets";
 import type { Client, MonthlyTrend } from "@/data/mockData";
 import { recordStatusSnapshots } from "@/utils/statusHistory";
 
@@ -94,8 +94,8 @@ export function getKPIMetrics(clients: Client[]) {
   const nonCompliant = clients.filter((c) => c.complianceStatus === "Non-Compliant").length;
   const onHold = clients.filter((c) => c.complianceStatus === "On Hold").length;
   const avgCompletion = Math.round(clients.reduce((s, c) => s + c.completionPct, 0) / total);
-  const notReconciled = clients.filter((c) => !c.lastReconciledDate).length;
-  const outstandingStatements = clients.filter((c) => c.statementRequestStatus !== "Received").length;
+  const notReconciled = clients.filter((c) => isUnreconciled(c.lastReconciledDate)).length;
+  const outstandingStatements = clients.filter((c) => c.statementRequestStatus.trim().toLowerCase() !== "received").length;
   const withoutNotes = clients.filter((c) => !c.prevMonthNotesApproved).length;
   return { total, compliant, nonCompliant, onHold, avgCompletion, notReconciled, outstandingStatements, withoutNotes };
 }
@@ -113,7 +113,7 @@ export function getComplianceBreakdown(clients: Client[]) {
 export function getNeedsAttention(clients: Client[]) {
   return {
     missingStatements: clients.filter((c) => c.bankTransactions.includes("Missing")),
-    notReconciled: clients.filter((c) => !c.lastReconciledDate),
+    notReconciled: clients.filter((c) => isUnreconciled(c.lastReconciledDate)),
     unresolvedTransactions: clients.filter((c) => c.uncategorizedTransactions > 0),
     noApprovedNotes: clients.filter((c) => !c.prevMonthNotesApproved),
   };
