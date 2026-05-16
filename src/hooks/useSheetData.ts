@@ -113,7 +113,7 @@ export function getComplianceBreakdown(clients: Client[]) {
 export function getNeedsAttention(clients: Client[]) {
   return {
     missingStatements: clients.filter((c) => c.bankTransactions.includes("Missing")),
-    notReconciled: clients.filter((c) => !c.lastReconciledDate),
+    notReconciled: clients.filter((c) => isUnreconciled(c.lastReconciledDate)),
     unresolvedTransactions: clients.filter((c) => c.uncategorizedTransactions > 0),
     noApprovedNotes: clients.filter((c) => !c.prevMonthNotesApproved),
   };
