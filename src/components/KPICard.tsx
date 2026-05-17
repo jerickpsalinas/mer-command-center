@@ -39,7 +39,7 @@ const valueStyles = {
   warning: "text-warning",
 };
 
-export default function KPICard({ title, value, icon: Icon, trend, variant = "default", index = 0, suffix }: KPICardProps) {
+export default function KPICard({ title, value, icon: Icon, trend, variant = "default", index = 0, suffix, tooltip }: KPICardProps) {
   const isNumeric = typeof value === "number";
 
   return (
