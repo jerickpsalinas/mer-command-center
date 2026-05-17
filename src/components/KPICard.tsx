@@ -53,7 +53,26 @@ export default function KPICard({ title, value, icon: Icon, trend, variant = "de
       )}
     >
       <div className="flex items-center justify-between mb-3">
-        <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">{title}</p>
+        <div className="flex items-center gap-1.5 min-w-0">
+          <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider truncate">{title}</p>
+          {tooltip && (
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <button
+                  type="button"
+                  aria-label={`About ${title}`}
+                  className="text-muted-foreground/70 hover:text-foreground transition-colors shrink-0"
+                  onClick={(e) => e.preventDefault()}
+                >
+                  <Info className="h-3 w-3" />
+                </button>
+              </TooltipTrigger>
+              <TooltipContent side="bottom" align="start" className="max-w-xs text-xs leading-relaxed">
+                {tooltip}
+              </TooltipContent>
+            </Tooltip>
+          )}
+        </div>
         <div className={cn(
           "h-8 w-8 rounded-lg flex items-center justify-center transition-transform duration-300 group-hover:scale-105",
           iconStyles[variant]
