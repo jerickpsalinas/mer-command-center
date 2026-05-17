@@ -1,7 +1,9 @@
 import { motion } from "framer-motion";
-import { LucideIcon } from "lucide-react";
+import { Info, LucideIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 import AnimatedNumber from "@/components/AnimatedNumber";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import type { ReactNode } from "react";
 
 interface KPICardProps {
   title: string;
@@ -12,6 +14,8 @@ interface KPICardProps {
   index?: number;
   /** Suffix appended to numeric values (e.g. "%") — used only when value is a number */
   suffix?: string;
+  /** Optional explanation rendered in a tooltip next to the title */
+  tooltip?: ReactNode;
 }
 
 const variantStyles = {
