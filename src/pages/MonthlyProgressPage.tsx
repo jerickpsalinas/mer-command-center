@@ -182,7 +182,7 @@ export default function MonthlyProgressPage() {
                         <span className={`font-mono-data text-xs font-semibold ${c.completionPct >= 90 ? "text-success" : c.completionPct >= 50 ? "text-warning" : "text-destructive"}`}>{c.completionPct}%</span>
                       </div>
                     </td>
-                    <td className="px-4 py-3 whitespace-nowrap"><StatusBadge status={c.complianceStatus} /></td>
+                    <td className="px-4 py-3 whitespace-nowrap"><StatusBadge status={c.complianceStatus} client={c} /></td>
                   </motion.tr>
                 );
               })}
