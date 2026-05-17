@@ -412,7 +412,7 @@ export default function ClientsPage() {
                       <TooltipContent side="left" className="text-[11px]">{dotTip}</TooltipContent>
                     </UTooltip>
                   </TooltipProvider>
-                  <StatusBadge status={c.complianceStatus} />
+                  <StatusBadge status={c.complianceStatus} client={c} />
                 </div>
               </div>
               <div className="mb-2">
