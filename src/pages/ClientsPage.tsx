@@ -412,7 +412,7 @@ export default function ClientsPage() {
                       <TooltipContent side="left" className="text-[11px]">{dotTip}</TooltipContent>
                     </UTooltip>
                   </TooltipProvider>
-                  <StatusBadge status={c.complianceStatus} />
+                  <StatusBadge status={c.complianceStatus} client={c} />
                 </div>
               </div>
               <div className="mb-2">
@@ -571,7 +571,7 @@ export default function ClientsPage() {
                     {[...history].reverse().map((h) => (
                       <tr key={h.month} className="border-b border-border/50 last:border-0 hover:bg-accent/20 transition-colors">
                         <td className="px-3 py-2 font-medium text-foreground text-xs">{h.month}</td>
-                        <td className="px-3 py-2"><StatusBadge status={h.complianceStatus} /></td>
+                        <td className="px-3 py-2"><StatusBadge status={h.complianceStatus} client={h} /></td>
                         <td className="px-3 py-2 text-right font-mono-data text-xs text-foreground">{h.completionPct}%</td>
                         <td className="px-3 py-2 text-right font-mono-data text-xs text-muted-foreground">{h.uncategorizedTransactions || "-"}</td>
                         <td className="px-3 py-2 text-right font-mono-data text-xs text-muted-foreground">{h.unappliedPayments || "-"}</td>
