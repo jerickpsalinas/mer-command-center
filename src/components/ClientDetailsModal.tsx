@@ -136,7 +136,7 @@ export default function ClientDetailsModal({ open, onClose, client, onViewHistor
   const compliance: Field[] = [
     {
       label: "Compliance Status",
-      value: <StatusBadge status={client.complianceStatus} client={client} />,,
+      value: <StatusBadge status={client.complianceStatus} client={client} />,
     },
     { label: "Completion %", value: `${client.completionPct}%`, mono: true },
     { label: "Statement Request Status", value: client.statementRequestStatus },
