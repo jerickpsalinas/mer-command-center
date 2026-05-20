@@ -259,6 +259,33 @@ export default function ClientDetailsModal({ open, onClose, client, onViewHistor
 
           return (
             <>
+              <div className="mt-4 rounded-lg border border-border bg-muted/20 p-3">
+                <div className="flex items-center gap-2 mb-2.5">
+                  <Database className="h-3.5 w-3.5 text-primary" />
+                  <span className="text-[11px] font-semibold uppercase tracking-wider text-foreground">
+                    MER Data
+                  </span>
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setMerFormMode("add")}
+                    className="text-xs font-semibold px-3 py-2 rounded-lg border bg-primary/10 text-primary border-primary/20 hover:bg-primary/15 transition-colors inline-flex items-center justify-center gap-1.5"
+                  >
+                    <FilePlus2 className="h-3.5 w-3.5" />
+                    Add MER
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setMerFormMode("update")}
+                    className="text-xs font-semibold px-3 py-2 rounded-lg border bg-accent/10 text-accent-foreground border-accent/30 hover:bg-accent/15 transition-colors inline-flex items-center justify-center gap-1.5"
+                  >
+                    <FileEdit className="h-3.5 w-3.5" />
+                    Update MER
+                  </button>
+                </div>
+              </div>
+
               <div className="grid grid-cols-2 gap-2 mt-4">
                 {renderBtn(slot1)}
                 {renderBtn(slot2)}
