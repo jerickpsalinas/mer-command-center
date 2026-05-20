@@ -230,6 +230,15 @@ export default function AppLayout() {
 
       {/* Mobile bottom tab bar (#16) */}
       <MobileTabBar onMore={() => setMobileOpen(true)} />
+
+      {addMerOpen && (
+        <MerFormModal
+          open={addMerOpen}
+          mode="add"
+          clients={data?.merHistory ?? []}
+          onClose={() => setAddMerOpen(false)}
+        />
+      )}
     </div>
   );
 }
