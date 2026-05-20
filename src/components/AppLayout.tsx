@@ -53,6 +53,7 @@ function ThemeToggleButton() {
 export default function AppLayout() {
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [addMerOpen, setAddMerOpen] = useState(false);
   const [lastSynced, setLastSynced] = useState<Date>(new Date());
   const location = useLocation();
   const queryClient = useQueryClient();
