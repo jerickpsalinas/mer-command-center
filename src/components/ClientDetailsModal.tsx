@@ -86,6 +86,7 @@ export default function ClientDetailsModal({ open, onClose, client, onViewHistor
   const [isLoading, setIsLoading] = useState(false);
   const [showSequenceHistory, setShowSequenceHistory] = useState(false);
   const [showStatusHistory, setShowStatusHistory] = useState(false);
+  const [merFormMode, setMerFormMode] = useState<"add" | "update" | null>(null);
   const [responseModal, setResponseModal] = useState<{
     open: boolean;
     errorType: string | null;
