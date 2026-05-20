@@ -266,15 +266,7 @@ export default function ClientDetailsModal({ open, onClose, client, onViewHistor
                     MER Data
                   </span>
                 </div>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                  <button
-                    type="button"
-                    onClick={() => setMerFormMode("add")}
-                    className="text-xs font-semibold px-3 py-2 rounded-lg border bg-primary/10 text-primary border-primary/20 hover:bg-primary/15 transition-colors inline-flex items-center justify-center gap-1.5"
-                  >
-                    <FilePlus2 className="h-3.5 w-3.5" />
-                    Add MER
-                  </button>
+                <div className="grid grid-cols-1 gap-2">
                   <button
                     type="button"
                     onClick={() => setMerFormMode("update")}

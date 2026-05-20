@@ -50,7 +50,8 @@ type Mode = "add" | "update";
 interface Props {
   open: boolean;
   mode: Mode;
-  client: MerHistoryRow;
+  client?: MerHistoryRow | null;
+  clients?: MerHistoryRow[];
   onClose: () => void;
 }
 
@@ -96,26 +97,31 @@ interface FormState {
   status: string;
 }
 
-function buildInitial(mode: Mode, client: MerHistoryRow): FormState {
-  if (mode === "add") {
-    return {
-      cycleMonth: priorMonthLabel(),
-      clientType: "",
-      bookkeeper: client.bookkeeper || "",
-      bankTransactions: 0,
-      uncategorizedTransactions: 0,
-      transactionsWithoutPayees: 0,
-      undepositedFunds: 0,
-      unappliedPayments: 0,
-      statementRequestStatus: "",
-      lastReconciledDate: undefined,
-      prevMonthNotesApproved: "No",
-      financialsSentToClient: "No",
-      booksClosedInQB: "No",
-      status: "",
-    };
+function emptyForm(): FormState {
+  return {
+    cycleMonth: priorMonthLabel(),
+    clientType: "",
+    bookkeeper: "",
+    bankTransactions: 0,
+    uncategorizedTransactions: 0,
+    transactionsWithoutPayees: 0,
+    undepositedFunds: 0,
+    unappliedPayments: 0,
+    statementRequestStatus: "",
+    lastReconciledDate: undefined,
+    prevMonthNotesApproved: "No",
+    financialsSentToClient: "No",
+    booksClosedInQB: "No",
+    status: "",
+  };
+}
+
+function buildInitial(mode: Mode, client: MerHistoryRow | null | undefined): FormState {
+  if (mode === "add" || !client) {
+    const base = emptyForm();
+    if (client?.bookkeeper) base.bookkeeper = client.bookkeeper;
+    return base;
   }
-  // update — prefill from client
   const bankNumMatch = String(client.bankTransactions ?? "").match(/\d+/);
   const bankNum = bankNumMatch ? Number(bankNumMatch[0]) : 0;
   return {
@@ -136,8 +142,10 @@ function buildInitial(mode: Mode, client: MerHistoryRow): FormState {
   };
 }
 
-export default function MerFormModal({ open, mode, client, onClose }: Props) {
+export default function MerFormModal({ open, mode, client, clients, onClose }: Props) {
   const qc = useQueryClient();
+  const needsClientPicker = mode === "add" && !client;
+  const [selectedClient, setSelectedClient] = useState<MerHistoryRow | null>(client ?? null);
   const [form, setForm] = useState<FormState>(() => buildInitial(mode, client));
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -146,8 +154,23 @@ export default function MerFormModal({ open, mode, client, onClose }: Props) {
     message: string;
   }>({ open: false, message: "" });
 
+  // Deduplicate clients list by name, keep latest by timestampMs
+  const clientOptions = useMemo(() => {
+    if (!clients || clients.length === 0) return [];
+    const map = new Map<string, MerHistoryRow>();
+    for (const c of clients) {
+      if (!c?.name) continue;
+      const existing = map.get(c.name);
+      if (!existing || (c.timestampMs ?? 0) > (existing.timestampMs ?? 0)) {
+        map.set(c.name, c);
+      }
+    }
+    return Array.from(map.values()).sort((a, b) => a.name.localeCompare(b.name));
+  }, [clients]);
+
   useEffect(() => {
     if (open) {
+      setSelectedClient(client ?? null);
       setForm(buildInitial(mode, client));
       setError(null);
     }
@@ -156,27 +179,39 @@ export default function MerFormModal({ open, mode, client, onClose }: Props) {
   const update = <K extends keyof FormState>(k: K, v: FormState[K]) =>
     setForm((f) => ({ ...f, [k]: v }));
 
+  const handleClientPick = (name: string) => {
+    const c = clientOptions.find((x) => x.name === name) || null;
+    setSelectedClient(c);
+    if (c) {
+      // auto-fill bookkeeper if empty; keep cycleMonth as prior month (add mode)
+      setForm((f) => ({
+        ...f,
+        bookkeeper: f.bookkeeper || c.bookkeeper || "",
+        clientType: f.clientType || c.clientType || "",
+      }));
+    }
+  };
+
   const buildPayload = (forceOverwrite: boolean) => {
-    // For update: use the exact merKey from the sheet, untouched.
-    // For add: there is no original row, so merKey mirrors newMerKey.
-    const originalMerKey = client.merKey ?? "";
+    const effective = selectedClient;
+    const originalMerKey = effective?.merKey ?? "";
     const ghlContactId =
-      client.ghlContactId ||
+      effective?.ghlContactId ||
       (originalMerKey.includes("_") ? originalMerKey.split("_")[0] : "");
     const newMerKey = ghlContactId
-      ? `${ghlContactId}_${form.cycleMonth}`
+      ? `${ghlContactId}_${form.cycleMonth.replace(/\s+/g, "")}`
       : originalMerKey;
     const merKey = mode === "update" ? originalMerKey : newMerKey;
     return {
       action: mode,
-      clientName: client.name,
+      clientName: effective?.name ?? "",
       ghlContactId,
       merKey,
       newMerKey,
       cycleMonth: form.cycleMonth,
       clientType: form.clientType,
       bookkeeper: form.bookkeeper,
-      submittedBy: client.submittedBy || "Dashboard User",
+      submittedBy: effective?.submittedBy || "Dashboard User",
       bankTransactions: Number(form.bankTransactions) || 0,
       uncategorizedTransactions: Number(form.uncategorizedTransactions) || 0,
       transactionsWithoutPayees: Number(form.transactionsWithoutPayees) || 0,
@@ -194,8 +229,11 @@ export default function MerFormModal({ open, mode, client, onClose }: Props) {
     };
   };
 
-
   const submit = async (forceOverwrite = false) => {
+    if (!selectedClient) {
+      setError("Please select a client first.");
+      return;
+    }
     setSubmitting(true);
     setError(null);
     try {
@@ -216,7 +254,7 @@ export default function MerFormModal({ open, mode, client, onClose }: Props) {
       if (res.status === 200) {
         toast({
           title: mode === "add" ? "MER added ✓" : "MER updated ✓",
-          description: `${client.name} — ${form.cycleMonth}`,
+          description: `${selectedClient.name} — ${form.cycleMonth}`,
         });
         await qc.invalidateQueries({ queryKey: ["sheet-data"] });
         setConfirmOverwrite({ open: false, message: "" });
@@ -255,6 +293,7 @@ export default function MerFormModal({ open, mode, client, onClose }: Props) {
   const isUpdate = mode === "update";
   const title = isUpdate ? "Update MER" : "Add MER";
   const Icon = isUpdate ? FileEdit : FilePlus2;
+  const headerName = selectedClient?.name || (needsClientPicker ? "Select a client" : "");
 
   return (
     <>
@@ -266,13 +305,14 @@ export default function MerFormModal({ open, mode, client, onClose }: Props) {
             <DialogTitle className="flex items-center gap-2 pr-8">
               <Icon className="h-4 w-4 text-primary shrink-0" />
               <span className="truncate">
-                {title} — {client.name}
+                {title}
+                {headerName ? ` — ${headerName}` : ""}
               </span>
             </DialogTitle>
             <p className="text-[11px] text-muted-foreground">
               {isUpdate
                 ? "Edit and submit the latest MER values for this client."
-                : "Submit a new MER record for this client."}
+                : "Submit a new MER record."}
             </p>
           </DialogHeader>
 
@@ -283,6 +323,32 @@ export default function MerFormModal({ open, mode, client, onClose }: Props) {
             }}
             className="mt-3 space-y-4"
           >
+            {needsClientPicker && (
+              <Field label="Client">
+                <Select
+                  value={selectedClient?.name ?? ""}
+                  onValueChange={handleClientPick}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select a client" />
+                  </SelectTrigger>
+                  <SelectContent className="max-h-72">
+                    {clientOptions.length === 0 ? (
+                      <div className="px-3 py-2 text-xs text-muted-foreground">
+                        No clients available.
+                      </div>
+                    ) : (
+                      clientOptions.map((c) => (
+                        <SelectItem key={c.merKey || c.name} value={c.name}>
+                          {c.name}
+                        </SelectItem>
+                      ))
+                    )}
+                  </SelectContent>
+                </Select>
+              </Field>
+            )}
+
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <Field label="Cycle Month">
                 <Input
@@ -445,7 +511,7 @@ export default function MerFormModal({ open, mode, client, onClose }: Props) {
               >
                 Cancel
               </Button>
-              <Button type="submit" disabled={submitting}>
+              <Button type="submit" disabled={submitting || !selectedClient}>
                 {submitting && (
                   <Loader2 className="h-4 w-4 animate-spin" />
                 )}
