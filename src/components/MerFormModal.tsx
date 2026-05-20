@@ -61,6 +61,14 @@ function priorMonthLabel(): string {
   return format(d, "MMMM yyyy");
 }
 
+function toFullMonthLabel(val: string | undefined): string {
+  if (!val) return "";
+  const d = new Date(`1 ${val}`);
+  if (!isNaN(d.getTime())) return format(d, "MMMM yyyy");
+  const d2 = new Date(val);
+  return isNaN(d2.getTime()) ? val : format(d2, "MMMM yyyy");
+}
+
 function toYesNo(b: boolean): "Yes" | "No" {
   return b ? "Yes" : "No";
 }
