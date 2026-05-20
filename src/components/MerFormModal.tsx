@@ -157,6 +157,8 @@ export default function MerFormModal({ open, mode, client, onClose }: Props) {
     setForm((f) => ({ ...f, [k]: v }));
 
   const buildPayload = (forceOverwrite: boolean) => {
+    // For update: use the exact merKey from the sheet, untouched.
+    // For add: there is no original row, so merKey mirrors newMerKey.
     const originalMerKey = client.merKey ?? "";
     const ghlContactId =
       client.ghlContactId ||
@@ -164,11 +166,12 @@ export default function MerFormModal({ open, mode, client, onClose }: Props) {
     const newMerKey = ghlContactId
       ? `${ghlContactId}_${form.cycleMonth}`
       : originalMerKey;
+    const merKey = mode === "update" ? originalMerKey : newMerKey;
     return {
       action: mode,
       clientName: client.name,
       ghlContactId,
-      merKey: originalMerKey,
+      merKey,
       newMerKey,
       cycleMonth: form.cycleMonth,
       clientType: form.clientType,
