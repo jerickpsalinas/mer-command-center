@@ -6,9 +6,10 @@ import { useSheetData } from "@/hooks/useSheetData";
 import { useTheme } from "@/hooks/useTheme";
 import NotificationDropdown from "@/components/NotificationDropdown";
 import MobileTabBar from "@/components/MobileTabBar";
+import MerFormModal from "@/components/MerFormModal";
 import {
   LayoutDashboard, CalendarCheck, TrendingUp, Users, Download, Settings,
-  Menu, X, ChevronLeft, RefreshCw, Sun, Moon, Workflow, UserCheck, HeartPulse, BookOpen,
+  Menu, X, ChevronLeft, RefreshCw, Sun, Moon, Workflow, UserCheck, HeartPulse, BookOpen, FilePlus2,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import logo from "@/assets/logo.png";
