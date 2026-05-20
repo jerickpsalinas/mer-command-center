@@ -156,32 +156,41 @@ export default function MerFormModal({ open, mode, client, onClose }: Props) {
   const update = <K extends keyof FormState>(k: K, v: FormState[K]) =>
     setForm((f) => ({ ...f, [k]: v }));
 
-  const buildPayload = (forceOverwrite: boolean) => ({
-    action: mode,
-    clientName: client.name,
-    ghlContactId:
+  const buildPayload = (forceOverwrite: boolean) => {
+    const originalMerKey = client.merKey ?? "";
+    const ghlContactId =
       client.ghlContactId ||
-      (client.merKey?.includes("_") ? client.merKey.split("_")[0] : ""),
-    merKey: client.merKey ?? "",
-    cycleMonth: form.cycleMonth,
-    clientType: form.clientType,
-    bookkeeper: form.bookkeeper,
-    submittedBy: client.submittedBy || "Dashboard User",
-    bankTransactions: Number(form.bankTransactions) || 0,
-    uncategorizedTransactions: Number(form.uncategorizedTransactions) || 0,
-    transactionsWithoutPayees: Number(form.transactionsWithoutPayees) || 0,
-    undepositedFunds: Number(form.undepositedFunds) || 0,
-    unappliedPayments: Number(form.unappliedPayments) || 0,
-    statementRequestStatus: form.statementRequestStatus,
-    lastReconciledDate: form.lastReconciledDate
-      ? format(form.lastReconciledDate, "yyyy-MM-dd")
-      : "",
-    prevMonthNotesApproved: form.prevMonthNotesApproved,
-    financialsSentToClient: form.financialsSentToClient,
-    booksClosedInQB: form.booksClosedInQB,
-    status: form.status,
-    forceOverwrite,
-  });
+      (originalMerKey.includes("_") ? originalMerKey.split("_")[0] : "");
+    const newMerKey = ghlContactId
+      ? `${ghlContactId}_${form.cycleMonth}`
+      : originalMerKey;
+    return {
+      action: mode,
+      clientName: client.name,
+      ghlContactId,
+      merKey: originalMerKey,
+      newMerKey,
+      cycleMonth: form.cycleMonth,
+      clientType: form.clientType,
+      bookkeeper: form.bookkeeper,
+      submittedBy: client.submittedBy || "Dashboard User",
+      bankTransactions: Number(form.bankTransactions) || 0,
+      uncategorizedTransactions: Number(form.uncategorizedTransactions) || 0,
+      transactionsWithoutPayees: Number(form.transactionsWithoutPayees) || 0,
+      undepositedFunds: Number(form.undepositedFunds) || 0,
+      unappliedPayments: Number(form.unappliedPayments) || 0,
+      statementRequestStatus: form.statementRequestStatus,
+      lastReconciledDate: form.lastReconciledDate
+        ? format(form.lastReconciledDate, "yyyy-MM-dd")
+        : "",
+      prevMonthNotesApproved: form.prevMonthNotesApproved,
+      financialsSentToClient: form.financialsSentToClient,
+      booksClosedInQB: form.booksClosedInQB,
+      status: form.status,
+      forceOverwrite,
+    };
+  };
+
 
   const submit = async (forceOverwrite = false) => {
     setSubmitting(true);
