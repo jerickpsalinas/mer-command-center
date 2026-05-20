@@ -1,12 +1,13 @@
 import { useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Building2, ShieldCheck, Banknote, Workflow, Clock, History, FileText, Loader2 } from "lucide-react";
+import { Building2, ShieldCheck, Banknote, Workflow, Clock, History, FileText, Loader2, FilePlus2, FileEdit, Database } from "lucide-react";
 import StatusBadge from "@/components/StatusBadge";
 import type { ActionLogEntry, MerHistoryRow } from "@/services/googleSheets";
 import ActionConfirmModal from "@/components/ActionConfirmModal";
 import ActionResponseModal from "@/components/ActionResponseModal";
 import SequenceStatusTable from "@/components/SequenceStatusTable";
 import StatusHistoryModal from "@/components/StatusHistoryModal";
+import MerFormModal from "@/components/MerFormModal";
 import {
   getSequenceEvents,
   getSequenceInfoForClient,
@@ -85,6 +86,7 @@ export default function ClientDetailsModal({ open, onClose, client, onViewHistor
   const [isLoading, setIsLoading] = useState(false);
   const [showSequenceHistory, setShowSequenceHistory] = useState(false);
   const [showStatusHistory, setShowStatusHistory] = useState(false);
+  const [merFormMode, setMerFormMode] = useState<"add" | "update" | null>(null);
   const [responseModal, setResponseModal] = useState<{
     open: boolean;
     errorType: string | null;
@@ -257,6 +259,33 @@ export default function ClientDetailsModal({ open, onClose, client, onViewHistor
 
           return (
             <>
+              <div className="mt-4 rounded-lg border border-border bg-muted/20 p-3">
+                <div className="flex items-center gap-2 mb-2.5">
+                  <Database className="h-3.5 w-3.5 text-primary" />
+                  <span className="text-[11px] font-semibold uppercase tracking-wider text-foreground">
+                    MER Data
+                  </span>
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setMerFormMode("add")}
+                    className="text-xs font-semibold px-3 py-2 rounded-lg border bg-primary/10 text-primary border-primary/20 hover:bg-primary/15 transition-colors inline-flex items-center justify-center gap-1.5"
+                  >
+                    <FilePlus2 className="h-3.5 w-3.5" />
+                    Add MER
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setMerFormMode("update")}
+                    className="text-xs font-semibold px-3 py-2 rounded-lg border bg-accent/10 text-accent-foreground border-accent/30 hover:bg-accent/15 transition-colors inline-flex items-center justify-center gap-1.5"
+                  >
+                    <FileEdit className="h-3.5 w-3.5" />
+                    Update MER
+                  </button>
+                </div>
+              </div>
+
               <div className="grid grid-cols-2 gap-2 mt-4">
                 {renderBtn(slot1)}
                 {renderBtn(slot2)}
@@ -470,6 +499,15 @@ export default function ClientDetailsModal({ open, onClose, client, onViewHistor
         ghlContactId={ghlContactId}
         clientName={client.name}
       />
+
+      {merFormMode && (
+        <MerFormModal
+          open={true}
+          mode={merFormMode}
+          client={client}
+          onClose={() => setMerFormMode(null)}
+        />
+      )}
     </Dialog>
   );
 }
