@@ -1,12 +1,13 @@
 import { useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Building2, ShieldCheck, Banknote, Workflow, Clock, History, FileText, Loader2 } from "lucide-react";
+import { Building2, ShieldCheck, Banknote, Workflow, Clock, History, FileText, Loader2, FilePlus2, FileEdit, Database } from "lucide-react";
 import StatusBadge from "@/components/StatusBadge";
 import type { ActionLogEntry, MerHistoryRow } from "@/services/googleSheets";
 import ActionConfirmModal from "@/components/ActionConfirmModal";
 import ActionResponseModal from "@/components/ActionResponseModal";
 import SequenceStatusTable from "@/components/SequenceStatusTable";
 import StatusHistoryModal from "@/components/StatusHistoryModal";
+import MerFormModal from "@/components/MerFormModal";
 import {
   getSequenceEvents,
   getSequenceInfoForClient,
