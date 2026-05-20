@@ -499,6 +499,15 @@ export default function ClientDetailsModal({ open, onClose, client, onViewHistor
         ghlContactId={ghlContactId}
         clientName={client.name}
       />
+
+      {merFormMode && (
+        <MerFormModal
+          open={true}
+          mode={merFormMode}
+          client={client}
+          onClose={() => setMerFormMode(null)}
+        />
+      )}
     </Dialog>
   );
 }
