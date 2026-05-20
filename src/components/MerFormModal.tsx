@@ -111,7 +111,7 @@ function buildInitial(mode: Mode, client: MerHistoryRow): FormState {
   const bankNumMatch = String(client.bankTransactions ?? "").match(/\d+/);
   const bankNum = bankNumMatch ? Number(bankNumMatch[0]) : 0;
   return {
-    cycleMonth: client.month || priorMonthLabel(),
+    cycleMonth: toFullMonthLabel(client.month) || priorMonthLabel(),
     clientType: client.clientType || "",
     bookkeeper: client.bookkeeper || "",
     bankTransactions: bankNum,
