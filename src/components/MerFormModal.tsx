@@ -142,10 +142,25 @@ function buildInitial(mode: Mode, client: MerHistoryRow | null | undefined): For
   };
 }
 
-export default function MerFormModal({ open, mode, client, clients, onClose }: Props) {
+const GHL_URL =
+  "https://services.leadconnectorhq.com/contacts/?locationId=2UvLCJLDqEYjWtuPdjaR&limit=100";
+const GHL_TOKEN = "pit-9e416e9c-99e8-4507-9c57-e6c824f50723";
+
+type ClientOption = {
+  name: string;
+  ghlContactId: string;
+  merKey: string;
+  bookkeeper?: string;
+  clientType?: string;
+  submittedBy?: string;
+};
+
+export default function MerFormModal({ open, mode, client, onClose }: Props) {
   const qc = useQueryClient();
   const needsClientPicker = mode === "add" && !client;
-  const [selectedClient, setSelectedClient] = useState<MerHistoryRow | null>(client ?? null);
+  const [selectedClient, setSelectedClient] = useState<ClientOption | MerHistoryRow | null>(
+    client ?? null,
+  );
   const [form, setForm] = useState<FormState>(() => buildInitial(mode, client));
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -153,20 +168,55 @@ export default function MerFormModal({ open, mode, client, clients, onClose }: P
     open: boolean;
     message: string;
   }>({ open: false, message: "" });
+  const [ghlOptions, setGhlOptions] = useState<ClientOption[]>([]);
+  const [ghlLoading, setGhlLoading] = useState(false);
+  const [ghlError, setGhlError] = useState<string | null>(null);
 
-  // Deduplicate clients list by name, keep latest by timestampMs
-  const clientOptions = useMemo(() => {
-    if (!clients || clients.length === 0) return [];
-    const map = new Map<string, MerHistoryRow>();
-    for (const c of clients) {
-      if (!c?.name) continue;
-      const existing = map.get(c.name);
-      if (!existing || (c.timestampMs ?? 0) > (existing.timestampMs ?? 0)) {
-        map.set(c.name, c);
+  // Fetch GHL contacts when picker is needed
+  useEffect(() => {
+    if (!open || !needsClientPicker) return;
+    let cancelled = false;
+    setGhlLoading(true);
+    setGhlError(null);
+    (async () => {
+      try {
+        const res = await fetch(GHL_URL, {
+          headers: {
+            Authorization: `Bearer ${GHL_TOKEN}`,
+            Version: "2021-07-28",
+          },
+        });
+        if (!res.ok) throw new Error(`GHL request failed (${res.status})`);
+        const data = await res.json();
+        const contacts: any[] = Array.isArray(data?.contacts) ? data.contacts : [];
+        const filtered = contacts.filter(
+          (c) =>
+            Array.isArray(c?.tags) &&
+            c.tags.some((t: string) => String(t).toLowerCase() === "active-client"),
+        );
+        const opts: ClientOption[] = filtered.map((c) => {
+          const company = (c.companyName || "").trim();
+          const fullName =
+            `${c.firstName ?? ""} ${c.lastName ?? ""}`.trim() || c.contactName || "Unnamed";
+          return {
+            name: company || fullName,
+            ghlContactId: c.id,
+            merKey: "",
+          };
+        });
+        opts.sort((a, b) => a.name.localeCompare(b.name));
+        if (!cancelled) setGhlOptions(opts);
+      } catch (e) {
+        if (!cancelled)
+          setGhlError(e instanceof Error ? e.message : "Failed to load clients from GHL.");
+      } finally {
+        if (!cancelled) setGhlLoading(false);
       }
-    }
-    return Array.from(map.values()).sort((a, b) => a.name.localeCompare(b.name));
-  }, [clients]);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [open, needsClientPicker]);
 
   useEffect(() => {
     if (open) {
@@ -176,19 +226,25 @@ export default function MerFormModal({ open, mode, client, clients, onClose }: P
     }
   }, [open, mode, client]);
 
+  // Keep merKey in sync with cycleMonth for GHL-picked clients
+  useEffect(() => {
+    if (!needsClientPicker || !selectedClient?.ghlContactId) return;
+    const newKey = `${selectedClient.ghlContactId}_${form.cycleMonth.replace(/\s+/g, "")}`;
+    if (selectedClient.merKey !== newKey) {
+      setSelectedClient({ ...(selectedClient as ClientOption), merKey: newKey });
+    }
+  }, [form.cycleMonth, needsClientPicker, selectedClient]);
+
   const update = <K extends keyof FormState>(k: K, v: FormState[K]) =>
     setForm((f) => ({ ...f, [k]: v }));
 
-  const handleClientPick = (name: string) => {
-    const c = clientOptions.find((x) => x.name === name) || null;
-    setSelectedClient(c);
+  const handleClientPick = (ghlId: string) => {
+    const c = ghlOptions.find((x) => x.ghlContactId === ghlId) || null;
     if (c) {
-      // auto-fill bookkeeper if empty; keep cycleMonth as prior month (add mode)
-      setForm((f) => ({
-        ...f,
-        bookkeeper: f.bookkeeper || c.bookkeeper || "",
-        clientType: f.clientType || c.clientType || "",
-      }));
+      const merKey = `${c.ghlContactId}_${form.cycleMonth.replace(/\s+/g, "")}`;
+      setSelectedClient({ ...c, merKey });
+    } else {
+      setSelectedClient(null);
     }
   };
 
