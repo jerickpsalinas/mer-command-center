@@ -432,11 +432,13 @@ export default function MerFormModal({ open, mode, client, clients, onClose }: P
                         No active clients found.
                       </div>
                     ) : (
-                      ghlOptions.map((c) => (
-                        <SelectItem key={c.ghlContactId} value={c.ghlContactId}>
-                          {c.name}
-                        </SelectItem>
-                      ))
+                      ghlOptions
+                        .filter((c) => !!c.ghlContactId)
+                        .map((c) => (
+                          <SelectItem key={c.ghlContactId} value={c.ghlContactId}>
+                            {c.name}
+                          </SelectItem>
+                        ))
                     )}
                   </SelectContent>
                 </Select>
@@ -458,11 +460,13 @@ export default function MerFormModal({ open, mode, client, clients, onClose }: P
                         No clients available.
                       </div>
                     ) : (
-                      sheetOptions.map((c) => (
-                        <SelectItem key={c.merKey} value={c.merKey}>
-                          {c.name}
-                        </SelectItem>
-                      ))
+                      sheetOptions
+                        .filter((c) => !!c.merKey)
+                        .map((c) => (
+                          <SelectItem key={c.merKey} value={c.merKey}>
+                            {c.name}
+                          </SelectItem>
+                        ))
                     )}
                   </SelectContent>
                 </Select>
