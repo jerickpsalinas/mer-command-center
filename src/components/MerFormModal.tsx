@@ -295,9 +295,9 @@ export default function MerFormModal({ open, mode, client, clients, onClose }: P
     const newMerKey = ghlContactId
       ? `${ghlContactId}_${form.cycleMonth.replace(/\s+/g, "")}`
       : originalMerKey;
-    const merKey = mode === "update" ? originalMerKey : newMerKey;
+    const merKey = effectiveMode === "update" ? originalMerKey : newMerKey;
     return {
-      action: mode,
+      action: effectiveMode,
       clientName: effective?.name ?? "",
       ghlContactId,
       merKey,
