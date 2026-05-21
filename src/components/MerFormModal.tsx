@@ -382,20 +382,29 @@ export default function MerFormModal({ open, mode, client, onClose }: Props) {
             {needsClientPicker && (
               <Field label="Client">
                 <Select
-                  value={selectedClient?.name ?? ""}
+                  value={(selectedClient as ClientOption | null)?.ghlContactId ?? ""}
                   onValueChange={handleClientPick}
+                  disabled={ghlLoading}
                 >
                   <SelectTrigger>
-                    <SelectValue placeholder="Select a client" />
+                    <SelectValue
+                      placeholder={
+                        ghlLoading ? "Loading clients…" : "Select a client"
+                      }
+                    />
                   </SelectTrigger>
                   <SelectContent className="max-h-72">
-                    {clientOptions.length === 0 ? (
+                    {ghlError ? (
+                      <div className="px-3 py-2 text-xs text-destructive">
+                        {ghlError}
+                      </div>
+                    ) : ghlOptions.length === 0 && !ghlLoading ? (
                       <div className="px-3 py-2 text-xs text-muted-foreground">
-                        No clients available.
+                        No active clients found.
                       </div>
                     ) : (
-                      clientOptions.map((c) => (
-                        <SelectItem key={c.merKey || c.name} value={c.name}>
+                      ghlOptions.map((c) => (
+                        <SelectItem key={c.ghlContactId} value={c.ghlContactId}>
                           {c.name}
                         </SelectItem>
                       ))
@@ -404,6 +413,7 @@ export default function MerFormModal({ open, mode, client, onClose }: Props) {
                 </Select>
               </Field>
             )}
+
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <Field label="Cycle Month">
