@@ -155,9 +155,13 @@ type ClientOption = {
   submittedBy?: string;
 };
 
-export default function MerFormModal({ open, mode, client, onClose }: Props) {
+export default function MerFormModal({ open, mode, client, clients, onClose }: Props) {
   const qc = useQueryClient();
-  const needsClientPicker = mode === "add" && !client;
+  const isGlobal = !client;
+  const [tab, setTab] = useState<Mode>(mode);
+  const effectiveMode: Mode = isGlobal ? tab : mode;
+  const needsGhlPicker = isGlobal && effectiveMode === "add";
+  const needsSheetPicker = isGlobal && effectiveMode === "update";
   const [selectedClient, setSelectedClient] = useState<ClientOption | MerHistoryRow | null>(
     client ?? null,
   );
@@ -172,9 +176,22 @@ export default function MerFormModal({ open, mode, client, onClose }: Props) {
   const [ghlLoading, setGhlLoading] = useState(false);
   const [ghlError, setGhlError] = useState<string | null>(null);
 
-  // Fetch GHL contacts when picker is needed
+  // Deduped clients from sheet (one row per client) for Update picker
+  const sheetOptions = (() => {
+    if (!clients?.length) return [] as MerHistoryRow[];
+    const map = new Map<string, MerHistoryRow>();
+    for (const row of clients) {
+      if (!row.name) continue;
+      if (!map.has(row.name)) map.set(row.name, row);
+    }
+    return Array.from(map.values()).sort((a, b) =>
+      a.name.localeCompare(b.name),
+    );
+  })();
+
+  // Fetch GHL contacts when add picker is needed
   useEffect(() => {
-    if (!open || !needsClientPicker) return;
+    if (!open || !needsGhlPicker) return;
     let cancelled = false;
     setGhlLoading(true);
     setGhlError(null);
@@ -216,33 +233,54 @@ export default function MerFormModal({ open, mode, client, onClose }: Props) {
     return () => {
       cancelled = true;
     };
-  }, [open, needsClientPicker]);
+  }, [open, needsGhlPicker]);
 
   useEffect(() => {
     if (open) {
+      setTab(mode);
       setSelectedClient(client ?? null);
       setForm(buildInitial(mode, client));
       setError(null);
     }
   }, [open, mode, client]);
 
-  // Keep merKey in sync with cycleMonth for GHL-picked clients
+  // Reset selection & form when toggling tabs in global mode
   useEffect(() => {
-    if (!needsClientPicker || !selectedClient?.ghlContactId) return;
-    const newKey = `${selectedClient.ghlContactId}_${form.cycleMonth.replace(/\s+/g, "")}`;
-    if (selectedClient.merKey !== newKey) {
-      setSelectedClient({ ...(selectedClient as ClientOption), merKey: newKey });
+    if (!isGlobal) return;
+    setSelectedClient(null);
+    setForm(buildInitial(tab, null));
+    setError(null);
+  }, [tab, isGlobal]);
+
+  // Keep merKey in sync with cycleMonth for GHL-picked clients (add only)
+  useEffect(() => {
+    if (!needsGhlPicker || !selectedClient || !("ghlContactId" in selectedClient)) return;
+    const opt = selectedClient as ClientOption;
+    if (!opt.ghlContactId) return;
+    const newKey = `${opt.ghlContactId}_${form.cycleMonth.replace(/\s+/g, "")}`;
+    if (opt.merKey !== newKey) {
+      setSelectedClient({ ...opt, merKey: newKey });
     }
-  }, [form.cycleMonth, needsClientPicker, selectedClient]);
+  }, [form.cycleMonth, needsGhlPicker, selectedClient]);
 
   const update = <K extends keyof FormState>(k: K, v: FormState[K]) =>
     setForm((f) => ({ ...f, [k]: v }));
 
-  const handleClientPick = (ghlId: string) => {
+  const handleGhlPick = (ghlId: string) => {
     const c = ghlOptions.find((x) => x.ghlContactId === ghlId) || null;
     if (c) {
       const merKey = `${c.ghlContactId}_${form.cycleMonth.replace(/\s+/g, "")}`;
       setSelectedClient({ ...c, merKey });
+    } else {
+      setSelectedClient(null);
+    }
+  };
+
+  const handleSheetPick = (merKey: string) => {
+    const row = sheetOptions.find((r) => r.merKey === merKey) || null;
+    if (row) {
+      setSelectedClient(row);
+      setForm(buildInitial("update", row));
     } else {
       setSelectedClient(null);
     }
@@ -257,9 +295,9 @@ export default function MerFormModal({ open, mode, client, onClose }: Props) {
     const newMerKey = ghlContactId
       ? `${ghlContactId}_${form.cycleMonth.replace(/\s+/g, "")}`
       : originalMerKey;
-    const merKey = mode === "update" ? originalMerKey : newMerKey;
+    const merKey = effectiveMode === "update" ? originalMerKey : newMerKey;
     return {
-      action: mode,
+      action: effectiveMode,
       clientName: effective?.name ?? "",
       ghlContactId,
       merKey,
@@ -309,7 +347,7 @@ export default function MerFormModal({ open, mode, client, onClose }: Props) {
 
       if (res.status === 200) {
         toast({
-          title: mode === "add" ? "MER added ✓" : "MER updated ✓",
+          title: effectiveMode === "add" ? "MER added ✓" : "MER updated ✓",
           description: `${selectedClient.name} — ${form.cycleMonth}`,
         });
         await qc.invalidateQueries({ queryKey: ["sheet-data"] });
@@ -346,10 +384,11 @@ export default function MerFormModal({ open, mode, client, onClose }: Props) {
     }
   };
 
-  const isUpdate = mode === "update";
+  const isUpdate = effectiveMode === "update";
   const title = isUpdate ? "Update MER" : "Add MER";
   const Icon = isUpdate ? FileEdit : FilePlus2;
-  const headerName = selectedClient?.name || (needsClientPicker ? "Select a client" : "");
+  const headerName =
+    selectedClient?.name || (isGlobal ? "Select a client" : "");
 
   return (
     <>
@@ -372,6 +411,29 @@ export default function MerFormModal({ open, mode, client, onClose }: Props) {
             </p>
           </DialogHeader>
 
+          {isGlobal && (
+            <div className="mt-3 inline-flex rounded-md border border-border bg-muted/20 p-0.5 self-start">
+              {(["add", "update"] as const).map((t) => {
+                const active = tab === t;
+                return (
+                  <button
+                    key={t}
+                    type="button"
+                    onClick={() => setTab(t)}
+                    className={cn(
+                      "px-4 py-1.5 text-xs font-semibold rounded transition-colors",
+                      active
+                        ? "bg-primary/15 text-primary"
+                        : "text-muted-foreground hover:text-foreground",
+                    )}
+                  >
+                    {t === "add" ? "Add MER" : "Update MER"}
+                  </button>
+                );
+              })}
+            </div>
+          )}
+
           <form
             onSubmit={(e) => {
               e.preventDefault();
@@ -379,11 +441,11 @@ export default function MerFormModal({ open, mode, client, onClose }: Props) {
             }}
             className="mt-3 space-y-4"
           >
-            {needsClientPicker && (
-              <Field label="Client">
+            {needsGhlPicker && (
+              <Field label="Client (from GHL)">
                 <Select
                   value={(selectedClient as ClientOption | null)?.ghlContactId ?? ""}
-                  onValueChange={handleClientPick}
+                  onValueChange={handleGhlPick}
                   disabled={ghlLoading}
                 >
                   <SelectTrigger>
@@ -413,6 +475,33 @@ export default function MerFormModal({ open, mode, client, onClose }: Props) {
                 </Select>
               </Field>
             )}
+
+            {needsSheetPicker && (
+              <Field label="Client (from MER Dashboard)">
+                <Select
+                  value={(selectedClient as MerHistoryRow | null)?.merKey ?? ""}
+                  onValueChange={handleSheetPick}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select a client" />
+                  </SelectTrigger>
+                  <SelectContent className="max-h-72">
+                    {sheetOptions.length === 0 ? (
+                      <div className="px-3 py-2 text-xs text-muted-foreground">
+                        No clients available.
+                      </div>
+                    ) : (
+                      sheetOptions.map((c) => (
+                        <SelectItem key={c.merKey} value={c.merKey}>
+                          {c.name}
+                        </SelectItem>
+                      ))
+                    )}
+                  </SelectContent>
+                </Select>
+              </Field>
+            )}
+
 
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
