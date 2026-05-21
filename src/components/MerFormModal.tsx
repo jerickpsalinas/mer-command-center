@@ -181,11 +181,11 @@ export default function MerFormModal({ open, mode, client, clients, onClose }: P
     if (!clients?.length) return [] as MerHistoryRow[];
     const map = new Map<string, MerHistoryRow>();
     for (const row of clients) {
-      if (!row.clientName) continue;
-      if (!map.has(row.clientName)) map.set(row.clientName, row);
+      if (!row.name) continue;
+      if (!map.has(row.name)) map.set(row.name, row);
     }
     return Array.from(map.values()).sort((a, b) =>
-      a.clientName.localeCompare(b.clientName),
+      a.name.localeCompare(b.name),
     );
   })();
 
