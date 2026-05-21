@@ -9,7 +9,7 @@ import MobileTabBar from "@/components/MobileTabBar";
 import MerFormModal from "@/components/MerFormModal";
 import {
   LayoutDashboard, CalendarCheck, TrendingUp, Users, Download, Settings,
-  Menu, X, ChevronLeft, RefreshCw, Sun, Moon, Workflow, UserCheck, HeartPulse, BookOpen, FilePlus2,
+  Menu, X, ChevronLeft, RefreshCw, Sun, Moon, Workflow, UserCheck, HeartPulse, BookOpen, FilePlus2, FileEdit,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import logo from "@/assets/logo.png";
@@ -53,7 +53,8 @@ function ThemeToggleButton() {
 export default function AppLayout() {
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [mobileOpen, setMobileOpen] = useState(false);
-  const [addMerOpen, setAddMerOpen] = useState(false);
+  const [merModalOpen, setMerModalOpen] = useState(false);
+  const [merModalMode, setMerModalMode] = useState<"add" | "update">("add");
   const [lastSynced, setLastSynced] = useState<Date>(new Date());
   const location = useLocation();
   const queryClient = useQueryClient();
@@ -181,7 +182,10 @@ export default function AppLayout() {
           <div className="flex-1" />
 
           <button
-            onClick={() => setAddMerOpen(true)}
+            onClick={() => {
+              setMerModalMode("add");
+              setMerModalOpen(true);
+            }}
             className="hidden sm:inline-flex items-center gap-1.5 h-9 px-3 rounded-lg text-xs font-semibold bg-primary/10 text-primary border border-primary/20 hover:bg-primary/15 transition-colors"
             title="Add a new MER record"
           >
@@ -189,11 +193,35 @@ export default function AppLayout() {
             Add MER
           </button>
           <button
-            onClick={() => setAddMerOpen(true)}
+            onClick={() => {
+              setMerModalMode("update");
+              setMerModalOpen(true);
+            }}
+            className="hidden sm:inline-flex items-center gap-1.5 h-9 px-3 rounded-lg text-xs font-semibold bg-primary/15 text-primary border border-primary/30 hover:bg-primary/25 hover:border-primary/50 hover:shadow-[0_0_16px_-4px_hsl(var(--primary)/0.3)] transition-all"
+            title="Update an existing MER record"
+          >
+            <FileEdit className="h-4 w-4" />
+            Update MER
+          </button>
+          <button
+            onClick={() => {
+              setMerModalMode("add");
+              setMerModalOpen(true);
+            }}
             className="sm:hidden h-9 w-9 flex items-center justify-center rounded-lg text-primary bg-primary/10 border border-primary/20 hover:bg-primary/15 transition-colors"
             title="Add a new MER record"
           >
             <FilePlus2 className="h-[18px] w-[18px]" />
+          </button>
+          <button
+            onClick={() => {
+              setMerModalMode("update");
+              setMerModalOpen(true);
+            }}
+            className="sm:hidden h-9 w-9 flex items-center justify-center rounded-lg text-primary bg-primary/15 border border-primary/30 hover:bg-primary/25 transition-colors"
+            title="Update an existing MER record"
+          >
+            <FileEdit className="h-[18px] w-[18px]" />
           </button>
 
           <ThemeToggleButton />
@@ -231,12 +259,12 @@ export default function AppLayout() {
       {/* Mobile bottom tab bar (#16) */}
       <MobileTabBar onMore={() => setMobileOpen(true)} />
 
-      {addMerOpen && (
+      {merModalOpen && (
         <MerFormModal
-          open={addMerOpen}
-          mode="add"
+          open={merModalOpen}
+          mode={merModalMode}
           clients={data?.merHistory ?? []}
-          onClose={() => setAddMerOpen(false)}
+          onClose={() => setMerModalOpen(false)}
         />
       )}
     </div>

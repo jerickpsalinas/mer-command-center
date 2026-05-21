@@ -158,8 +158,7 @@ type ClientOption = {
 export default function MerFormModal({ open, mode, client, clients, onClose }: Props) {
   const qc = useQueryClient();
   const isGlobal = !client;
-  const [tab, setTab] = useState<Mode>(mode);
-  const effectiveMode: Mode = isGlobal ? tab : mode;
+  const effectiveMode = mode;
   const needsGhlPicker = isGlobal && effectiveMode === "add";
   const needsSheetPicker = isGlobal && effectiveMode === "update";
   const [selectedClient, setSelectedClient] = useState<ClientOption | MerHistoryRow | null>(
@@ -237,20 +236,11 @@ export default function MerFormModal({ open, mode, client, clients, onClose }: P
 
   useEffect(() => {
     if (open) {
-      setTab(mode);
       setSelectedClient(client ?? null);
       setForm(buildInitial(mode, client));
       setError(null);
     }
   }, [open, mode, client]);
-
-  // Reset selection & form when toggling tabs in global mode
-  useEffect(() => {
-    if (!isGlobal) return;
-    setSelectedClient(null);
-    setForm(buildInitial(tab, null));
-    setError(null);
-  }, [tab, isGlobal]);
 
   // Keep merKey in sync with cycleMonth for GHL-picked clients (add only)
   useEffect(() => {
@@ -410,29 +400,6 @@ export default function MerFormModal({ open, mode, client, clients, onClose }: P
                 : "Submit a new MER record."}
             </p>
           </DialogHeader>
-
-          {isGlobal && (
-            <div className="mt-3 inline-flex rounded-md border border-border bg-muted/20 p-0.5 self-start">
-              {(["add", "update"] as const).map((t) => {
-                const active = tab === t;
-                return (
-                  <button
-                    key={t}
-                    type="button"
-                    onClick={() => setTab(t)}
-                    className={cn(
-                      "px-4 py-1.5 text-xs font-semibold rounded transition-colors",
-                      active
-                        ? "bg-primary/15 text-primary"
-                        : "text-muted-foreground hover:text-foreground",
-                    )}
-                  >
-                    {t === "add" ? "Add MER" : "Update MER"}
-                  </button>
-                );
-              })}
-            </div>
-          )}
 
           <form
             onSubmit={(e) => {
