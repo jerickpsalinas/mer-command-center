@@ -155,9 +155,13 @@ type ClientOption = {
   submittedBy?: string;
 };
 
-export default function MerFormModal({ open, mode, client, onClose }: Props) {
+export default function MerFormModal({ open, mode, client, clients, onClose }: Props) {
   const qc = useQueryClient();
-  const needsClientPicker = mode === "add" && !client;
+  const isGlobal = !client;
+  const [tab, setTab] = useState<Mode>(mode);
+  const effectiveMode: Mode = isGlobal ? tab : mode;
+  const needsGhlPicker = isGlobal && effectiveMode === "add";
+  const needsSheetPicker = isGlobal && effectiveMode === "update";
   const [selectedClient, setSelectedClient] = useState<ClientOption | MerHistoryRow | null>(
     client ?? null,
   );
@@ -172,9 +176,22 @@ export default function MerFormModal({ open, mode, client, onClose }: Props) {
   const [ghlLoading, setGhlLoading] = useState(false);
   const [ghlError, setGhlError] = useState<string | null>(null);
 
-  // Fetch GHL contacts when picker is needed
+  // Deduped clients from sheet (one row per client) for Update picker
+  const sheetOptions = (() => {
+    if (!clients?.length) return [] as MerHistoryRow[];
+    const map = new Map<string, MerHistoryRow>();
+    for (const row of clients) {
+      if (!row.clientName) continue;
+      if (!map.has(row.clientName)) map.set(row.clientName, row);
+    }
+    return Array.from(map.values()).sort((a, b) =>
+      a.clientName.localeCompare(b.clientName),
+    );
+  })();
+
+  // Fetch GHL contacts when add picker is needed
   useEffect(() => {
-    if (!open || !needsClientPicker) return;
+    if (!open || !needsGhlPicker) return;
     let cancelled = false;
     setGhlLoading(true);
     setGhlError(null);
@@ -216,33 +233,54 @@ export default function MerFormModal({ open, mode, client, onClose }: Props) {
     return () => {
       cancelled = true;
     };
-  }, [open, needsClientPicker]);
+  }, [open, needsGhlPicker]);
 
   useEffect(() => {
     if (open) {
+      setTab(mode);
       setSelectedClient(client ?? null);
       setForm(buildInitial(mode, client));
       setError(null);
     }
   }, [open, mode, client]);
 
-  // Keep merKey in sync with cycleMonth for GHL-picked clients
+  // Reset selection & form when toggling tabs in global mode
   useEffect(() => {
-    if (!needsClientPicker || !selectedClient?.ghlContactId) return;
-    const newKey = `${selectedClient.ghlContactId}_${form.cycleMonth.replace(/\s+/g, "")}`;
-    if (selectedClient.merKey !== newKey) {
-      setSelectedClient({ ...(selectedClient as ClientOption), merKey: newKey });
+    if (!isGlobal) return;
+    setSelectedClient(null);
+    setForm(buildInitial(tab, null));
+    setError(null);
+  }, [tab, isGlobal]);
+
+  // Keep merKey in sync with cycleMonth for GHL-picked clients (add only)
+  useEffect(() => {
+    if (!needsGhlPicker || !selectedClient || !("ghlContactId" in selectedClient)) return;
+    const opt = selectedClient as ClientOption;
+    if (!opt.ghlContactId) return;
+    const newKey = `${opt.ghlContactId}_${form.cycleMonth.replace(/\s+/g, "")}`;
+    if (opt.merKey !== newKey) {
+      setSelectedClient({ ...opt, merKey: newKey });
     }
-  }, [form.cycleMonth, needsClientPicker, selectedClient]);
+  }, [form.cycleMonth, needsGhlPicker, selectedClient]);
 
   const update = <K extends keyof FormState>(k: K, v: FormState[K]) =>
     setForm((f) => ({ ...f, [k]: v }));
 
-  const handleClientPick = (ghlId: string) => {
+  const handleGhlPick = (ghlId: string) => {
     const c = ghlOptions.find((x) => x.ghlContactId === ghlId) || null;
     if (c) {
       const merKey = `${c.ghlContactId}_${form.cycleMonth.replace(/\s+/g, "")}`;
       setSelectedClient({ ...c, merKey });
+    } else {
+      setSelectedClient(null);
+    }
+  };
+
+  const handleSheetPick = (merKey: string) => {
+    const row = sheetOptions.find((r) => r.merKey === merKey) || null;
+    if (row) {
+      setSelectedClient(row);
+      setForm(buildInitial("update", row));
     } else {
       setSelectedClient(null);
     }
