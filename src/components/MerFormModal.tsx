@@ -347,7 +347,7 @@ export default function MerFormModal({ open, mode, client, clients, onClose }: P
 
       if (res.status === 200) {
         toast({
-          title: mode === "add" ? "MER added ✓" : "MER updated ✓",
+          title: effectiveMode === "add" ? "MER added ✓" : "MER updated ✓",
           description: `${selectedClient.name} — ${form.cycleMonth}`,
         });
         await qc.invalidateQueries({ queryKey: ["sheet-data"] });
