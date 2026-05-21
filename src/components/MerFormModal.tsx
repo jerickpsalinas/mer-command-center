@@ -384,10 +384,11 @@ export default function MerFormModal({ open, mode, client, clients, onClose }: P
     }
   };
 
-  const isUpdate = mode === "update";
+  const isUpdate = effectiveMode === "update";
   const title = isUpdate ? "Update MER" : "Add MER";
   const Icon = isUpdate ? FileEdit : FilePlus2;
-  const headerName = selectedClient?.name || (needsClientPicker ? "Select a client" : "");
+  const headerName =
+    selectedClient?.name || (isGlobal ? "Select a client" : "");
 
   return (
     <>
@@ -410,6 +411,29 @@ export default function MerFormModal({ open, mode, client, clients, onClose }: P
             </p>
           </DialogHeader>
 
+          {isGlobal && (
+            <div className="mt-3 inline-flex rounded-md border border-border bg-muted/20 p-0.5 self-start">
+              {(["add", "update"] as const).map((t) => {
+                const active = tab === t;
+                return (
+                  <button
+                    key={t}
+                    type="button"
+                    onClick={() => setTab(t)}
+                    className={cn(
+                      "px-4 py-1.5 text-xs font-semibold rounded transition-colors",
+                      active
+                        ? "bg-primary/15 text-primary"
+                        : "text-muted-foreground hover:text-foreground",
+                    )}
+                  >
+                    {t === "add" ? "Add MER" : "Update MER"}
+                  </button>
+                );
+              })}
+            </div>
+          )}
+
           <form
             onSubmit={(e) => {
               e.preventDefault();
@@ -417,11 +441,11 @@ export default function MerFormModal({ open, mode, client, clients, onClose }: P
             }}
             className="mt-3 space-y-4"
           >
-            {needsClientPicker && (
-              <Field label="Client">
+            {needsGhlPicker && (
+              <Field label="Client (from GHL)">
                 <Select
                   value={(selectedClient as ClientOption | null)?.ghlContactId ?? ""}
-                  onValueChange={handleClientPick}
+                  onValueChange={handleGhlPick}
                   disabled={ghlLoading}
                 >
                   <SelectTrigger>
@@ -451,6 +475,33 @@ export default function MerFormModal({ open, mode, client, clients, onClose }: P
                 </Select>
               </Field>
             )}
+
+            {needsSheetPicker && (
+              <Field label="Client (from MER Dashboard)">
+                <Select
+                  value={(selectedClient as MerHistoryRow | null)?.merKey ?? ""}
+                  onValueChange={handleSheetPick}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select a client" />
+                  </SelectTrigger>
+                  <SelectContent className="max-h-72">
+                    {sheetOptions.length === 0 ? (
+                      <div className="px-3 py-2 text-xs text-muted-foreground">
+                        No clients available.
+                      </div>
+                    ) : (
+                      sheetOptions.map((c) => (
+                        <SelectItem key={c.merKey} value={c.merKey}>
+                          {c.name}
+                        </SelectItem>
+                      ))
+                    )}
+                  </SelectContent>
+                </Select>
+              </Field>
+            )}
+
 
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
