@@ -270,9 +270,9 @@ export default function ClientDetailsModal({ open, onClose, client, onViewHistor
                   <button
                     type="button"
                     onClick={() => setMerFormMode("update")}
-                    className="text-xs font-semibold px-3 py-2 rounded-lg border bg-accent/10 text-accent-foreground border-accent/30 hover:bg-accent/15 transition-colors inline-flex items-center justify-center gap-1.5"
+                    className="text-xs font-semibold px-4 py-2.5 rounded-lg border bg-primary/15 text-primary border-primary/30 hover:bg-primary/25 hover:border-primary/50 hover:shadow-[0_0_16px_-4px_hsl(var(--primary)/0.3)] transition-all inline-flex items-center justify-center gap-2"
                   >
-                    <FileEdit className="h-3.5 w-3.5" />
+                    <FileEdit className="h-4 w-4" />
                     Update MER
                   </button>
                 </div>
