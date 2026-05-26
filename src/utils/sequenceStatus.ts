@@ -159,8 +159,10 @@ export function getSequenceInfoForClient(
 ): ClientSequenceSummary {
   const bankEvents = getSequenceEvents(ghlContactId, "bank-reconnection", actionLog);
   const stmtEvents = getSequenceEvents(ghlContactId, "statement-request", actionLog);
+  const docsEvents = getSequenceEvents(ghlContactId, "docs-request", actionLog);
   const bankReconnection = currentFromEvents(bankEvents);
   const statementRequest = currentFromEvents(stmtEvents);
+  const docsRequest = currentFromEvents(docsEvents);
 
   const notesApprovalCount = (actionLog || []).filter(
     (e) =>
@@ -173,15 +175,18 @@ export function getSequenceInfoForClient(
     (actionLog || []).find((e) => e.ghlContactId === ghlContactId)?.clientName || "";
 
   const hasActiveSequence =
-    bankReconnection.status === "active" || statementRequest.status === "active";
+    bankReconnection.status === "active" ||
+    statementRequest.status === "active" ||
+    docsRequest.status === "active";
   const hasAnyActivity =
-    bankEvents.length > 0 || stmtEvents.length > 0 || notesApprovalCount > 0;
+    bankEvents.length > 0 || stmtEvents.length > 0 || docsEvents.length > 0 || notesApprovalCount > 0;
 
   return {
     ghlContactId,
     clientName,
     bankReconnection,
     statementRequest,
+    docsRequest,
     notesApprovalCount,
     hasActiveSequence,
     hasAnyActivity,
