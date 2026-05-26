@@ -2,11 +2,12 @@ import type { ActionLogEntry } from "@/services/googleSheets";
 
 export type SequenceStatus = "active" | "resolved" | "approved" | null;
 
-export type SequenceKind = "bank-reconnection" | "statement-request";
+export type SequenceKind = "bank-reconnection" | "statement-request" | "docs-request";
 
 const PAIRS: Record<SequenceKind, { start: string; resolve: string }> = {
   "bank-reconnection": { start: "bank-reconnection", resolve: "mark-resolved" },
   "statement-request": { start: "missing-statement", resolve: "mark-statement-resolved" },
+  "docs-request": { start: "docs-request", resolve: "mark-docs-received" },
 };
 
 /** Parse "MM/DD/YYYY H:MM AM/PM" or fallback to Date(). Returns ms epoch or null. */
