@@ -9,6 +9,7 @@ interface Props {
   summary: ClientSequenceSummary;
   bankHistory: SequenceEvent[];
   statementHistory: SequenceEvent[];
+  docsHistory: SequenceEvent[];
   notesApprovalCount: number;
   showHistory?: boolean;
   onToggleHistory?: () => void;
@@ -52,6 +53,7 @@ function CurrentTable({ summary }: { summary: ClientSequenceSummary }) {
   const rows: { icon: string; name: string; info: CurrentSequenceInfo }[] = [
     { icon: "🔌", name: "Bank Reconnection", info: summary.bankReconnection },
     { icon: "📄", name: "Statement Request", info: summary.statementRequest },
+    { icon: "📁", name: "Document Request", info: summary.docsRequest },
   ];
 
   return (
@@ -160,11 +162,12 @@ export default function SequenceStatusTable({
   summary,
   bankHistory,
   statementHistory,
+  docsHistory,
   notesApprovalCount,
   showHistory = false,
   onToggleHistory,
 }: Props) {
-  const totalHistory = bankHistory.length + statementHistory.length;
+  const totalHistory = bankHistory.length + statementHistory.length + docsHistory.length;
 
   return (
     <div className="space-y-3">
@@ -199,6 +202,7 @@ export default function SequenceStatusTable({
         <div className="space-y-3">
           <HistoryGroup icon="🔌" name="Bank Reconnection" events={bankHistory} />
           <HistoryGroup icon="📄" name="Statement Request" events={statementHistory} />
+          <HistoryGroup icon="📁" name="Document Request" events={docsHistory} />
         </div>
       )}
     </div>
