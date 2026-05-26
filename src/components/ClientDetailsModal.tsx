@@ -111,6 +111,7 @@ export default function ClientDetailsModal({ open, onClose, client, onViewHistor
   const currentSummary = getSequenceInfoForClient(ghlContactId, client.month, actionLog);
   const bankHistory = getSequenceEvents(ghlContactId, "bank-reconnection", actionLog);
   const statementHistory = getSequenceEvents(ghlContactId, "statement-request", actionLog);
+  const docsHistory = getSequenceEvents(ghlContactId, "docs-request", actionLog);
 
   const clientInfo: Field[] = [
     { label: "Client Name", value: client.name },
@@ -324,6 +325,7 @@ export default function ClientDetailsModal({ open, onClose, client, onViewHistor
             summary={currentSummary}
             bankHistory={bankHistory}
             statementHistory={statementHistory}
+            docsHistory={docsHistory}
             notesApprovalCount={currentSummary.notesApprovalCount}
             showHistory={showSequenceHistory}
             onToggleHistory={() => setShowSequenceHistory((prev) => !prev)}
