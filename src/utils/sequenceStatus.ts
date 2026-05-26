@@ -63,6 +63,7 @@ export interface ClientSequenceSummary {
   clientName: string;
   bankReconnection: CurrentSequenceInfo;
   statementRequest: CurrentSequenceInfo;
+  docsRequest: CurrentSequenceInfo;
   notesApprovalCount: number;
   hasActiveSequence: boolean;
   hasAnyActivity: boolean;
