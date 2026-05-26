@@ -5,7 +5,9 @@ export type ActionType =
   | "undo-notes-approval"
   | "mark-resolved"
   | "mark-statement-resolved"
-  | "clear-mer-data";
+  | "clear-mer-data"
+  | "docs-request"
+  | "mark-docs-received";
 
 export interface ActionPayload {
   action: ActionType;
@@ -47,6 +49,20 @@ export function isStatementRequestActive(
   for (const e of list) {
     if (e.action === "missing-statement") active = true;
     else if (e.action === "mark-statement-resolved") active = false;
+  }
+  return active;
+}
+
+export function isDocsRequestActive(
+  merKey: string,
+  cycleMonth: string,
+): boolean {
+  if (!merKey) return false;
+  const list = sessionActionLog.get(logKey(merKey, cycleMonth)) ?? [];
+  let active = false;
+  for (const e of list) {
+    if (e.action === "docs-request") active = true;
+    else if (e.action === "mark-docs-received") active = false;
   }
   return active;
 }

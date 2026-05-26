@@ -15,6 +15,7 @@ import {
 import {
   fireDashboardAction,
   recordSessionAction,
+  isDocsRequestActive,
   type ActionType,
   type ActionPayload,
 } from "@/services/dashboardActions";
@@ -232,6 +233,19 @@ export default function ClientDetailsModal({ open, onClose, client, onViewHistor
                 cls: "bg-success/10 text-success border-success/20 hover:bg-success/15",
               };
 
+          const docsActive = isDocsRequestActive(client.merKey ?? "", client.month);
+          const slot4: { type: ActionType; label: string; cls: string } = docsActive
+            ? {
+                type: "mark-docs-received",
+                label: "✅ Mark Docs Received",
+                cls: "bg-success/10 text-success border-success/20 hover:bg-success/15",
+              }
+            : {
+                type: "docs-request",
+                label: "📁 Request Documents",
+                cls: "bg-primary/10 text-primary border-primary/20 hover:bg-primary/15",
+              };
+
           const renderBtn = (
             slot: { type: ActionType; label: string; cls: string; disabled?: boolean },
             fullWidth = false,
@@ -281,7 +295,8 @@ export default function ClientDetailsModal({ open, onClose, client, onViewHistor
               <div className="grid grid-cols-2 gap-2 mt-4">
                 {renderBtn(slot1)}
                 {renderBtn(slot2)}
-                {renderBtn(slot3, true)}
+                {renderBtn(slot3)}
+                {renderBtn(slot4)}
               </div>
               <div className="mt-4 pt-3 border-t border-border/60 flex justify-end">
                 {renderBtn(
@@ -372,6 +387,18 @@ export default function ClientDetailsModal({ open, onClose, client, onViewHistor
           "mark-statement-resolved": {
             label: "Mark Statement Received",
             description: `This will stop the statement request sequence for ${client.name} and mark the statement as received.`,
+            confirmLabel: "Mark Received",
+            variant: "success",
+          },
+          "docs-request": {
+            label: "Request Documents",
+            description: `This will start an automated document request sequence to ${client.name} — Day 1 and Day 4 follow-ups.`,
+            confirmLabel: "Send Request",
+            variant: "primary",
+          },
+          "mark-docs-received": {
+            label: "Mark Docs Received",
+            description: `This will stop the document request sequence for ${client.name} and mark documents as received.`,
             confirmLabel: "Mark Received",
             variant: "success",
           },
