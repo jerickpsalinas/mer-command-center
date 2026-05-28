@@ -77,6 +77,81 @@ export type Database = {
         }
         Relationships: []
       }
+      mer_history: {
+        Row: {
+          action: string | null
+          bank_transactions: string | null
+          bookkeeper: string | null
+          books_closed_in_qb: boolean | null
+          client_name: string
+          client_type: string | null
+          created_at: string
+          financials_sent_to_client: boolean | null
+          id: string
+          last_reconciled_date: string | null
+          mer_key: string | null
+          month: string | null
+          prev_month_notes_approved: boolean | null
+          source: string | null
+          statement_request_status: string | null
+          status: string | null
+          submitted_by: string | null
+          timestamp: string | null
+          transactions_without_payees: number | null
+          unapplied_payments: number | null
+          uncategorized_transactions: number | null
+          undeposited_funds: number | null
+        }
+        Insert: {
+          action?: string | null
+          bank_transactions?: string | null
+          bookkeeper?: string | null
+          books_closed_in_qb?: boolean | null
+          client_name: string
+          client_type?: string | null
+          created_at?: string
+          financials_sent_to_client?: boolean | null
+          id?: string
+          last_reconciled_date?: string | null
+          mer_key?: string | null
+          month?: string | null
+          prev_month_notes_approved?: boolean | null
+          source?: string | null
+          statement_request_status?: string | null
+          status?: string | null
+          submitted_by?: string | null
+          timestamp?: string | null
+          transactions_without_payees?: number | null
+          unapplied_payments?: number | null
+          uncategorized_transactions?: number | null
+          undeposited_funds?: number | null
+        }
+        Update: {
+          action?: string | null
+          bank_transactions?: string | null
+          bookkeeper?: string | null
+          books_closed_in_qb?: boolean | null
+          client_name?: string
+          client_type?: string | null
+          created_at?: string
+          financials_sent_to_client?: boolean | null
+          id?: string
+          last_reconciled_date?: string | null
+          mer_key?: string | null
+          month?: string | null
+          prev_month_notes_approved?: boolean | null
+          source?: string | null
+          statement_request_status?: string | null
+          status?: string | null
+          submitted_by?: string | null
+          timestamp?: string | null
+          transactions_without_payees?: number | null
+          unapplied_payments?: number | null
+          uncategorized_transactions?: number | null
+          undeposited_funds?: number | null
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
