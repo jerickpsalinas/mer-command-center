@@ -118,9 +118,10 @@ export async function recordStatusSnapshots(rows: MerHistoryRow[]) {
         source = "change";
       } else if ((last.status ?? "").trim() !== status) {
         source = "change";
-      } else if (!isSameDay(new Date(last.recorded_at), now)) {
+      } else if (new Date(last.recorded_at) < lastWeeklyAnchor(now)) {
         source = "daily";
       }
+
 
       if (source) {
         await supabase.from("client_status_history").insert({
