@@ -20,10 +20,8 @@ function getContactId(row: MerHistoryRow): string {
   );
 }
 
-function isSameDay(a: Date, b: Date) {
-  return (
-    a.getFullYear() === b.getFullYear() &&
 /**
+
  * Returns the most recent Monday 00:01 America/New_York as a Date (in UTC).
  * Used as the anchor for weekly snapshots.
  */
