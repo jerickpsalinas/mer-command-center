@@ -243,7 +243,8 @@ export default function StatusHistoryModal({
                                 : "bg-muted text-muted-foreground border border-border"
                             }`}
                           >
-                            {e.source === "change" ? "Changed" : "Daily"}
+                            {e.source === "change" ? "Changed" : "Weekly"}
+
                           </span>
                         </div>
                       </li>
