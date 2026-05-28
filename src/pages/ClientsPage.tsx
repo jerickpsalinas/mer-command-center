@@ -17,6 +17,9 @@ import { toast } from "@/hooks/use-toast";
 import ClientDetailsModal from "@/components/ClientDetailsModal";
 import { getSequenceInfoForClient } from "@/utils/sequenceStatus";
 import { Tooltip as UTooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
+
 
 type SortKey = "name" | "completionPct" | "complianceStatus" | "uncategorizedTransactions";
 type SortDir = "asc" | "desc";
@@ -494,7 +497,7 @@ export default function ClientsPage() {
         }}
       />
 
-      {/* Per-client history dialog with MoM diff */}
+      {/* Per-client history dialog (sourced from Supabase mer_history) */}
       <Dialog open={!!historyClient} onOpenChange={(open) => !open && setHistoryClient(null)}>
         <DialogContent className="max-w-3xl w-[calc(100vw-1rem)] sm:w-auto max-h-[85vh] overflow-y-auto scrollbar-thin scrollbar-thumb-muted-foreground/20 hover:scrollbar-thumb-muted-foreground/40 scrollbar-track-transparent p-4 sm:p-6">
           <DialogHeader>
@@ -502,90 +505,12 @@ export default function ClientsPage() {
               <History className="h-4 w-4 text-primary" />
               {historyClient} – Monthly History
             </DialogTitle>
-            <p className="text-xs text-muted-foreground">{history.length} month{history.length === 1 ? "" : "s"} on record</p>
           </DialogHeader>
-
-          {history.length === 0 ? (
-            <p className="text-sm text-muted-foreground py-8 text-center">No history found.</p>
-          ) : (
-            <div className="space-y-5">
-              {/* Month-over-month diff */}
-              {monthDiff.length > 0 && (
-                <div className="rounded-lg border border-primary/20 bg-primary/[0.04] p-4">
-                  <div className="flex items-center gap-2 mb-3">
-                    <Filter className="h-3.5 w-3.5 text-primary" />
-                    <span className="text-xs font-semibold text-foreground">
-                      What changed: {history[history.length - 2].month} → {history[history.length - 1].month}
-                    </span>
-                  </div>
-                  <ul className="space-y-1.5">
-                    {monthDiff.map((d, i) => {
-                      const Icon = d.direction === "improved" ? ArrowUp : d.direction === "regressed" ? ArrowDown : Minus;
-                      const color = d.direction === "improved" ? "text-success" : d.direction === "regressed" ? "text-destructive" : "text-muted-foreground";
-                      return (
-                        <li key={i} className="flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[12px]">
-                          <Icon className={`h-3 w-3 ${color} shrink-0`} />
-                          <span className="text-foreground font-medium min-w-[120px] sm:min-w-[140px]">{d.field}:</span>
-                          <span className="font-mono-data text-muted-foreground break-all">{d.prev}</span>
-                          <span className="text-muted-foreground">→</span>
-                          <span className={`font-mono-data font-semibold ${color} break-all`}>{d.curr}</span>
-                        </li>
-                      );
-                    })}
-                  </ul>
-                </div>
-              )}
-
-              {/* Sparkline */}
-              <div className="rounded-lg border border-border bg-muted/20 p-4">
-                <div className="flex items-center gap-2 mb-2">
-                  <TrendingUp className="h-3.5 w-3.5 text-primary" />
-                  <span className="text-xs font-semibold text-foreground">Completion % over time</span>
-                </div>
-                <ResponsiveContainer width="100%" height={140}>
-                  <LineChart data={history.map((h) => ({ month: h.month, pct: h.completionPct }))}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="hsl(20, 8%, 16%)" />
-                    <XAxis dataKey="month" tick={{ fontSize: 10, fill: "hsl(25, 10%, 50%)" }} />
-                    <YAxis domain={[0, 100]} tick={{ fontSize: 10, fill: "hsl(25, 10%, 50%)" }} unit="%" />
-                    <Tooltip contentStyle={{ background: "hsl(20, 10%, 13%)", border: "1px solid hsl(20, 8%, 20%)", borderRadius: 8, fontSize: 11 }} />
-                    <Line type="monotone" dataKey="pct" stroke="hsl(340, 45%, 55%)" strokeWidth={2.5} dot={{ r: 3.5 }} name="Completion %" />
-                  </LineChart>
-                </ResponsiveContainer>
-              </div>
-
-              {/* Per-month table */}
-              <div className="overflow-x-auto scrollbar-thin scrollbar-thumb-muted-foreground/20 hover:scrollbar-thumb-muted-foreground/40 scrollbar-track-transparent rounded-lg border border-border">
-                <table className="w-full text-sm min-w-[640px]">
-                  <thead>
-                    <tr className="border-b border-border bg-muted/30">
-                      <th className="text-left text-[11px] font-semibold text-muted-foreground uppercase tracking-wide px-3 py-2">Month</th>
-                      <th className="text-left text-[11px] font-semibold text-muted-foreground uppercase tracking-wide px-3 py-2">Status</th>
-                      <th className="text-right text-[11px] font-semibold text-muted-foreground uppercase tracking-wide px-3 py-2">%</th>
-                      <th className="text-right text-[11px] font-semibold text-muted-foreground uppercase tracking-wide px-3 py-2">Uncat.</th>
-                      <th className="text-right text-[11px] font-semibold text-muted-foreground uppercase tracking-wide px-3 py-2">Unapp.</th>
-                      <th className="text-left text-[11px] font-semibold text-muted-foreground uppercase tracking-wide px-3 py-2">Stmt</th>
-                      <th className="text-left text-[11px] font-semibold text-muted-foreground uppercase tracking-wide px-3 py-2">Reconciled</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {[...history].reverse().map((h) => (
-                      <tr key={h.month} className="border-b border-border/50 last:border-0 hover:bg-accent/20 transition-colors">
-                        <td className="px-3 py-2 font-medium text-foreground text-xs">{h.month}</td>
-                        <td className="px-3 py-2"><StatusBadge status={h.complianceStatus} client={h} /></td>
-                        <td className="px-3 py-2 text-right font-mono-data text-xs text-foreground">{h.completionPct}%</td>
-                        <td className="px-3 py-2 text-right font-mono-data text-xs text-muted-foreground">{h.uncategorizedTransactions || "-"}</td>
-                        <td className="px-3 py-2 text-right font-mono-data text-xs text-muted-foreground">{h.unappliedPayments || "-"}</td>
-                        <td className="px-3 py-2 text-xs text-muted-foreground">{h.statementRequestStatus || "-"}</td>
-                        <td className="px-3 py-2 font-mono-data text-xs text-muted-foreground">{h.lastReconciledDate || "-"}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          )}
+          {historyClient && <MerHistoryList clientName={historyClient} />}
         </DialogContent>
       </Dialog>
+
+
 
       {/* Save filter dialog */}
       <Dialog open={showSaveDialog} onOpenChange={setShowSaveDialog}>
@@ -629,3 +554,94 @@ export default function ClientsPage() {
     </div>
   );
 }
+
+interface MerHistoryRowDB {
+  id: string;
+  client_name: string;
+  status: string | null;
+  bookkeeper: string | null;
+  submitted_by: string | null;
+  action: string | null;
+  source: string | null;
+  month: string | null;
+  timestamp: string | null;
+}
+
+function MerHistoryList({ clientName }: { clientName: string }) {
+  const { data, isLoading, error } = useQuery({
+    queryKey: ["mer-history", clientName],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("mer_history" as any)
+        .select("id, client_name, status, bookkeeper, submitted_by, action, source, month, timestamp")
+        .eq("client_name", clientName)
+        .order("timestamp", { ascending: false });
+      if (error) throw error;
+      return (data ?? []) as unknown as MerHistoryRowDB[];
+    },
+  });
+
+  if (isLoading) {
+    return <p className="text-sm text-muted-foreground py-8 text-center">Loading history…</p>;
+  }
+  if (error) {
+    return <p className="text-sm text-destructive py-8 text-center">Failed to load history.</p>;
+  }
+  const rows = data ?? [];
+  if (rows.length === 0) {
+    return <p className="text-sm text-muted-foreground py-8 text-center">No history found.</p>;
+  }
+
+  // Group by month (preserve DESC order from query)
+  const groups = new Map<string, MerHistoryRowDB[]>();
+  for (const r of rows) {
+    const key = r.month || "Unknown";
+    if (!groups.has(key)) groups.set(key, []);
+    groups.get(key)!.push(r);
+  }
+
+  const fmtTs = (ts: string | null) => {
+    if (!ts) return "—";
+    const d = new Date(ts);
+    return isNaN(d.getTime()) ? ts : d.toLocaleString();
+  };
+
+  return (
+    <div className="space-y-5 mt-2">
+      <p className="text-xs text-muted-foreground">
+        {rows.length} entr{rows.length === 1 ? "y" : "ies"} on record
+      </p>
+      {Array.from(groups.entries()).map(([month, items]) => (
+        <div key={month}>
+          <div className="text-[10.5px] uppercase tracking-wider text-muted-foreground mb-2 font-semibold">
+            {month}
+          </div>
+          <ol className="relative border-l border-border ml-2 space-y-3">
+            {items.map((e) => (
+              <li key={e.id} className="ml-4">
+                <span className="absolute -left-[5px] mt-1.5 h-2.5 w-2.5 rounded-full bg-primary" />
+                <div className="rounded-lg border border-border bg-muted/20 p-3">
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <div className="text-xs font-semibold text-foreground break-words">
+                      {e.status || "—"}
+                    </div>
+                    <div className="text-[10.5px] text-muted-foreground font-mono-data">
+                      {fmtTs(e.timestamp)}
+                    </div>
+                  </div>
+                  <div className="mt-2 grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-1 text-[11px] text-muted-foreground">
+                    <p><span className="font-semibold text-foreground">Bookkeeper:</span> {e.bookkeeper || "—"}</p>
+                    <p><span className="font-semibold text-foreground">Submitted By:</span> {e.submitted_by || "—"}</p>
+                    <p><span className="font-semibold text-foreground">Action:</span> {e.action || "—"}</p>
+                    <p><span className="font-semibold text-foreground">Source:</span> {e.source || "—"}</p>
+                  </div>
+                </div>
+              </li>
+            ))}
+          </ol>
+        </div>
+      ))}
+    </div>
+  );
+}
+
