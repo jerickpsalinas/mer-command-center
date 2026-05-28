@@ -554,3 +554,94 @@ export default function ClientsPage() {
     </div>
   );
 }
+
+interface MerHistoryRowDB {
+  id: string;
+  client_name: string;
+  status: string | null;
+  bookkeeper: string | null;
+  submitted_by: string | null;
+  action: string | null;
+  source: string | null;
+  month: string | null;
+  timestamp: string | null;
+}
+
+function MerHistoryList({ clientName }: { clientName: string }) {
+  const { data, isLoading, error } = useQuery({
+    queryKey: ["mer-history", clientName],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("mer_history" as any)
+        .select("id, client_name, status, bookkeeper, submitted_by, action, source, month, timestamp")
+        .eq("client_name", clientName)
+        .order("timestamp", { ascending: false });
+      if (error) throw error;
+      return (data ?? []) as unknown as MerHistoryRowDB[];
+    },
+  });
+
+  if (isLoading) {
+    return <p className="text-sm text-muted-foreground py-8 text-center">Loading history…</p>;
+  }
+  if (error) {
+    return <p className="text-sm text-destructive py-8 text-center">Failed to load history.</p>;
+  }
+  const rows = data ?? [];
+  if (rows.length === 0) {
+    return <p className="text-sm text-muted-foreground py-8 text-center">No history found.</p>;
+  }
+
+  // Group by month (preserve DESC order from query)
+  const groups = new Map<string, MerHistoryRowDB[]>();
+  for (const r of rows) {
+    const key = r.month || "Unknown";
+    if (!groups.has(key)) groups.set(key, []);
+    groups.get(key)!.push(r);
+  }
+
+  const fmtTs = (ts: string | null) => {
+    if (!ts) return "—";
+    const d = new Date(ts);
+    return isNaN(d.getTime()) ? ts : d.toLocaleString();
+  };
+
+  return (
+    <div className="space-y-5 mt-2">
+      <p className="text-xs text-muted-foreground">
+        {rows.length} entr{rows.length === 1 ? "y" : "ies"} on record
+      </p>
+      {Array.from(groups.entries()).map(([month, items]) => (
+        <div key={month}>
+          <div className="text-[10.5px] uppercase tracking-wider text-muted-foreground mb-2 font-semibold">
+            {month}
+          </div>
+          <ol className="relative border-l border-border ml-2 space-y-3">
+            {items.map((e) => (
+              <li key={e.id} className="ml-4">
+                <span className="absolute -left-[5px] mt-1.5 h-2.5 w-2.5 rounded-full bg-primary" />
+                <div className="rounded-lg border border-border bg-muted/20 p-3">
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <div className="text-xs font-semibold text-foreground break-words">
+                      {e.status || "—"}
+                    </div>
+                    <div className="text-[10.5px] text-muted-foreground font-mono-data">
+                      {fmtTs(e.timestamp)}
+                    </div>
+                  </div>
+                  <div className="mt-2 grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-1 text-[11px] text-muted-foreground">
+                    <p><span className="font-semibold text-foreground">Bookkeeper:</span> {e.bookkeeper || "—"}</p>
+                    <p><span className="font-semibold text-foreground">Submitted By:</span> {e.submitted_by || "—"}</p>
+                    <p><span className="font-semibold text-foreground">Action:</span> {e.action || "—"}</p>
+                    <p><span className="font-semibold text-foreground">Source:</span> {e.source || "—"}</p>
+                  </div>
+                </div>
+              </li>
+            ))}
+          </ol>
+        </div>
+      ))}
+    </div>
+  );
+}
+
