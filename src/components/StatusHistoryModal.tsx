@@ -136,7 +136,8 @@ export default function StatusHistoryModal({
             <span className="truncate">Status History — {clientName}</span>
           </DialogTitle>
           <p className="text-[11px] text-muted-foreground">
-            Recorded daily and on every status change.
+            Recorded weekly (Mondays 12:01 AM EST) and on every status change.
+
           </p>
         </DialogHeader>
 
@@ -242,7 +243,8 @@ export default function StatusHistoryModal({
                                 : "bg-muted text-muted-foreground border border-border"
                             }`}
                           >
-                            {e.source === "change" ? "Changed" : "Daily"}
+                            {e.source === "change" ? "Changed" : "Weekly"}
+
                           </span>
                         </div>
                       </li>
