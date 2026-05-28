@@ -19,7 +19,6 @@ import { getSequenceInfoForClient } from "@/utils/sequenceStatus";
 import { Tooltip as UTooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import StatusBadge from "@/components/StatusBadge";
 
 
 type SortKey = "name" | "completionPct" | "complianceStatus" | "uncategorizedTransactions";
