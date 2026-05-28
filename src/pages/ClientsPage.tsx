@@ -510,7 +510,7 @@ export default function ClientsPage() {
         </DialogContent>
       </Dialog>
 
-      </Dialog>
+
 
       {/* Save filter dialog */}
       <Dialog open={showSaveDialog} onOpenChange={setShowSaveDialog}>
