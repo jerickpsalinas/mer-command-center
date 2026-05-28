@@ -86,7 +86,6 @@ function getNyOffsetMinutes(d: Date): number {
  * - Inserts once per week (Mon 00:01 America/New_York anchor) even if unchanged (source: 'daily')
  */
 
- */
 export async function recordStatusSnapshots(rows: MerHistoryRow[]) {
   // Latest row per contact id
   const latest = new Map<string, MerHistoryRow>();
