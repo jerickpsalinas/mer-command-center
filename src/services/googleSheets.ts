@@ -151,6 +151,7 @@ function parseClient(row: Record<string, unknown>, index: number): Client {
     booksClosedInQB: yesNo(row["Books Closed In QB"]),
     completionPct: deriveCompletionPct(row),
     complianceStatus: status,
+    categoryTags: String(row["Category Tags"] ?? "").trim(),
   };
 }
 

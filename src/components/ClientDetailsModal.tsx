@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Building2, ShieldCheck, Banknote, Workflow, Clock, History, FileText, Loader2, FilePlus2, FileEdit, Database } from "lucide-react";
+import { Building2, ShieldCheck, Banknote, Workflow, Clock, History, FileText, Loader2, FilePlus2, FileEdit, Database, Tag, Check } from "lucide-react";
 import StatusBadge from "@/components/StatusBadge";
 import type { ActionLogEntry, MerHistoryRow } from "@/services/googleSheets";
 import ActionConfirmModal from "@/components/ActionConfirmModal";
@@ -102,8 +102,16 @@ export default function ClientDetailsModal({ open, onClose, client, onViewHistor
     overridePayload: null,
   });
   const [isOverrideLoading, setIsOverrideLoading] = useState(false);
+  const [showClearCycleConfirm, setShowClearCycleConfirm] = useState(false);
 
   if (!client) return null;
+
+  const tagSet = new Set(
+    (client.categoryTags ?? "")
+      .split(",")
+      .map((t) => t.trim().toLowerCase())
+      .filter(Boolean)
+  );
 
   const ghlContactId =
     client.ghlContactId ||
@@ -185,6 +193,119 @@ export default function ClientDetailsModal({ open, onClose, client, onViewHistor
           <Section icon={ShieldCheck} title="Compliance" fields={compliance} />
           <Section icon={Banknote} title="Bank & Books" fields={bankBooks} />
           <Section icon={Workflow} title="Workflow" fields={workflow} />
+
+          {/* GHL Tags */}
+          <div className="rounded-lg border border-border bg-muted/20 p-4">
+            <div className="flex items-center gap-2 mb-3">
+              <Tag className="h-3.5 w-3.5 text-primary" />
+              <span className="text-[11px] font-semibold uppercase tracking-wider text-foreground">
+                GHL Tags
+              </span>
+            </div>
+
+            {/* Category Tags */}
+            <div className="mb-4">
+              <p className="text-[10.5px] uppercase tracking-wide text-muted-foreground mb-2">
+                Category Tags
+              </p>
+              <div className="flex flex-wrap gap-2">
+                {(
+                  [
+                    { key: "mer-workflow", label: "MER Workflow" },
+                    { key: "ap-expense", label: "AP — Expense" },
+                    { key: "ap-payroll", label: "AP — Payroll" },
+                    { key: "ar-education", label: "AR — Education" },
+                    { key: "ar-nonprofits", label: "AR — Nonprofits" },
+                  ] as { key: string; label: string }[]
+                ).map((t) => {
+                  const active = tagSet.has(t.key);
+                  return (
+                    <span
+                      key={t.key}
+                      className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[11px] font-medium transition-colors ${
+                        active
+                          ? "bg-success/15 text-success border-success/30"
+                          : "bg-transparent text-muted-foreground border-border/60"
+                      }`}
+                    >
+                      {active && <Check className="h-3 w-3" />}
+                      {t.label}
+                    </span>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Cycle Tags */}
+            <div className="mb-4">
+              <div className="flex items-center gap-2 mb-2 flex-wrap">
+                <p className="text-[10.5px] uppercase tracking-wide text-muted-foreground">
+                  Active Cycle Tags
+                </p>
+                <span className="text-[10px] text-muted-foreground/60">
+                  (read-only — managed by automation)
+                </span>
+              </div>
+              {(
+                [
+                  { key: "ready-for-pipeline", label: "Ready for Pipeline" },
+                  { key: "escalation-active", label: "Escalation Active" },
+                  { key: "bank-reconnection-active", label: "Bank Reconnection Active" },
+                  { key: "statement-request-active", label: "Statement Request Active" },
+                  { key: "docs-request-active", label: "Docs Request Active" },
+                ] as { key: string; label: string }[]
+              ).filter((t) => tagSet.has(t.key)).length === 0 ? (
+                <p className="text-xs text-muted-foreground/60">No active cycle tags.</p>
+              ) : (
+                <div className="flex flex-wrap gap-2">
+                  {(
+                    [
+                      { key: "ready-for-pipeline", label: "Ready for Pipeline" },
+                      { key: "escalation-active", label: "Escalation Active" },
+                      { key: "bank-reconnection-active", label: "Bank Reconnection Active" },
+                      { key: "statement-request-active", label: "Statement Request Active" },
+                      { key: "docs-request-active", label: "Docs Request Active" },
+                    ] as { key: string; label: string }[]
+                  )
+                    .filter((t) => tagSet.has(t.key))
+                    .map((t) => (
+                      <span
+                        key={t.key}
+                        className="inline-flex items-center gap-1 rounded-full border bg-warning/15 text-warning border-warning/30 px-2.5 py-1 text-[11px] font-medium"
+                      >
+                        {t.label}
+                      </span>
+                    ))}
+                </div>
+              )}
+            </div>
+
+            {/* Action buttons */}
+            <div className="flex flex-wrap gap-2 pt-3 border-t border-border/60">
+              <button
+                type="button"
+                onClick={() =>
+                  toast({
+                    title: "Coming soon",
+                    description: "Coming soon — category tag editing",
+                  })
+                }
+                className="inline-flex items-center gap-1.5 text-xs font-semibold px-3 py-2 rounded-lg border border-primary/30 bg-transparent text-primary hover:bg-primary/10 transition-colors"
+              >
+                ✏️ Update Category Tags
+              </button>
+              {tagSet.has("active-client") && (
+                <button
+                  type="button"
+                  onClick={() => setShowClearCycleConfirm(true)}
+                  className="inline-flex items-center gap-1.5 text-xs font-semibold px-3 py-2 rounded-lg border border-destructive/30 bg-transparent text-destructive hover:bg-destructive/10 transition-colors"
+                >
+                  🗑️ Clear Cycle Tags
+                </button>
+              )}
+            </div>
+          </div>
+
           <Section icon={Clock} title="Submission Meta" fields={meta} />
         </div>
 
@@ -529,6 +650,24 @@ export default function ClientDetailsModal({ open, onClose, client, onViewHistor
           onClose={() => setMerFormMode(null)}
         />
       )}
+
+      <ActionConfirmModal
+        open={showClearCycleConfirm}
+        onClose={() => setShowClearCycleConfirm(false)}
+        onConfirm={() => {
+          setShowClearCycleConfirm(false);
+          toast({
+            title: "Coming soon",
+            description: "Coming soon — cycle tag clearing",
+          });
+        }}
+        actionLabel="Clear Cycle Tags"
+        clientName={client.name}
+        description={`This will remove all active cycle tags from ${client.name}. Category tags and active-client tag will be preserved. Are you sure?`}
+        confirmLabel="Confirm"
+        isLoading={false}
+        variant="destructive"
+      />
     </Dialog>
   );
 }

@@ -18,6 +18,7 @@ export interface Client {
   complianceStatus: "Compliant" | "Non-Compliant" | "On Hold";
   merKey?: string;
   ghlContactId?: string;
+  categoryTags?: string;
 }
 
 export const clients: Client[] = [
