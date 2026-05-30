@@ -105,10 +105,30 @@ export default function ClientDetailsModal({ open, onClose, client, onViewHistor
   const [showClearCycleConfirm, setShowClearCycleConfirm] = useState(false);
   const [ghlTags, setGhlTags] = useState<string[]>([]);
   const [ghlTagsLoading, setGhlTagsLoading] = useState(false);
+  const [editCategoryOpen, setEditCategoryOpen] = useState(false);
+  const [editCategorySelection, setEditCategorySelection] = useState<Record<string, boolean>>({});
+  const [editCategorySaving, setEditCategorySaving] = useState(false);
 
   const ghlContactId =
     client?.ghlContactId ||
     (client?.merKey?.includes("_") ? client.merKey.split("_")[0] : "");
+
+  const GHL_HEADERS = {
+    Authorization: "Bearer pit-9e416e9c-99e8-4507-9c57-e6c824f50723",
+    Version: "2021-07-28",
+  };
+
+  const fetchGhlTags = async (contactId: string): Promise<string[]> => {
+    const r = await fetch(`https://services.leadconnectorhq.com/contacts/${contactId}`, {
+      headers: GHL_HEADERS,
+    });
+    if (!r.ok) throw new Error(`HTTP ${r.status}`);
+    const data = await r.json();
+    const raw = data?.contact?.tags ?? data?.tags ?? [];
+    return Array.isArray(raw)
+      ? raw.map((t: string) => String(t).trim().toLowerCase()).filter(Boolean)
+      : [];
+  };
 
   useEffect(() => {
     if (!open || !ghlContactId) {
@@ -117,20 +137,9 @@ export default function ClientDetailsModal({ open, onClose, client, onViewHistor
     }
     let cancelled = false;
     setGhlTagsLoading(true);
-    fetch(`https://services.leadconnectorhq.com/contacts/${ghlContactId}`, {
-      headers: {
-        Authorization: "Bearer pit-9e416e9c-99e8-4507-9c57-e6c824f50723",
-        Version: "2021-07-28",
-      },
-    })
-      .then((r) => (r.ok ? r.json() : Promise.reject(new Error(`HTTP ${r.status}`))))
-      .then((data) => {
-        if (cancelled) return;
-        const raw = data?.contact?.tags ?? data?.tags ?? [];
-        const tags = Array.isArray(raw)
-          ? raw.map((t: string) => String(t).trim().toLowerCase()).filter(Boolean)
-          : [];
-        setGhlTags(tags);
+    fetchGhlTags(ghlContactId)
+      .then((tags) => {
+        if (!cancelled) setGhlTags(tags);
       })
       .catch(() => {
         if (!cancelled) setGhlTags([]);
