@@ -199,22 +199,24 @@ export default function GhlLiveCycleSection({ clients, stageFilter }: { clients:
     return bookkeeperByName.get(name) || "";
   };
 
-  const { regular, cleanup } = useMemo(() => {
-    const r: GhlContact[] = [];
-    const cl: GhlContact[] = [];
+  const unified = useMemo(() => {
+    const result: { contact: GhlContact; kind: CycleKind; stage: StageInfo }[] = [];
     for (const c of contacts) {
       const tags = c.tags || [];
-      if (tags.includes("ready-for-pipeline") && matchesStageFilter(tags, "regular", stageFilter ?? null))
-        r.push(c);
-      else if (tags.includes("ready-for-cleanup") && matchesStageFilter(tags, "cleanup", stageFilter ?? null))
-        cl.push(c);
+      if (tags.includes("ready-for-pipeline") && matchesStageFilter(tags, "regular", stageFilter ?? null)) {
+        result.push({ contact: c, kind: "regular", stage: getStageInfo(tags, "regular") });
+      } else if (tags.includes("ready-for-cleanup") && matchesStageFilter(tags, "cleanup", stageFilter ?? null)) {
+        result.push({ contact: c, kind: "cleanup", stage: getStageInfo(tags, "cleanup") });
+      }
     }
-    const cmp = (a: GhlContact, b: GhlContact) =>
-      contactName(a).localeCompare(contactName(b));
-    r.sort(cmp);
-    cl.sort(cmp);
-    return { regular: r, cleanup: cl };
+    result.sort((a, b) => {
+      if (a.kind !== b.kind) return a.kind === "regular" ? -1 : 1;
+      return contactName(a.contact).localeCompare(contactName(b.contact));
+    });
+    return result;
   }, [contacts, stageFilter]);
+
+  const totalCount = unified.length;
 
   return (
     <section className="rounded-2xl border border-border bg-card shadow-card p-4 lg:p-5 space-y-4">
@@ -228,6 +230,9 @@ export default function GhlLiveCycleSection({ clients, stageFilter }: { clients:
             <h2 className="font-display text-lg font-semibold text-foreground leading-tight">
               Active Cycle Stage Controls
             </h2>
+            <p className="text-[11px] text-muted-foreground mt-0.5">
+              {totalCount} {totalCount === 1 ? "contact" : "contacts"}
+            </p>
           </div>
         </div>
         <button
@@ -254,131 +259,86 @@ export default function GhlLiveCycleSection({ clients, stageFilter }: { clients:
       )}
 
       {!loading && !error && (
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-          <CycleList
-            title="Regular Clients"
-            sub="ready-for-pipeline"
-            kind="regular"
-            contacts={regular}
-            applyingId={applyingId}
-            onApply={applyTag}
-            bookkeeperFor={bookkeeperFor}
-          />
-          <CycleList
-            title="Cleanup Clients"
-            sub="ready-for-cleanup"
-            kind="cleanup"
-            contacts={cleanup}
-            applyingId={applyingId}
-            onApply={applyTag}
-            bookkeeperFor={bookkeeperFor}
-          />
+        <div className="rounded-xl border border-border bg-background/40 overflow-hidden">
+          {unified.length === 0 ? (
+            <div className="p-6 text-center text-xs text-muted-foreground">
+              No active cycle contacts.
+            </div>
+          ) : (
+            <ul className="divide-y divide-border">
+              {unified.map(({ contact: c, kind, stage }) => {
+                const bk = bookkeeperFor(c);
+                const isApplying = applyingId === c.id;
+                const kindLabel = kind === "regular" ? "REGULAR" : "CLEANUP";
+                const kindClasses =
+                  kind === "regular"
+                    ? "bg-info/15 text-info border-info/30"
+                    : "bg-warning/15 text-warning border-warning/30";
+                return (
+                  <li
+                    key={c.id}
+                    className="px-4 py-3 grid grid-cols-1 md:grid-cols-[1.6fr_1fr_auto_auto_auto] items-center gap-3 hover:bg-muted/30 transition-colors"
+                  >
+                    <div className="min-w-0">
+                      <p className="text-sm font-semibold text-foreground truncate">
+                        {contactName(c)}
+                      </p>
+                      <p className="text-[11px] text-muted-foreground truncate">
+                        {bk ? (
+                          <>
+                            Bookkeeper:{" "}
+                            <span className="text-foreground/90">{bk}</span>
+                          </>
+                        ) : (
+                          <span className="opacity-60">No bookkeeper assigned</span>
+                        )}
+                      </p>
+                    </div>
+                    <div>
+                      <span
+                        className={`inline-flex items-center px-2 py-0.5 rounded-full border text-[11px] font-medium ${
+                          stage.completed
+                            ? "bg-success/15 text-success border-success/30"
+                            : "bg-primary/10 text-primary border-primary/20"
+                        }`}
+                      >
+                        {stage.label}
+                      </span>
+                    </div>
+                    <div>
+                      <span
+                        className={`inline-flex items-center px-2 py-0.5 rounded-full border text-[10px] font-bold font-mono-data uppercase tracking-wide ${kindClasses}`}
+                      >
+                        {kindLabel}
+                      </span>
+                    </div>
+                    <div className="md:justify-self-end">
+                      {stage.next ? (
+                        <button
+                          onClick={() => applyTag(c, stage.next!)}
+                          disabled={isApplying || applyingId !== null}
+                          className="inline-flex items-center gap-1.5 h-8 px-2.5 rounded-md text-[11px] font-semibold font-mono-data bg-primary/10 text-primary border border-primary/20 hover:bg-primary/15 transition-colors disabled:opacity-40"
+                        >
+                          {isApplying ? (
+                            <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                          ) : (
+                            <span>+</span>
+                          )}
+                          {stage.next}
+                        </button>
+                      ) : (
+                        <span className="text-[11px] text-muted-foreground">
+                          —
+                        </span>
+                      )}
+                    </div>
+                  </li>
+                );
+              })}
+            </ul>
+          )}
         </div>
       )}
     </section>
-  );
-}
-
-function CycleList({
-  title,
-  sub,
-  kind,
-  contacts,
-  applyingId,
-  onApply,
-  bookkeeperFor,
-}: {
-  title: string;
-  sub: string;
-  kind: CycleKind;
-  contacts: GhlContact[];
-  applyingId: string | null;
-  onApply: (c: GhlContact, tag: string) => void;
-  bookkeeperFor: (c: GhlContact) => string;
-}) {
-  return (
-    <div className="rounded-xl border border-border bg-background/40 overflow-hidden">
-      <header className="flex items-center justify-between px-4 py-2.5 border-b border-border bg-muted/40">
-        <div>
-          <h3 className="text-sm font-semibold text-foreground">{title}</h3>
-          <p className="text-[10px] font-mono-data uppercase tracking-wider text-muted-foreground">
-            {sub}
-          </p>
-        </div>
-        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-bold font-mono-data tabular-nums bg-primary/15 text-primary">
-          {contacts.length}
-          <span className="font-medium opacity-70">
-            {contacts.length === 1 ? "client" : "clients"}
-          </span>
-        </span>
-      </header>
-      {contacts.length === 0 ? (
-        <div className="p-6 text-center text-xs text-muted-foreground">
-          No clients in this cycle.
-        </div>
-      ) : (
-        <ul className="divide-y divide-border">
-          {contacts.map((c) => {
-            const tags = c.tags || [];
-            const stage = getStageInfo(tags, kind);
-            const bk = bookkeeperFor(c);
-            const isApplying = applyingId === c.id;
-            return (
-              <li
-                key={c.id}
-                className="px-4 py-3 grid grid-cols-1 md:grid-cols-[1.4fr_1fr_auto] items-center gap-3 hover:bg-muted/30 transition-colors"
-              >
-                <div className="min-w-0">
-                  <p className="text-sm font-semibold text-foreground truncate">
-                    {contactName(c)}
-                  </p>
-                  <p className="text-[11px] text-muted-foreground truncate">
-                    {bk ? (
-                      <>
-                        Bookkeeper:{" "}
-                        <span className="text-foreground/90">{bk}</span>
-                      </>
-                    ) : (
-                      <span className="opacity-60">No bookkeeper assigned</span>
-                    )}
-                  </p>
-                </div>
-                <div>
-                  <span
-                    className={`inline-flex items-center px-2 py-0.5 rounded-full border text-[11px] font-medium ${
-                      stage.completed
-                        ? "bg-success/15 text-success border-success/30"
-                        : "bg-primary/10 text-primary border-primary/20"
-                    }`}
-                  >
-                    {stage.label}
-                  </span>
-                </div>
-                <div className="md:justify-self-end">
-                  {stage.next ? (
-                    <button
-                      onClick={() => onApply(c, stage.next!)}
-                      disabled={isApplying || applyingId !== null}
-                      className="inline-flex items-center gap-1.5 h-8 px-2.5 rounded-md text-[11px] font-semibold font-mono-data bg-primary/10 text-primary border border-primary/20 hover:bg-primary/15 transition-colors disabled:opacity-40"
-                    >
-                      {isApplying ? (
-                        <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                      ) : (
-                        <span>+</span>
-                      )}
-                      {stage.next}
-                    </button>
-                  ) : (
-                    <span className="text-[11px] text-muted-foreground">
-                      —
-                    </span>
-                  )}
-                </div>
-              </li>
-            );
-          })}
-        </ul>
-      )}
-    </div>
   );
 }
