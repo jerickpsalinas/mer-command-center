@@ -110,6 +110,16 @@ export default function ClientDetailsModal({ open, onClose, client, onViewHistor
   const [editCategorySaving, setEditCategorySaving] = useState(false);
   const [clearCycleLoading, setClearCycleLoading] = useState(false);
   const [categorizeLoading, setCategorizeLoading] = useState(false);
+  const [categorizeOpen, setCategorizeOpen] = useState(false);
+  const [catStep, setCatStep] = useState<"form" | "suggestion" | "override">("form");
+  const [catDescription, setCatDescription] = useState("");
+  const [catAmount, setCatAmount] = useState("");
+  const [catDate, setCatDate] = useState(() => new Date().toISOString().slice(0, 10));
+  const [catNotes, setCatNotes] = useState("");
+  const [catSubmitting, setCatSubmitting] = useState(false);
+  const [catAiResponse, setCatAiResponse] = useState<any>(null);
+  const [catConfirmLoading, setCatConfirmLoading] = useState(false);
+  const [catOverrideText, setCatOverrideText] = useState("");
 
   const ghlContactId =
     client?.ghlContactId ||
