@@ -235,9 +235,12 @@ export default function ClientDetailsModal({ open, onClose, client, onViewHistor
 
             {/* Category Tags */}
             <div className="mb-4">
-              <p className="text-[10.5px] uppercase tracking-wide text-muted-foreground mb-2">
-                Category Tags
-              </p>
+              <div className="flex items-center gap-2 mb-2">
+                <p className="text-[10.5px] uppercase tracking-wide text-muted-foreground">
+                  Category Tags
+                </p>
+                {ghlTagsLoading && <Loader2 className="h-3 w-3 animate-spin text-muted-foreground" />}
+              </div>
               <div className="flex flex-wrap gap-2">
                 {(
                   [
@@ -275,30 +278,34 @@ export default function ClientDetailsModal({ open, onClose, client, onViewHistor
                 <span className="text-[10px] text-muted-foreground/60">
                   (read-only — managed by automation)
                 </span>
+                {ghlTagsLoading && <Loader2 className="h-3 w-3 animate-spin text-muted-foreground" />}
               </div>
-              {(
-                [
-                  { key: "ready-for-pipeline", label: "Ready for Pipeline" },
-                  { key: "escalation-active", label: "Escalation Active" },
-                  { key: "bank-reconnection-active", label: "Bank Reconnection Active" },
-                  { key: "statement-request-active", label: "Statement Request Active" },
-                  { key: "docs-request-active", label: "Docs Request Active" },
-                ] as { key: string; label: string }[]
-              ).filter((t) => tagSet.has(t.key)).length === 0 ? (
-                <p className="text-xs text-muted-foreground/60">No active cycle tags.</p>
-              ) : (
-                <div className="flex flex-wrap gap-2">
-                  {(
-                    [
-                      { key: "ready-for-pipeline", label: "Ready for Pipeline" },
-                      { key: "escalation-active", label: "Escalation Active" },
-                      { key: "bank-reconnection-active", label: "Bank Reconnection Active" },
-                      { key: "statement-request-active", label: "Statement Request Active" },
-                      { key: "docs-request-active", label: "Docs Request Active" },
-                    ] as { key: string; label: string }[]
-                  )
-                    .filter((t) => tagSet.has(t.key))
-                    .map((t) => (
+              {(() => {
+                const activeCycle = [
+                  { key: "escalation-active", label: "🚨 Escalation Active" },
+                  { key: "bank-reconnection-active", label: "🔌 Bank Reconnection Active" },
+                  { key: "statement-request-active", label: "📄 Statement Request Active" },
+                  { key: "docs-request-active", label: "📁 Docs Request Active" },
+                  { key: "ready-for-pipeline", label: "🔄 Ready for Pipeline" },
+                ].filter((t) => tagSet.has(t.key));
+                const resolved = [
+                  { key: "bank-reconnected", label: "✅ Bank Reconnected" },
+                  { key: "statement-received", label: "✅ Statement Received" },
+                  { key: "notes-approved", label: "✅ Notes Approved" },
+                ].filter((t) => tagSet.has(t.key));
+
+                if (ghlTagsLoading) {
+                  return <p className="text-xs text-muted-foreground/60">Loading…</p>;
+                }
+                if (ghlTags.length === 0) {
+                  return <p className="text-xs text-muted-foreground/60">Could not load tags.</p>;
+                }
+                if (activeCycle.length === 0 && resolved.length === 0) {
+                  return <p className="text-xs text-muted-foreground/60">No active cycle tags.</p>;
+                }
+                return (
+                  <div className="flex flex-wrap gap-2">
+                    {activeCycle.map((t) => (
                       <span
                         key={t.key}
                         className="inline-flex items-center gap-1 rounded-full border bg-warning/15 text-warning border-warning/30 px-2.5 py-1 text-[11px] font-medium"
@@ -306,9 +313,19 @@ export default function ClientDetailsModal({ open, onClose, client, onViewHistor
                         {t.label}
                       </span>
                     ))}
-                </div>
-              )}
+                    {resolved.map((t) => (
+                      <span
+                        key={t.key}
+                        className="inline-flex items-center gap-1 rounded-full border bg-success/15 text-success border-success/30 px-2.5 py-1 text-[11px] font-medium"
+                      >
+                        {t.label}
+                      </span>
+                    ))}
+                  </div>
+                );
+              })()}
             </div>
+
 
             {/* Action buttons */}
             <div className="flex flex-wrap gap-2 pt-3 border-t border-border/60">
