@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Building2, ShieldCheck, Banknote, Workflow, Clock, History, FileText, Loader2, FilePlus2, FileEdit, Database, Tag, Check } from "lucide-react";
 import StatusBadge from "@/components/StatusBadge";
@@ -103,19 +103,49 @@ export default function ClientDetailsModal({ open, onClose, client, onViewHistor
   });
   const [isOverrideLoading, setIsOverrideLoading] = useState(false);
   const [showClearCycleConfirm, setShowClearCycleConfirm] = useState(false);
+  const [ghlTags, setGhlTags] = useState<string[]>([]);
+  const [ghlTagsLoading, setGhlTagsLoading] = useState(false);
+
+  const ghlContactId =
+    client?.ghlContactId ||
+    (client?.merKey?.includes("_") ? client.merKey.split("_")[0] : "");
+
+  useEffect(() => {
+    if (!open || !ghlContactId) {
+      setGhlTags([]);
+      return;
+    }
+    let cancelled = false;
+    setGhlTagsLoading(true);
+    fetch(`https://services.leadconnectorhq.com/contacts/${ghlContactId}`, {
+      headers: {
+        Authorization: "Bearer pit-9e416e9c-99e8-4507-9c57-e6c824f50723",
+        Version: "2021-07-28",
+      },
+    })
+      .then((r) => (r.ok ? r.json() : Promise.reject(new Error(`HTTP ${r.status}`))))
+      .then((data) => {
+        if (cancelled) return;
+        const raw = data?.contact?.tags ?? data?.tags ?? [];
+        const tags = Array.isArray(raw)
+          ? raw.map((t: string) => String(t).trim().toLowerCase()).filter(Boolean)
+          : [];
+        setGhlTags(tags);
+      })
+      .catch(() => {
+        if (!cancelled) setGhlTags([]);
+      })
+      .finally(() => {
+        if (!cancelled) setGhlTagsLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [open, ghlContactId]);
 
   if (!client) return null;
 
-  const tagSet = new Set(
-    (client.categoryTags ?? "")
-      .split(",")
-      .map((t) => t.trim().toLowerCase())
-      .filter(Boolean)
-  );
-
-  const ghlContactId =
-    client.ghlContactId ||
-    (client.merKey?.includes("_") ? client.merKey.split("_")[0] : "");
+  const tagSet = new Set(ghlTags);
   const currentSummary = getSequenceInfoForClient(ghlContactId, client.month, actionLog);
   const bankHistory = getSequenceEvents(ghlContactId, "bank-reconnection", actionLog);
   const statementHistory = getSequenceEvents(ghlContactId, "statement-request", actionLog);
