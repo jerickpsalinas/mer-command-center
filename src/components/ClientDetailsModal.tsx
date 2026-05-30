@@ -650,6 +650,24 @@ export default function ClientDetailsModal({ open, onClose, client, onViewHistor
           onClose={() => setMerFormMode(null)}
         />
       )}
+
+      <ActionConfirmModal
+        open={showClearCycleConfirm}
+        onClose={() => setShowClearCycleConfirm(false)}
+        onConfirm={() => {
+          setShowClearCycleConfirm(false);
+          toast({
+            title: "Coming soon",
+            description: "Coming soon — cycle tag clearing",
+          });
+        }}
+        actionLabel="Clear Cycle Tags"
+        clientName={client.name}
+        description={`This will remove all active cycle tags from ${client.name}. Category tags and active-client tag will be preserved. Are you sure?`}
+        confirmLabel="Confirm"
+        isLoading={false}
+        variant="destructive"
+      />
     </Dialog>
   );
 }
