@@ -440,8 +440,6 @@ export default function MasterCyclePage() {
         })()}
       </motion.section>
 
-      {/* Live GHL cycle stage controls */}
-      <GhlLiveCycleSection clients={data.clients} stageFilter={filterStage} />
 
       {/* Filters */}
       <motion.div
