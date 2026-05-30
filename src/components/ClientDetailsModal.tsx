@@ -105,10 +105,30 @@ export default function ClientDetailsModal({ open, onClose, client, onViewHistor
   const [showClearCycleConfirm, setShowClearCycleConfirm] = useState(false);
   const [ghlTags, setGhlTags] = useState<string[]>([]);
   const [ghlTagsLoading, setGhlTagsLoading] = useState(false);
+  const [editCategoryOpen, setEditCategoryOpen] = useState(false);
+  const [editCategorySelection, setEditCategorySelection] = useState<Record<string, boolean>>({});
+  const [editCategorySaving, setEditCategorySaving] = useState(false);
 
   const ghlContactId =
     client?.ghlContactId ||
     (client?.merKey?.includes("_") ? client.merKey.split("_")[0] : "");
+
+  const GHL_HEADERS = {
+    Authorization: "Bearer pit-9e416e9c-99e8-4507-9c57-e6c824f50723",
+    Version: "2021-07-28",
+  };
+
+  const fetchGhlTags = async (contactId: string): Promise<string[]> => {
+    const r = await fetch(`https://services.leadconnectorhq.com/contacts/${contactId}`, {
+      headers: GHL_HEADERS,
+    });
+    if (!r.ok) throw new Error(`HTTP ${r.status}`);
+    const data = await r.json();
+    const raw = data?.contact?.tags ?? data?.tags ?? [];
+    return Array.isArray(raw)
+      ? raw.map((t: string) => String(t).trim().toLowerCase()).filter(Boolean)
+      : [];
+  };
 
   useEffect(() => {
     if (!open || !ghlContactId) {
@@ -117,20 +137,9 @@ export default function ClientDetailsModal({ open, onClose, client, onViewHistor
     }
     let cancelled = false;
     setGhlTagsLoading(true);
-    fetch(`https://services.leadconnectorhq.com/contacts/${ghlContactId}`, {
-      headers: {
-        Authorization: "Bearer pit-9e416e9c-99e8-4507-9c57-e6c824f50723",
-        Version: "2021-07-28",
-      },
-    })
-      .then((r) => (r.ok ? r.json() : Promise.reject(new Error(`HTTP ${r.status}`))))
-      .then((data) => {
-        if (cancelled) return;
-        const raw = data?.contact?.tags ?? data?.tags ?? [];
-        const tags = Array.isArray(raw)
-          ? raw.map((t: string) => String(t).trim().toLowerCase()).filter(Boolean)
-          : [];
-        setGhlTags(tags);
+    fetchGhlTags(ghlContactId)
+      .then((tags) => {
+        if (!cancelled) setGhlTags(tags);
       })
       .catch(() => {
         if (!cancelled) setGhlTags([]);
@@ -331,12 +340,16 @@ export default function ClientDetailsModal({ open, onClose, client, onViewHistor
             <div className="flex flex-wrap gap-2 pt-3 border-t border-border/60">
               <button
                 type="button"
-                onClick={() =>
-                  toast({
-                    title: "Coming soon",
-                    description: "Coming soon — category tag editing",
-                  })
-                }
+                onClick={() => {
+                  const initial: Record<string, boolean> = {};
+                  ["mer-workflow", "ap-expense", "ap-payroll", "ar-education", "ar-nonprofits"].forEach(
+                    (k) => {
+                      initial[k] = tagSet.has(k);
+                    }
+                  );
+                  setEditCategorySelection(initial);
+                  setEditCategoryOpen(true);
+                }}
                 className="inline-flex items-center gap-1.5 text-xs font-semibold px-3 py-2 rounded-lg border border-primary/30 bg-transparent text-primary hover:bg-primary/10 transition-colors"
               >
                 ✏️ Update Category Tags
@@ -715,6 +728,109 @@ export default function ClientDetailsModal({ open, onClose, client, onViewHistor
         isLoading={false}
         variant="destructive"
       />
+
+      <Dialog open={editCategoryOpen} onOpenChange={(o) => !editCategorySaving && setEditCategoryOpen(o)}>
+        <DialogContent className="max-w-md w-[calc(100vw-1rem)] sm:w-auto p-5">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 pr-8">
+              <Tag className="h-4 w-4 text-primary shrink-0" />
+              <span className="truncate">Update Category Tags — {client.name}</span>
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-2 mt-3">
+            {(
+              [
+                { key: "mer-workflow", label: "MER Workflow" },
+                { key: "ap-expense", label: "AP — Expense" },
+                { key: "ap-payroll", label: "AP — Payroll" },
+                { key: "ar-education", label: "AR — Education" },
+                { key: "ar-nonprofits", label: "AR — Nonprofits" },
+              ] as { key: string; label: string }[]
+            ).map((t) => (
+              <label
+                key={t.key}
+                className="flex items-center gap-2.5 px-3 py-2 rounded-md border border-border/60 bg-muted/20 hover:bg-muted/40 cursor-pointer transition-colors"
+              >
+                <input
+                  type="checkbox"
+                  checked={!!editCategorySelection[t.key]}
+                  disabled={editCategorySaving}
+                  onChange={(e) =>
+                    setEditCategorySelection((prev) => ({ ...prev, [t.key]: e.target.checked }))
+                  }
+                  className="h-4 w-4 accent-primary"
+                />
+                <span className="text-sm text-foreground">{t.label}</span>
+              </label>
+            ))}
+          </div>
+          <div className="flex justify-end gap-2 pt-4">
+            <button
+              type="button"
+              onClick={() => setEditCategoryOpen(false)}
+              disabled={editCategorySaving}
+              className="inline-flex items-center gap-1.5 text-xs font-semibold px-3 py-2 rounded-lg border border-border bg-transparent text-foreground hover:bg-muted/40 transition-colors disabled:opacity-50"
+            >
+              Cancel
+            </button>
+            <button
+              type="button"
+              disabled={editCategorySaving || !ghlContactId}
+              onClick={async () => {
+                if (!ghlContactId) return;
+                const keys = ["mer-workflow", "ap-expense", "ap-payroll", "ar-education", "ar-nonprofits"];
+                const toAdd = keys.filter((k) => editCategorySelection[k]);
+                const toRemove = keys.filter((k) => !editCategorySelection[k]);
+                setEditCategorySaving(true);
+                try {
+                  const calls: Promise<Response>[] = [];
+                  if (toAdd.length) {
+                    calls.push(
+                      fetch(`https://services.leadconnectorhq.com/contacts/${ghlContactId}/tags`, {
+                        method: "POST",
+                        headers: { ...GHL_HEADERS, "Content-Type": "application/json" },
+                        body: JSON.stringify({ tags: toAdd }),
+                      })
+                    );
+                  }
+                  if (toRemove.length) {
+                    calls.push(
+                      fetch(`https://services.leadconnectorhq.com/contacts/${ghlContactId}/tags`, {
+                        method: "DELETE",
+                        headers: { ...GHL_HEADERS, "Content-Type": "application/json" },
+                        body: JSON.stringify({ tags: toRemove }),
+                      })
+                    );
+                  }
+                  const results = await Promise.all(calls);
+                  if (results.some((r) => !r.ok)) throw new Error("GHL update failed");
+
+                  const refreshed = await fetchGhlTags(ghlContactId);
+                  setGhlTags(refreshed);
+                  toast({
+                    title: "Category tags updated",
+                    description: `Category tags updated for ${client.name}`,
+                  });
+                  setEditCategoryOpen(false);
+                } catch {
+                  toast({
+                    title: "Update failed",
+                    description: "Failed to update tags. Please try again.",
+                    variant: "destructive",
+                  });
+                } finally {
+                  setEditCategorySaving(false);
+                }
+              }}
+              className="inline-flex items-center gap-1.5 text-xs font-semibold px-3 py-2 rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 transition-colors disabled:opacity-60"
+            >
+              {editCategorySaving && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
+              {editCategorySaving ? "Saving…" : "Save"}
+            </button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </Dialog>
+
   );
 }
