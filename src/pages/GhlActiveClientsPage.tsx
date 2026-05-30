@@ -72,15 +72,56 @@ export default function GhlActiveClientsPage() {
     setLoading(true);
     setError(null);
     try {
-      const res = await fetch(
-        `${GHL_BASE}/contacts/?locationId=${LOCATION_ID}&limit=100`,
+      // Attempt 1: tag-filtered list endpoint
+      const tagged = await fetch(
+        `${GHL_BASE}/contacts/?locationId=${LOCATION_ID}&limit=100&tags[]=active-client`,
         { headers: ghlHeaders() },
       );
-      if (!res.ok) throw new Error(`GHL fetch failed (${res.status})`);
-      const json = await res.json();
-      const all: GhlContact[] = json.contacts || [];
+      if (tagged.ok) {
+        const json = await tagged.json();
+        const list: GhlContact[] = json.contacts || [];
+        const filtered = list.filter((c) =>
+          (c.tags || []).includes("active-client"),
+        );
+        if (filtered.length >= 47) {
+          setContacts(filtered);
+          return;
+        }
+      }
+
+      // Fallback: paginate all contacts with startAfter, then client-side filter
+      const collected: GhlContact[] = [];
+      let startAfter: string | number | undefined;
+      let startAfterId: string | undefined;
+      for (let i = 0; i < 50; i++) {
+        const params = new URLSearchParams({
+          locationId: LOCATION_ID,
+          limit: "100",
+        });
+        if (startAfter != null) params.set("startAfter", String(startAfter));
+        if (startAfterId) params.set("startAfterId", startAfterId);
+        const res = await fetch(`${GHL_BASE}/contacts/?${params.toString()}`, {
+          headers: ghlHeaders(),
+        });
+        if (!res.ok) throw new Error(`GHL fetch failed (${res.status})`);
+        const json = await res.json();
+        const page: GhlContact[] = json.contacts || [];
+        if (page.length === 0) break;
+        collected.push(...page);
+        const meta = json.meta || {};
+        const nextStartAfter = meta.startAfter ?? meta.nextStartAfter;
+        const nextStartAfterId = meta.startAfterId ?? meta.nextStartAfterId;
+        if (!nextStartAfter && !nextStartAfterId) break;
+        if (
+          nextStartAfter === startAfter &&
+          nextStartAfterId === startAfterId
+        )
+          break;
+        startAfter = nextStartAfter;
+        startAfterId = nextStartAfterId;
+      }
       setContacts(
-        all.filter((c) => (c.tags || []).includes("active-client")),
+        collected.filter((c) => (c.tags || []).includes("active-client")),
       );
     } catch (e: any) {
       setError(e?.message || "Failed to load contacts");
@@ -88,6 +129,7 @@ export default function GhlActiveClientsPage() {
       setLoading(false);
     }
   };
+
 
   useEffect(() => {
     fetchAll();
