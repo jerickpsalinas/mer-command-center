@@ -204,15 +204,17 @@ export default function GhlLiveCycleSection({ clients, stageFilter }: { clients:
     const cl: GhlContact[] = [];
     for (const c of contacts) {
       const tags = c.tags || [];
-      if (tags.includes("ready-for-pipeline")) r.push(c);
-      else if (tags.includes("ready-for-cleanup")) cl.push(c);
+      if (tags.includes("ready-for-pipeline") && matchesStageFilter(tags, "regular", stageFilter ?? null))
+        r.push(c);
+      else if (tags.includes("ready-for-cleanup") && matchesStageFilter(tags, "cleanup", stageFilter ?? null))
+        cl.push(c);
     }
     const cmp = (a: GhlContact, b: GhlContact) =>
       contactName(a).localeCompare(contactName(b));
     r.sort(cmp);
     cl.sort(cmp);
     return { regular: r, cleanup: cl };
-  }, [contacts]);
+  }, [contacts, stageFilter]);
 
   return (
     <section className="rounded-2xl border border-border bg-card shadow-card p-4 lg:p-5 space-y-4">
