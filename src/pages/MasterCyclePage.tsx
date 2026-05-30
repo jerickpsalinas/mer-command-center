@@ -151,6 +151,7 @@ export default function MasterCyclePage() {
         clientName: latest.clientName,
         companyName: latest.companyName,
         clientEmail: latest.clientEmail,
+        ghlContactId: latest.ghlContactId,
         month: latest.month,
         cycleStatus: latest.cycleStatus,
         currentStage: latest.stageNumber,
