@@ -438,6 +438,9 @@ export default function MasterCyclePage() {
         })()}
       </motion.section>
 
+      {/* Live GHL cycle stage controls */}
+      <GhlLiveCycleSection clients={data.clients} />
+
       {/* Filters */}
       <motion.div
         initial={{ opacity: 0, y: 10 }}
