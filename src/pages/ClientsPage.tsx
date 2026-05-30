@@ -76,6 +76,7 @@ export default function ClientsPage() {
   const [cycleStatusFilter, setCycleStatusFilter] = useState<
     "all" | "escalation-active" | "bank-reconnection-active" | "statement-request-active" | "docs-request-active" | "ready-for-pipeline"
   >("all");
+  const [activeOnly, setActiveOnly] = useState(false);
 
   if (isLoading) return <DataLoading />;
   if (error || !data) return <DataError message={error?.message} />;
