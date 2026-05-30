@@ -585,7 +585,7 @@ export default function MasterCyclePage() {
                         onClick={(e) => { e.stopPropagation(); openClient(c.clientName); }}
                         className="text-[15px] font-semibold text-foreground break-words text-left hover:text-primary transition-colors"
                       >
-                        {c.clientName}
+                        {primary}
                       </button>
                       {c.escalated && (
                         <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-destructive/10 text-destructive border border-destructive/20">
@@ -594,9 +594,9 @@ export default function MasterCyclePage() {
                         </span>
                       )}
                     </div>
-                    {c.companyName && (
+                    {secondary && (
                       <p className="text-[12px] text-muted-foreground mt-0.5 break-words">
-                        {c.companyName}
+                        {secondary}
                       </p>
                     )}
                     <div className="flex flex-wrap items-center gap-x-3 gap-y-1 mt-2 text-[11px] text-muted-foreground">
