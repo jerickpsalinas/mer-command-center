@@ -117,11 +117,45 @@ export default function MasterCyclePage() {
     contactId: string,
     tag: string,
     displayName: string,
+    ctx?: { clientName: string; cycleMonth: string },
   ) => {
     setApplyingId(contactId);
     try {
       await applyTag(contactId, tag);
       toast.success(`Tag ${tag} applied to ${displayName}`);
+
+      // If this advances to docs-received (regular or cleanup), also fire WF6
+      // to stop the doc-request automation. Failures here are silent.
+      if (tag === "docs-received" || tag === "docs-received-cleanup") {
+        const cycleMonth = ctx?.cycleMonth ?? "";
+        const clientName = ctx?.clientName ?? displayName;
+        const bookkeeper =
+          data?.clients.find(
+            (c) =>
+              c.name === clientName ||
+              (c as any).ghlContactId === contactId,
+          )?.bookkeeper ?? "";
+        const merKey = `${contactId}_${cycleMonth.replace(/\s+/g, "")}`;
+        try {
+          await fetch(
+            "https://n8n.srv1482383.hstgr.cloud/webhook/dashboard-action",
+            {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                action: "mark-docs-received",
+                merKey,
+                ghlContactId: contactId,
+                clientName: displayName,
+                bookkeeper,
+                cycleMonth,
+              }),
+            },
+          );
+        } catch (err) {
+          console.error("WF6 mark-docs-received call failed", err);
+        }
+      }
     } catch {
       toast.error("Failed to apply tag. Please try again.");
     } finally {
@@ -637,7 +671,10 @@ export default function MasterCyclePage() {
                       <button
                         onClick={(e) => {
                           e.stopPropagation();
-                          handleApplyTag(c.ghlContactId, cycleInfo.next!, primary);
+                          handleApplyTag(c.ghlContactId, cycleInfo.next!, primary, {
+                            clientName: c.clientName,
+                            cycleMonth: c.month,
+                          });
                         }}
                         disabled={isApplying || applyingId !== null}
                         className="inline-flex items-center gap-1.5 h-8 px-2.5 rounded-md text-[11px] font-semibold font-mono-data bg-primary/10 text-primary border border-primary/20 hover:bg-primary/15 transition-colors disabled:opacity-40"
