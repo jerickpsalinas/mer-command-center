@@ -485,45 +485,19 @@ export default function ClientDetailsModal({ open, onClose, client, onViewHistor
                   </button>
                   <button
                     type="button"
-                    disabled={categorizeLoading}
-                    onClick={async () => {
-                      setCategorizeLoading(true);
-                      try {
-                        const res = await fetch(
-                          "https://n8n.srv1482383.hstgr.cloud/webhook/wf10-dashboard-categorize",
-                          {
-                            method: "POST",
-                            headers: { "Content-Type": "application/json" },
-                            body: JSON.stringify({
-                              clientName: client.name,
-                              ghlContactId,
-                              cycleMonth: client.month,
-                              submittedBy: client.bookkeeper,
-                              responseUrl: "",
-                            }),
-                          }
-                        );
-                        if (!res.ok) throw new Error(`HTTP ${res.status}`);
-                        toast({
-                          title: "Categorize request sent — check Slack for the modal",
-                          variant: "default",
-                        });
-                      } catch {
-                        toast({
-                          title: "Failed to send categorize request. Please try again.",
-                          variant: "destructive",
-                        });
-                      } finally {
-                        setCategorizeLoading(false);
-                      }
+                    onClick={() => {
+                      setCatStep("form");
+                      setCatDescription("");
+                      setCatAmount("");
+                      setCatDate(new Date().toISOString().slice(0, 10));
+                      setCatNotes("");
+                      setCatAiResponse(null);
+                      setCatOverrideText("");
+                      setCategorizeOpen(true);
                     }}
                     className="text-xs font-semibold px-4 py-2.5 rounded-lg border border-primary/30 bg-transparent text-primary hover:bg-primary/10 transition-all inline-flex items-center justify-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed"
                   >
-                    {categorizeLoading ? (
-                      <Loader2 className="h-4 w-4 animate-spin" />
-                    ) : (
-                      <Sparkles className="h-4 w-4" />
-                    )}
+                    <Sparkles className="h-4 w-4" />
                     Categorize Transaction
                   </button>
                 </div>
