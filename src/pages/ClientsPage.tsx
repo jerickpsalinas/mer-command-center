@@ -402,16 +402,6 @@ export default function ClientsPage() {
             <option value="ready-for-pipeline">🔄 Ready for Pipeline</option>
           </select>
 
-          <button
-            onClick={() => setActiveOnly((v) => !v)}
-            className={`inline-flex items-center gap-1 text-[11px] font-semibold px-2.5 py-1.5 rounded-md border transition-colors ${
-              activeOnly
-                ? "bg-primary/10 border-primary/30 text-primary"
-                : "bg-card border-border text-muted-foreground hover:text-foreground"
-            }`}
-          >
-            {activeOnly ? "✅ Active Only" : "☐ Active Only"}
-          </button>
 
           <label className="inline-flex items-center gap-2 text-[11px] text-muted-foreground">
             Min %
