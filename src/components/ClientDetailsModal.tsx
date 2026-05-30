@@ -106,6 +106,13 @@ export default function ClientDetailsModal({ open, onClose, client, onViewHistor
 
   if (!client) return null;
 
+  const tagSet = new Set(
+    (client.categoryTags ?? "")
+      .split(",")
+      .map((t) => t.trim().toLowerCase())
+      .filter(Boolean)
+  );
+
   const ghlContactId =
     client.ghlContactId ||
     (client.merKey?.includes("_") ? client.merKey.split("_")[0] : "");
