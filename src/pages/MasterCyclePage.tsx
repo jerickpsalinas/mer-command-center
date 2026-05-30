@@ -621,7 +621,35 @@ export default function MasterCyclePage() {
                     </div>
                   </div>
 
-                  <div className="flex items-center gap-3 shrink-0">
+                  <div className="flex items-center gap-2 shrink-0">
+                    {cycleInfo && (
+                      <span
+                        className={`inline-flex items-center px-2 py-0.5 rounded-full border text-[10px] font-bold font-mono-data uppercase tracking-wide ${
+                          cycleInfo.kind === "regular"
+                            ? "bg-info/15 text-info border-info/30"
+                            : "bg-warning/15 text-warning border-warning/30"
+                        }`}
+                      >
+                        {cycleInfo.kind === "regular" ? "REGULAR" : "CLEANUP"}
+                      </span>
+                    )}
+                    {cycleInfo?.next && c.ghlContactId && (
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleApplyTag(c.ghlContactId, cycleInfo.next!, primary);
+                        }}
+                        disabled={isApplying || applyingId !== null}
+                        className="inline-flex items-center gap-1.5 h-8 px-2.5 rounded-md text-[11px] font-semibold font-mono-data bg-primary/10 text-primary border border-primary/20 hover:bg-primary/15 transition-colors disabled:opacity-40"
+                      >
+                        {isApplying ? (
+                          <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                        ) : (
+                          <span>+</span>
+                        )}
+                        {cycleInfo.next}
+                      </button>
+                    )}
                     <StatusPill status={c.cycleStatus} />
                     <ChevronDown
                       className={`h-4 w-4 text-muted-foreground transition-transform ${
