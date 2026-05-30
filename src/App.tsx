@@ -11,6 +11,7 @@ import MonthlyProgressPage from "@/pages/MonthlyProgressPage";
 import MonthlyTrendsPage from "@/pages/MonthlyTrendsPage";
 import ClientsPage from "@/pages/ClientsPage";
 import BookkeepersPage from "@/pages/BookkeepersPage";
+import GhlActiveClientsPage from "@/pages/GhlActiveClientsPage";
 import MasterCyclePage from "@/pages/MasterCyclePage";
 import HealthPillarsPage from "@/pages/HealthPillarsPage";
 import ReportsPage from "@/pages/ReportsPage";
