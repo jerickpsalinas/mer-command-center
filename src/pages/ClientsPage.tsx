@@ -116,17 +116,44 @@ export default function ClientsPage() {
     .filter((c) => !typeFilter || c.clientType === typeFilter)
     .filter((c) => c.completionPct >= minCompletion)
     .filter((c) => {
-      if (sequenceFilter === "all") return true;
+      if (categoryTagFilter === "all") return true;
+      const raw = (c as any).categoryTags as string | undefined;
+      if (!raw) return false;
+      const tags = raw.split(",").map((t) => t.trim().toLowerCase()).filter(Boolean);
+      return tags.includes(categoryTagFilter);
+    })
+    .filter((c) => {
+      if (sequenceFilter === "all" && cycleStatusFilter === "all") return true;
       const ghlId = (c as any).ghlContactId || (((c as any).merKey as string) || "").split("_")[0] || "";
       const seqMonth = data.clientMonths[c.name] || data.latestMonth;
       const seq = getSequenceInfoForClient(ghlId, seqMonth, data.actionLog);
-      if (sequenceFilter === "active") return seq.hasActiveSequence;
-      if (sequenceFilter === "resolved")
-        return (
-          seq.bankReconnection.status === "resolved" ||
-          seq.statementRequest.status === "resolved"
-        );
-      if (sequenceFilter === "approved") return seq.notesApprovalCount > 0;
+      if (sequenceFilter !== "all") {
+        if (sequenceFilter === "active" && !seq.hasActiveSequence) return false;
+        if (
+          sequenceFilter === "resolved" &&
+          seq.bankReconnection.status !== "resolved" &&
+          seq.statementRequest.status !== "resolved"
+        )
+          return false;
+        if (sequenceFilter === "approved" && seq.notesApprovalCount === 0) return false;
+      }
+      if (cycleStatusFilter !== "all") {
+        if (cycleStatusFilter === "bank-reconnection-active") {
+          if (seq.bankReconnection.status !== "active") return false;
+        } else if (cycleStatusFilter === "statement-request-active") {
+          if (seq.statementRequest.status !== "active") return false;
+        } else if (cycleStatusFilter === "docs-request-active") {
+          if (seq.docsRequest.status !== "active") return false;
+        } else if (cycleStatusFilter === "escalation-active") {
+          const entries = (data.actionLog || []).filter((e) => e.ghlContactId === ghlId);
+          const hasTrigger = entries.some((e) => /escalat/i.test(e.actionType) && !/resolv/i.test(e.actionType));
+          const hasResolve = entries.some((e) => /escalat/i.test(e.actionType) && /resolv/i.test(e.actionType));
+          if (!hasTrigger || hasResolve) return false;
+        } else if (cycleStatusFilter === "ready-for-pipeline") {
+          const entries = (data.actionLog || []).filter((e) => e.ghlContactId === ghlId);
+          if (!entries.some((e) => /ready[-_ ]?for[-_ ]?pipeline/i.test(e.actionType))) return false;
+        }
+      }
       return true;
     })
     .sort((a, b) => {
