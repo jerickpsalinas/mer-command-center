@@ -327,7 +327,6 @@ export default function ClientsPage() {
                 setBookkeeperFilter("");
                 setTypeFilter("");
                 setMinCompletion(0);
-                setActiveOnly(false);
               }}
               className="inline-flex items-center gap-1 text-[11px] font-semibold px-2.5 py-1.5 rounded-md bg-destructive/10 text-destructive border border-destructive/20 hover:bg-destructive/15 transition-colors"
             >
