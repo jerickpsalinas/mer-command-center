@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Building2, ShieldCheck, Banknote, Workflow, Clock, History, FileText, Loader2, FilePlus2, FileEdit, Database, Tag, Check } from "lucide-react";
+import { Building2, ShieldCheck, Banknote, Workflow, Clock, History, FileText, Loader2, FilePlus2, FileEdit, Database, Tag, Check, Sparkles } from "lucide-react";
 import StatusBadge from "@/components/StatusBadge";
 import type { ActionLogEntry, MerHistoryRow } from "@/services/googleSheets";
 import ActionConfirmModal from "@/components/ActionConfirmModal";
@@ -109,6 +109,7 @@ export default function ClientDetailsModal({ open, onClose, client, onViewHistor
   const [editCategorySelection, setEditCategorySelection] = useState<Record<string, boolean>>({});
   const [editCategorySaving, setEditCategorySaving] = useState(false);
   const [clearCycleLoading, setClearCycleLoading] = useState(false);
+  const [categorizeLoading, setCategorizeLoading] = useState(false);
 
   const ghlContactId =
     client?.ghlContactId ||
@@ -471,6 +472,49 @@ export default function ClientDetailsModal({ open, onClose, client, onViewHistor
                   >
                     <FileEdit className="h-4 w-4" />
                     Update MER
+                  </button>
+                  <button
+                    type="button"
+                    disabled={categorizeLoading}
+                    onClick={async () => {
+                      setCategorizeLoading(true);
+                      try {
+                        const res = await fetch(
+                          "https://n8n.srv1482383.hstgr.cloud/webhook/wf10-dashboard-categorize",
+                          {
+                            method: "POST",
+                            headers: { "Content-Type": "application/json" },
+                            body: JSON.stringify({
+                              clientName: client.name,
+                              ghlContactId,
+                              cycleMonth: client.month,
+                              submittedBy: client.bookkeeper,
+                              responseUrl: "",
+                            }),
+                          }
+                        );
+                        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+                        toast({
+                          title: "Categorize request sent — check Slack for the modal",
+                          variant: "default",
+                        });
+                      } catch {
+                        toast({
+                          title: "Failed to send categorize request. Please try again.",
+                          variant: "destructive",
+                        });
+                      } finally {
+                        setCategorizeLoading(false);
+                      }
+                    }}
+                    className="text-xs font-semibold px-4 py-2.5 rounded-lg border border-primary/30 bg-transparent text-primary hover:bg-primary/10 transition-all inline-flex items-center justify-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed"
+                  >
+                    {categorizeLoading ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <Sparkles className="h-4 w-4" />
+                    )}
+                    Categorize Transaction
                   </button>
                 </div>
               </div>
