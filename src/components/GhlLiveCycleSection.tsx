@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { Loader2, RefreshCw, Workflow } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
-import type { Client } from "@/services/googleSheets";
+import type { Client } from "@/data/mockData";
 
 const GHL_BASE = "https://services.leadconnectorhq.com";
 const LOCATION_ID = "2UvLCJLDqEYjWtuPdjaR";
