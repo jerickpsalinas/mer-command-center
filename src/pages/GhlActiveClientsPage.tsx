@@ -47,8 +47,10 @@ const ghlHeaders = (extra: Record<string, string> = {}) => ({
 });
 
 function contactName(c: GhlContact) {
+  const company = (c.companyName || "").trim();
+  if (company) return company;
   const full = [c.firstName, c.lastName].filter(Boolean).join(" ").trim();
-  return full || c.companyName || "Unnamed Contact";
+  return full || "Unnamed Contact";
 }
 
 function tagClass(tag: string) {
