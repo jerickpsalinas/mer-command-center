@@ -547,6 +547,13 @@ export default function MasterCyclePage() {
           const open = expanded === c.key;
           const tone = stageTone(c.currentStage);
           const stageMeta = PIPELINE_STAGES.find((s) => s.num === c.currentStage);
+          const contactDisplay = c.clientName?.trim() || "";
+          const company = c.companyName?.trim() || "";
+          const primary = company || contactDisplay || "Unnamed";
+          const secondary = company ? contactDisplay : "";
+          const liveTags = (c.ghlContactId && tagsMap[c.ghlContactId]) || [];
+          const cycleInfo = c.ghlContactId ? getNextCycleTag(liveTags) : null;
+          const isApplying = applyingId === c.ghlContactId;
           return (
             <motion.div
               key={c.key}
