@@ -207,7 +207,7 @@ export default function ClientsPage() {
     setShowSaveDialog(false);
   };
 
-  const hasActiveFilter = search || statusFilter !== "all" || bookkeeperFilter || typeFilter || minCompletion > 0;
+  const hasActiveFilter = search || statusFilter !== "all" || bookkeeperFilter || typeFilter || minCompletion > 0 || activeOnly;
   const clientTypes = Array.from(new Set(monthClients.map((c) => c.clientType))).sort();
 
   return (
