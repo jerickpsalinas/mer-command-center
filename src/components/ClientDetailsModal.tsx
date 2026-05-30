@@ -728,6 +728,109 @@ export default function ClientDetailsModal({ open, onClose, client, onViewHistor
         isLoading={false}
         variant="destructive"
       />
+
+      <Dialog open={editCategoryOpen} onOpenChange={(o) => !editCategorySaving && setEditCategoryOpen(o)}>
+        <DialogContent className="max-w-md w-[calc(100vw-1rem)] sm:w-auto p-5">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 pr-8">
+              <Tag className="h-4 w-4 text-primary shrink-0" />
+              <span className="truncate">Update Category Tags — {client.name}</span>
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-2 mt-3">
+            {(
+              [
+                { key: "mer-workflow", label: "MER Workflow" },
+                { key: "ap-expense", label: "AP — Expense" },
+                { key: "ap-payroll", label: "AP — Payroll" },
+                { key: "ar-education", label: "AR — Education" },
+                { key: "ar-nonprofits", label: "AR — Nonprofits" },
+              ] as { key: string; label: string }[]
+            ).map((t) => (
+              <label
+                key={t.key}
+                className="flex items-center gap-2.5 px-3 py-2 rounded-md border border-border/60 bg-muted/20 hover:bg-muted/40 cursor-pointer transition-colors"
+              >
+                <input
+                  type="checkbox"
+                  checked={!!editCategorySelection[t.key]}
+                  disabled={editCategorySaving}
+                  onChange={(e) =>
+                    setEditCategorySelection((prev) => ({ ...prev, [t.key]: e.target.checked }))
+                  }
+                  className="h-4 w-4 accent-primary"
+                />
+                <span className="text-sm text-foreground">{t.label}</span>
+              </label>
+            ))}
+          </div>
+          <div className="flex justify-end gap-2 pt-4">
+            <button
+              type="button"
+              onClick={() => setEditCategoryOpen(false)}
+              disabled={editCategorySaving}
+              className="inline-flex items-center gap-1.5 text-xs font-semibold px-3 py-2 rounded-lg border border-border bg-transparent text-foreground hover:bg-muted/40 transition-colors disabled:opacity-50"
+            >
+              Cancel
+            </button>
+            <button
+              type="button"
+              disabled={editCategorySaving || !ghlContactId}
+              onClick={async () => {
+                if (!ghlContactId) return;
+                const keys = ["mer-workflow", "ap-expense", "ap-payroll", "ar-education", "ar-nonprofits"];
+                const toAdd = keys.filter((k) => editCategorySelection[k]);
+                const toRemove = keys.filter((k) => !editCategorySelection[k]);
+                setEditCategorySaving(true);
+                try {
+                  const calls: Promise<Response>[] = [];
+                  if (toAdd.length) {
+                    calls.push(
+                      fetch(`https://services.leadconnectorhq.com/contacts/${ghlContactId}/tags`, {
+                        method: "POST",
+                        headers: { ...GHL_HEADERS, "Content-Type": "application/json" },
+                        body: JSON.stringify({ tags: toAdd }),
+                      })
+                    );
+                  }
+                  if (toRemove.length) {
+                    calls.push(
+                      fetch(`https://services.leadconnectorhq.com/contacts/${ghlContactId}/tags`, {
+                        method: "DELETE",
+                        headers: { ...GHL_HEADERS, "Content-Type": "application/json" },
+                        body: JSON.stringify({ tags: toRemove }),
+                      })
+                    );
+                  }
+                  const results = await Promise.all(calls);
+                  if (results.some((r) => !r.ok)) throw new Error("GHL update failed");
+
+                  const refreshed = await fetchGhlTags(ghlContactId);
+                  setGhlTags(refreshed);
+                  toast({
+                    title: "Category tags updated",
+                    description: `Category tags updated for ${client.name}`,
+                  });
+                  setEditCategoryOpen(false);
+                } catch {
+                  toast({
+                    title: "Update failed",
+                    description: "Failed to update tags. Please try again.",
+                    variant: "destructive",
+                  });
+                } finally {
+                  setEditCategorySaving(false);
+                }
+              }}
+              className="inline-flex items-center gap-1.5 text-xs font-semibold px-3 py-2 rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 transition-colors disabled:opacity-60"
+            >
+              {editCategorySaving && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
+              {editCategorySaving ? "Saving…" : "Save"}
+            </button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </Dialog>
+
   );
 }
