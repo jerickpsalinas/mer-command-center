@@ -12,12 +12,14 @@ import {
   Mail,
   X,
   Tag as TagIcon,
+  Loader2,
 } from "lucide-react";
+import { toast } from "sonner";
 import { useSheetData } from "@/hooks/useSheetData";
 import { DataLoading, DataError } from "@/components/DataStatus";
 import type { CycleEntry } from "@/services/googleSheets";
 import { useClientDetails } from "@/hooks/useClientDetails";
-import GhlLiveCycleSection from "@/components/GhlLiveCycleSection";
+import { useGhlTags, getNextCycleTag } from "@/hooks/useGhlTags";
 
 /* ────────────────────────────────────────────────────────────────────────────
  * Pipeline 1 — Master Bookkeeping Cycle (8 canonical stages)
@@ -108,6 +110,24 @@ export default function MasterCyclePage() {
   const [filterStage, setFilterStage] = useState<number | null>(null);
   const [expanded, setExpanded] = useState<string | null>(null);
   const { open: openClient, modal: clientModal } = useClientDetails();
+  const { tagsMap, applyTag } = useGhlTags();
+  const [applyingId, setApplyingId] = useState<string | null>(null);
+
+  const handleApplyTag = async (
+    contactId: string,
+    tag: string,
+    displayName: string,
+  ) => {
+    setApplyingId(contactId);
+    try {
+      await applyTag(contactId, tag);
+      toast.success(`Tag ${tag} applied to ${displayName}`);
+    } catch {
+      toast.error("Failed to apply tag. Please try again.");
+    } finally {
+      setApplyingId(null);
+    }
+  };
 
   const entries = data?.cycleEntries ?? [];
 
@@ -149,6 +169,7 @@ export default function MasterCyclePage() {
         clientName: latest.clientName,
         companyName: latest.companyName,
         clientEmail: latest.clientEmail,
+        ghlContactId: latest.ghlContactId,
         month: latest.month,
         cycleStatus: latest.cycleStatus,
         currentStage: latest.stageNumber,
@@ -438,8 +459,6 @@ export default function MasterCyclePage() {
         })()}
       </motion.section>
 
-      {/* Live GHL cycle stage controls */}
-      <GhlLiveCycleSection clients={data.clients} stageFilter={filterStage} />
 
       {/* Filters */}
       <motion.div
@@ -528,6 +547,13 @@ export default function MasterCyclePage() {
           const open = expanded === c.key;
           const tone = stageTone(c.currentStage);
           const stageMeta = PIPELINE_STAGES.find((s) => s.num === c.currentStage);
+          const contactDisplay = c.clientName?.trim() || "";
+          const company = c.companyName?.trim() || "";
+          const primary = company || contactDisplay || "Unnamed";
+          const secondary = company ? contactDisplay : "";
+          const liveTags = (c.ghlContactId && tagsMap[c.ghlContactId]) || [];
+          const cycleInfo = c.ghlContactId ? getNextCycleTag(liveTags) : null;
+          const isApplying = applyingId === c.ghlContactId;
           return (
             <motion.div
               key={c.key}
@@ -559,7 +585,7 @@ export default function MasterCyclePage() {
                         onClick={(e) => { e.stopPropagation(); openClient(c.clientName); }}
                         className="text-[15px] font-semibold text-foreground break-words text-left hover:text-primary transition-colors"
                       >
-                        {c.clientName}
+                        {primary}
                       </button>
                       {c.escalated && (
                         <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-destructive/10 text-destructive border border-destructive/20">
@@ -568,9 +594,9 @@ export default function MasterCyclePage() {
                         </span>
                       )}
                     </div>
-                    {c.companyName && (
+                    {secondary && (
                       <p className="text-[12px] text-muted-foreground mt-0.5 break-words">
-                        {c.companyName}
+                        {secondary}
                       </p>
                     )}
                     <div className="flex flex-wrap items-center gap-x-3 gap-y-1 mt-2 text-[11px] text-muted-foreground">
@@ -595,7 +621,35 @@ export default function MasterCyclePage() {
                     </div>
                   </div>
 
-                  <div className="flex items-center gap-3 shrink-0">
+                  <div className="flex items-center gap-2 shrink-0">
+                    {cycleInfo && (
+                      <span
+                        className={`inline-flex items-center px-2 py-0.5 rounded-full border text-[10px] font-bold font-mono-data uppercase tracking-wide ${
+                          cycleInfo.kind === "regular"
+                            ? "bg-info/15 text-info border-info/30"
+                            : "bg-warning/15 text-warning border-warning/30"
+                        }`}
+                      >
+                        {cycleInfo.kind === "regular" ? "REGULAR" : "CLEANUP"}
+                      </span>
+                    )}
+                    {cycleInfo?.next && c.ghlContactId && (
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleApplyTag(c.ghlContactId, cycleInfo.next!, primary);
+                        }}
+                        disabled={isApplying || applyingId !== null}
+                        className="inline-flex items-center gap-1.5 h-8 px-2.5 rounded-md text-[11px] font-semibold font-mono-data bg-primary/10 text-primary border border-primary/20 hover:bg-primary/15 transition-colors disabled:opacity-40"
+                      >
+                        {isApplying ? (
+                          <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                        ) : (
+                          <span>+</span>
+                        )}
+                        {cycleInfo.next}
+                      </button>
+                    )}
                     <StatusPill status={c.cycleStatus} />
                     <ChevronDown
                       className={`h-4 w-4 text-muted-foreground transition-transform ${
