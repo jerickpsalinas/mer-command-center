@@ -90,7 +90,7 @@ function matchesStageFilter(tags: string[], kind: CycleKind, stageFilter: number
   return true;
 }
 
-export default function GhlLiveCycleSection({ clients }: { clients: Client[] }) {
+export default function GhlLiveCycleSection({ clients, stageFilter }: { clients: Client[]; stageFilter?: number | null }) {
   const [contacts, setContacts] = useState<GhlContact[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
