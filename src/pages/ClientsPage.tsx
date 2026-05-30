@@ -76,6 +76,7 @@ export default function ClientsPage() {
   const [cycleStatusFilter, setCycleStatusFilter] = useState<
     "all" | "escalation-active" | "bank-reconnection-active" | "statement-request-active" | "docs-request-active" | "ready-for-pipeline"
   >("all");
+  const [activeOnly, setActiveOnly] = useState(false);
 
   if (isLoading) return <DataLoading />;
   if (error || !data) return <DataError message={error?.message} />;
@@ -115,6 +116,13 @@ export default function ClientsPage() {
     .filter((c) => !bookkeeperFilter || c.bookkeeper === bookkeeperFilter)
     .filter((c) => !typeFilter || c.clientType === typeFilter)
     .filter((c) => c.completionPct >= minCompletion)
+    .filter((c) => {
+      if (!activeOnly) return true;
+      const raw = (c as any).categoryTags as string | undefined;
+      if (!raw) return false;
+      const tags = raw.split(",").map((t) => t.trim().toLowerCase()).filter(Boolean);
+      return tags.includes("active-client");
+    })
     .filter((c) => {
       if (categoryTagFilter === "all") return true;
       const raw = (c as any).categoryTags as string | undefined;
@@ -206,7 +214,7 @@ export default function ClientsPage() {
     setShowSaveDialog(false);
   };
 
-  const hasActiveFilter = search || statusFilter !== "all" || bookkeeperFilter || typeFilter || minCompletion > 0;
+  const hasActiveFilter = search || statusFilter !== "all" || bookkeeperFilter || typeFilter || minCompletion > 0 || activeOnly;
   const clientTypes = Array.from(new Set(monthClients.map((c) => c.clientType))).sort();
 
   return (
@@ -326,6 +334,7 @@ export default function ClientsPage() {
                 setBookkeeperFilter("");
                 setTypeFilter("");
                 setMinCompletion(0);
+                setActiveOnly(false);
               }}
               className="inline-flex items-center gap-1 text-[11px] font-semibold px-2.5 py-1.5 rounded-md bg-destructive/10 text-destructive border border-destructive/20 hover:bg-destructive/15 transition-colors"
             >
@@ -399,6 +408,17 @@ export default function ClientsPage() {
             <option value="docs-request-active">📁 Docs Request Active</option>
             <option value="ready-for-pipeline">🔄 Ready for Pipeline</option>
           </select>
+
+          <button
+            onClick={() => setActiveOnly((v) => !v)}
+            className={`inline-flex items-center gap-1 text-[11px] font-semibold px-2.5 py-1.5 rounded-md border transition-colors ${
+              activeOnly
+                ? "bg-primary/10 border-primary/30 text-primary"
+                : "bg-card border-border text-muted-foreground hover:text-foreground"
+            }`}
+          >
+            {activeOnly ? "✅ Active Only" : "☐ Active Only"}
+          </button>
 
           <label className="inline-flex items-center gap-2 text-[11px] text-muted-foreground">
             Min %
