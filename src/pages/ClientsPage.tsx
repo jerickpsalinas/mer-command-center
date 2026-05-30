@@ -372,6 +372,34 @@ export default function ClientsPage() {
             <option value="approved">📝 Notes approved</option>
           </select>
 
+          <select
+            value={categoryTagFilter}
+            onChange={(e) => setCategoryTagFilter(e.target.value)}
+            aria-label="Category Tags"
+            className="rounded-lg border border-border bg-card px-2.5 py-1.5 text-xs font-medium text-foreground flex-1 sm:flex-none min-w-0 max-w-[50%] sm:max-w-none"
+          >
+            <option value="all">All category tags</option>
+            <option value="mer-workflow">MER Workflow</option>
+            <option value="ap-expense">AP — Expense</option>
+            <option value="ap-payroll">AP — Payroll</option>
+            <option value="ar-education">AR — Education</option>
+            <option value="ar-nonprofits">AR — Nonprofits</option>
+          </select>
+
+          <select
+            value={cycleStatusFilter}
+            onChange={(e) => setCycleStatusFilter(e.target.value as typeof cycleStatusFilter)}
+            aria-label="Cycle Status"
+            className="rounded-lg border border-border bg-card px-2.5 py-1.5 text-xs font-medium text-foreground flex-1 sm:flex-none min-w-0 max-w-[50%] sm:max-w-none"
+          >
+            <option value="all">All cycle status</option>
+            <option value="escalation-active">🚨 Escalation Active</option>
+            <option value="bank-reconnection-active">🔌 Bank Reconnection Active</option>
+            <option value="statement-request-active">📄 Statement Request Active</option>
+            <option value="docs-request-active">📁 Docs Request Active</option>
+            <option value="ready-for-pipeline">🔄 Ready for Pipeline</option>
+          </select>
+
           <label className="inline-flex items-center gap-2 text-[11px] text-muted-foreground">
             Min %
             <input type="number" min={0} max={100} value={minCompletion} onChange={(e) => setMinCompletion(Number(e.target.value))}
