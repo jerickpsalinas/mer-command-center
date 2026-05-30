@@ -17,6 +17,7 @@ import { useSheetData } from "@/hooks/useSheetData";
 import { DataLoading, DataError } from "@/components/DataStatus";
 import type { CycleEntry } from "@/services/googleSheets";
 import { useClientDetails } from "@/hooks/useClientDetails";
+import GhlLiveCycleSection from "@/components/GhlLiveCycleSection";
 
 /* ────────────────────────────────────────────────────────────────────────────
  * Pipeline 1 — Master Bookkeeping Cycle (8 canonical stages)
@@ -436,6 +437,9 @@ export default function MasterCyclePage() {
           );
         })()}
       </motion.section>
+
+      {/* Live GHL cycle stage controls */}
+      <GhlLiveCycleSection clients={data.clients} />
 
       {/* Filters */}
       <motion.div
