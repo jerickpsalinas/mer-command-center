@@ -61,18 +61,35 @@ function tagClass(tag: string) {
   return "bg-amber-500/15 text-amber-600 border-amber-500/30 dark:text-amber-400";
 }
 
+const ADMIN_PASSWORD = "@Access.H20";
+
+type PendingAction =
+  | { kind: "single"; contact: GhlContact }
+  | { kind: "bulk"; contacts: GhlContact[] }
+  | null;
+
 export default function GhlActiveClientsPage() {
   const [contacts, setContacts] = useState<GhlContact[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [confirmFor, setConfirmFor] = useState<GhlContact | null>(null);
+  const [selected, setSelected] = useState<Set<string>>(new Set());
+
+  const [pending, setPending] = useState<PendingAction>(null);
+  const [authStep, setAuthStep] = useState<"password" | "confirm" | null>(null);
+  const [password, setPassword] = useState("");
+  const [passwordError, setPasswordError] = useState<string | null>(null);
+
   const [clearingId, setClearingId] = useState<string | null>(null);
+  const [bulkProgress, setBulkProgress] = useState<{
+    done: number;
+    total: number;
+    failed: number;
+  } | null>(null);
 
   const fetchAll = async () => {
     setLoading(true);
     setError(null);
     try {
-      // Attempt 1: tag-filtered list endpoint
       const tagged = await fetch(
         `${GHL_BASE}/contacts/?locationId=${LOCATION_ID}&limit=100&tags[]=active-client`,
         { headers: ghlHeaders() },
@@ -89,7 +106,6 @@ export default function GhlActiveClientsPage() {
         }
       }
 
-      // Fallback: paginate all contacts with startAfter, then client-side filter
       const collected: GhlContact[] = [];
       let startAfter: string | number | undefined;
       let startAfterId: string | undefined;
@@ -130,7 +146,6 @@ export default function GhlActiveClientsPage() {
     }
   };
 
-
   useEffect(() => {
     fetchAll();
   }, []);
@@ -151,26 +166,34 @@ export default function GhlActiveClientsPage() {
     }
   };
 
-  const handleClear = async (c: GhlContact) => {
+  const clearTagsFor = async (c: GhlContact): Promise<boolean> => {
     const toRemove = (c.tags || []).filter(
       (t) => !PROTECTED_TAGS.includes(t),
     );
-    if (toRemove.length === 0) {
-      toast({ title: "No cycle tags to clear", description: contactName(c) });
-      setConfirmFor(null);
-      return;
-    }
+    if (toRemove.length === 0) return true;
+    const res = await fetch(`${GHL_BASE}/contacts/${c.id}/tags`, {
+      method: "DELETE",
+      headers: ghlHeaders({ "Content-Type": "application/json" }),
+      body: JSON.stringify({ tags: toRemove }),
+    });
+    if (!res.ok) throw new Error(`Delete failed (${res.status})`);
+    await refetchContact(c.id);
+    return true;
+  };
+
+  const runSingle = async (c: GhlContact) => {
     setClearingId(c.id);
     try {
-      const res = await fetch(`${GHL_BASE}/contacts/${c.id}/tags`, {
-        method: "DELETE",
-        headers: ghlHeaders({ "Content-Type": "application/json" }),
-        body: JSON.stringify({ tags: toRemove }),
-      });
-      if (!res.ok) throw new Error(`Delete failed (${res.status})`);
-      await refetchContact(c.id);
-      toast({ title: `Cycle tags cleared for ${contactName(c)}` });
-      setConfirmFor(null);
+      const toRemove = (c.tags || []).filter(
+        (t) => !PROTECTED_TAGS.includes(t),
+      );
+      if (toRemove.length === 0) {
+        toast({ title: "No cycle tags to clear", description: contactName(c) });
+      } else {
+        await clearTagsFor(c);
+        toast({ title: `Cycle tags cleared for ${contactName(c)}` });
+      }
+      closeDialog();
     } catch (e: any) {
       toast({
         title: "Failed to clear tags",
@@ -182,6 +205,61 @@ export default function GhlActiveClientsPage() {
     }
   };
 
+  const runBulk = async (list: GhlContact[]) => {
+    setBulkProgress({ done: 0, total: list.length, failed: 0 });
+    let failed = 0;
+    for (let i = 0; i < list.length; i++) {
+      try {
+        await clearTagsFor(list[i]);
+      } catch {
+        failed++;
+      }
+      setBulkProgress({ done: i + 1, total: list.length, failed });
+    }
+    toast({
+      title: `Bulk clear complete`,
+      description: `${list.length - failed} cleared${failed ? `, ${failed} failed` : ""}.`,
+      variant: failed ? "destructive" : undefined,
+    });
+    setBulkProgress(null);
+    setSelected(new Set());
+    closeDialog();
+  };
+
+  const closeDialog = () => {
+    setPending(null);
+    setAuthStep(null);
+    setPassword("");
+    setPasswordError(null);
+  };
+
+  const openSingle = (c: GhlContact) => {
+    setPending({ kind: "single", contact: c });
+    setAuthStep("password");
+  };
+
+  const openBulk = () => {
+    const list = sorted.filter((c) => selected.has(c.id));
+    if (list.length === 0) return;
+    setPending({ kind: "bulk", contacts: list });
+    setAuthStep("password");
+  };
+
+  const submitPassword = () => {
+    if (password !== ADMIN_PASSWORD) {
+      setPasswordError("Incorrect password");
+      return;
+    }
+    setPasswordError(null);
+    setAuthStep("confirm");
+  };
+
+  const submitConfirm = () => {
+    if (!pending) return;
+    if (pending.kind === "single") runSingle(pending.contact);
+    else runBulk(pending.contacts);
+  };
+
   const sorted = useMemo(
     () =>
       [...contacts].sort((a, b) =>
@@ -189,6 +267,24 @@ export default function GhlActiveClientsPage() {
       ),
     [contacts],
   );
+
+  const allSelected =
+    sorted.length > 0 && sorted.every((c) => selected.has(c.id));
+  const someSelected = selected.size > 0 && !allSelected;
+  const toggleAll = () => {
+    if (allSelected) setSelected(new Set());
+    else setSelected(new Set(sorted.map((c) => c.id)));
+  };
+  const toggleOne = (id: string) => {
+    setSelected((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
+  const busy = clearingId !== null || bulkProgress !== null;
 
   return (
     <div className="space-y-5">
@@ -202,16 +298,27 @@ export default function GhlActiveClientsPage() {
             {loading ? "…" : `${sorted.length} contacts`}
           </span>
         </div>
-        <button
-          onClick={fetchAll}
-          disabled={loading}
-          className="inline-flex items-center gap-1.5 h-9 px-3 rounded-lg text-xs font-semibold bg-primary/10 text-primary border border-primary/20 hover:bg-primary/15 transition-colors disabled:opacity-50"
-        >
-          <RefreshCw
-            className={`h-3.5 w-3.5 ${loading ? "animate-spin" : ""}`}
-          />
-          Refresh
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={openBulk}
+            disabled={selected.size === 0 || busy}
+            className="inline-flex items-center gap-1.5 h-9 px-3 rounded-lg text-xs font-semibold bg-destructive/10 text-destructive border border-destructive/20 hover:bg-destructive/15 transition-colors disabled:opacity-40"
+          >
+            <Trash2 className="h-3.5 w-3.5" />
+            Clear Cycle Tags
+            {selected.size > 0 && <span>({selected.size} selected)</span>}
+          </button>
+          <button
+            onClick={fetchAll}
+            disabled={loading}
+            className="inline-flex items-center gap-1.5 h-9 px-3 rounded-lg text-xs font-semibold bg-primary/10 text-primary border border-primary/20 hover:bg-primary/15 transition-colors disabled:opacity-50"
+          >
+            <RefreshCw
+              className={`h-3.5 w-3.5 ${loading ? "animate-spin" : ""}`}
+            />
+            Refresh
+          </button>
+        </div>
       </div>
 
       {loading && (
@@ -233,97 +340,209 @@ export default function GhlActiveClientsPage() {
         </div>
       )}
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-        {sorted.map((c) => {
-          const tags = c.tags || [];
-          const removable = tags.filter((t) => !PROTECTED_TAGS.includes(t));
-          const busy = clearingId === c.id;
-          return (
-            <div
-              key={c.id}
-              className="rounded-xl border border-border bg-card p-4 shadow-card flex flex-col gap-3"
-            >
-              <div className="min-w-0">
-                <h3 className="text-sm font-semibold text-foreground truncate">
-                  {contactName(c)}
-                </h3>
-              </div>
-              <div className="flex flex-wrap gap-1.5">
-                {tags.length === 0 && (
-                  <span className="text-[11px] text-muted-foreground">
-                    No tags
-                  </span>
-                )}
-                {tags.map((t) => (
-                  <span
-                    key={t}
-                    className={`inline-flex items-center px-2 py-0.5 rounded-full border text-[10px] font-medium ${tagClass(t)}`}
-                  >
-                    {t}
-                  </span>
-                ))}
-              </div>
-              <div className="mt-auto pt-1">
-                <button
-                  onClick={() => setConfirmFor(c)}
-                  disabled={busy || removable.length === 0}
-                  className="inline-flex items-center gap-1.5 h-8 px-2.5 rounded-md text-[11px] font-semibold bg-destructive/10 text-destructive border border-destructive/20 hover:bg-destructive/15 transition-colors disabled:opacity-40"
+      {!loading && !error && sorted.length > 0 && (
+        <div className="rounded-xl border border-border bg-card shadow-card overflow-hidden">
+          <div className="grid grid-cols-[auto_1fr_auto] items-center gap-3 px-4 py-2.5 border-b border-border bg-muted/40 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+            <input
+              type="checkbox"
+              aria-label="Select all"
+              checked={allSelected}
+              ref={(el) => {
+                if (el) el.indeterminate = someSelected;
+              }}
+              onChange={toggleAll}
+              className="h-4 w-4 rounded border-border accent-primary cursor-pointer"
+            />
+            <span>Contact</span>
+            <span className="pr-1">Actions</span>
+          </div>
+          <ul className="divide-y divide-border">
+            {sorted.map((c) => {
+              const tags = c.tags || [];
+              const removable = tags.filter(
+                (t) => !PROTECTED_TAGS.includes(t),
+              );
+              const isClearing = clearingId === c.id;
+              const isChecked = selected.has(c.id);
+              return (
+                <li
+                  key={c.id}
+                  className="grid grid-cols-[auto_1fr_auto] items-center gap-3 px-4 py-3 hover:bg-muted/30 transition-colors"
                 >
-                  {busy ? (
-                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                  ) : (
-                    <Trash2 className="h-3.5 w-3.5" />
-                  )}
-                  Clear Cycle Tags
-                  {removable.length > 0 && (
-                    <span className="text-[10px] opacity-70">
-                      ({removable.length})
-                    </span>
-                  )}
-                </button>
-              </div>
-            </div>
-          );
-        })}
-      </div>
+                  <input
+                    type="checkbox"
+                    aria-label={`Select ${contactName(c)}`}
+                    checked={isChecked}
+                    onChange={() => toggleOne(c.id)}
+                    className="h-4 w-4 rounded border-border accent-primary cursor-pointer"
+                  />
+                  <div className="min-w-0 flex items-center gap-2 flex-wrap">
+                    <h3 className="text-sm font-semibold text-foreground truncate max-w-[260px]">
+                      {contactName(c)}
+                    </h3>
+                    <div className="flex flex-wrap gap-1.5">
+                      {tags.map((t) => (
+                        <span
+                          key={t}
+                          className={`inline-flex items-center px-2 py-0.5 rounded-full border text-[10px] font-medium ${tagClass(t)}`}
+                        >
+                          {t}
+                        </span>
+                      ))}
+                      {tags.length === 0 && (
+                        <span className="text-[11px] text-muted-foreground">
+                          No tags
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => openSingle(c)}
+                    disabled={isClearing || removable.length === 0 || busy}
+                    className="inline-flex items-center gap-1.5 h-8 px-2.5 rounded-md text-[11px] font-semibold bg-destructive/10 text-destructive border border-destructive/20 hover:bg-destructive/15 transition-colors disabled:opacity-40"
+                  >
+                    {isClearing ? (
+                      <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                    ) : (
+                      <Trash2 className="h-3.5 w-3.5" />
+                    )}
+                    Clear Cycle Tags
+                    {removable.length > 0 && (
+                      <span className="text-[10px] opacity-70">
+                        ({removable.length})
+                      </span>
+                    )}
+                  </button>
+                </li>
+              );
+            })}
+          </ul>
+        </div>
+      )}
 
       <AlertDialog
-        open={!!confirmFor}
-        onOpenChange={(o) => !o && !clearingId && setConfirmFor(null)}
+        open={!!pending}
+        onOpenChange={(o) => {
+          if (!o && !clearingId && !bulkProgress) closeDialog();
+        }}
       >
         <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Clear cycle tags?</AlertDialogTitle>
-            <AlertDialogDescription>
-              This will remove all non-protected tags from{" "}
-              <span className="font-semibold text-foreground">
-                {confirmFor ? contactName(confirmFor) : ""}
-              </span>
-              . Protected tags (active-client + category tags) will be kept.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel disabled={!!clearingId}>Cancel</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={(e) => {
-                e.preventDefault();
-                if (confirmFor) handleClear(confirmFor);
-              }}
-              disabled={!!clearingId}
-              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-            >
-              {clearingId ? (
-                <>
-                  <Loader2 className="h-3.5 w-3.5 animate-spin mr-1.5" />
-                  Clearing…
-                </>
-              ) : (
-                "Confirm"
+          {authStep === "password" && (
+            <>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Admin password required</AlertDialogTitle>
+                <AlertDialogDescription>
+                  Enter the admin password to clear cycle tags
+                  {pending?.kind === "bulk"
+                    ? ` for ${pending.contacts.length} contacts.`
+                    : pending?.kind === "single"
+                      ? ` for ${contactName(pending.contact)}.`
+                      : "."}
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <div className="space-y-2">
+                <input
+                  type="password"
+                  autoFocus
+                  value={password}
+                  onChange={(e) => {
+                    setPassword(e.target.value);
+                    if (passwordError) setPasswordError(null);
+                  }}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") {
+                      e.preventDefault();
+                      submitPassword();
+                    }
+                  }}
+                  placeholder="Admin password"
+                  className="w-full h-10 px-3 rounded-md border border-border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
+                />
+                {passwordError && (
+                  <p className="text-xs text-destructive">{passwordError}</p>
+                )}
+              </div>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                <AlertDialogAction
+                  onClick={(e) => {
+                    e.preventDefault();
+                    submitPassword();
+                  }}
+                >
+                  Continue
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </>
+          )}
+
+          {authStep === "confirm" && pending && (
+            <>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Clear cycle tags?</AlertDialogTitle>
+                <AlertDialogDescription>
+                  {pending.kind === "bulk" ? (
+                    <>
+                      This will clear cycle tags from{" "}
+                      <span className="font-semibold text-foreground">
+                        {pending.contacts.length} selected contacts
+                      </span>
+                      . Protected tags (active-client + category tags) will be
+                      kept. Are you sure?
+                    </>
+                  ) : (
+                    <>
+                      This will remove all non-protected tags from{" "}
+                      <span className="font-semibold text-foreground">
+                        {contactName(pending.contact)}
+                      </span>
+                      . Protected tags will be kept.
+                    </>
+                  )}
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              {bulkProgress && (
+                <div className="space-y-1.5">
+                  <div className="h-2 w-full rounded-full bg-muted overflow-hidden">
+                    <div
+                      className="h-full bg-primary transition-all"
+                      style={{
+                        width: `${(bulkProgress.done / bulkProgress.total) * 100}%`,
+                      }}
+                    />
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    Clearing {bulkProgress.done} of {bulkProgress.total}
+                    {bulkProgress.failed > 0 &&
+                      ` · ${bulkProgress.failed} failed`}
+                  </p>
+                </div>
               )}
-            </AlertDialogAction>
-          </AlertDialogFooter>
+              <AlertDialogFooter>
+                <AlertDialogCancel disabled={busy}>Cancel</AlertDialogCancel>
+                <AlertDialogAction
+                  onClick={(e) => {
+                    e.preventDefault();
+                    submitConfirm();
+                  }}
+                  disabled={busy}
+                  className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                >
+                  {busy ? (
+                    <>
+                      <Loader2 className="h-3.5 w-3.5 animate-spin mr-1.5" />
+                      Clearing…
+                    </>
+                  ) : (
+                    "Confirm"
+                  )}
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </>
+          )}
         </AlertDialogContent>
       </AlertDialog>
     </div>
   );
 }
+
