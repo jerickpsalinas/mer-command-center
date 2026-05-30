@@ -36,6 +36,7 @@ const App = () => (
                 <Route path="/monthly-trends" element={<MonthlyTrendsPage />} />
                 <Route path="/clients" element={<ClientsPage />} />
                 <Route path="/bookkeepers" element={<BookkeepersPage />} />
+                <Route path="/ghl-active-clients" element={<GhlActiveClientsPage />} />
                 <Route path="/master-cycle" element={<MasterCyclePage />} />
                 <Route path="/health-pillars" element={<HealthPillarsPage />} />
                 <Route path="/reports" element={<ReportsPage />} />
