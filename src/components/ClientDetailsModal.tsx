@@ -898,6 +898,294 @@ export default function ClientDetailsModal({ open, onClose, client, onViewHistor
           </div>
         </DialogContent>
       </Dialog>
+
+      <Dialog open={categorizeOpen} onOpenChange={(o) => !catSubmitting && !catConfirmLoading && setCategorizeOpen(o)}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle>🤖 Categorize Transaction — {client.name}</DialogTitle>
+          </DialogHeader>
+
+          {catStep === "form" && (
+            <div className="space-y-3">
+              <div className="grid grid-cols-2 gap-3 text-xs">
+                <div>
+                  <div className="text-muted-foreground uppercase tracking-wide text-[10.5px]">Client</div>
+                  <div className="text-foreground">{client.name}</div>
+                </div>
+                <div>
+                  <div className="text-muted-foreground uppercase tracking-wide text-[10.5px]">Month</div>
+                  <div className="text-foreground">{client.month}</div>
+                </div>
+              </div>
+              <div className="space-y-1">
+                <label className="text-xs font-medium text-foreground">Transaction Description *</label>
+                <input
+                  type="text"
+                  value={catDescription}
+                  onChange={(e) => setCatDescription(e.target.value)}
+                  className="w-full h-9 rounded-md border border-input bg-background px-3 text-sm"
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1">
+                  <label className="text-xs font-medium text-foreground">Amount *</label>
+                  <input
+                    type="text"
+                    value={catAmount}
+                    onChange={(e) => setCatAmount(e.target.value)}
+                    className="w-full h-9 rounded-md border border-input bg-background px-3 text-sm"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-xs font-medium text-foreground">Date *</label>
+                  <input
+                    type="date"
+                    value={catDate}
+                    onChange={(e) => setCatDate(e.target.value)}
+                    className="w-full h-9 rounded-md border border-input bg-background px-3 text-sm"
+                  />
+                </div>
+              </div>
+              <div className="space-y-1">
+                <label className="text-xs font-medium text-foreground">Notes</label>
+                <input
+                  type="text"
+                  value={catNotes}
+                  onChange={(e) => setCatNotes(e.target.value)}
+                  className="w-full h-9 rounded-md border border-input bg-background px-3 text-sm"
+                />
+              </div>
+              <div className="flex justify-end gap-2 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setCategorizeOpen(false)}
+                  disabled={catSubmitting}
+                  className="inline-flex items-center gap-1.5 text-xs font-semibold px-3 py-2 rounded-lg border border-border bg-transparent text-foreground hover:bg-muted/40 disabled:opacity-50"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  disabled={catSubmitting || !catDescription.trim() || !catAmount.trim() || !catDate}
+                  onClick={async () => {
+                    setCatSubmitting(true);
+                    try {
+                      const res = await fetch(
+                        "https://n8n.srv1482383.hstgr.cloud/webhook/wf10-dashboard-categorize",
+                        {
+                          method: "POST",
+                          headers: { "Content-Type": "application/json" },
+                          body: JSON.stringify({
+                            clientName: client.name,
+                            ghlContactId,
+                            cycleMonth: client.month,
+                            submittedBy: client.bookkeeper,
+                            description: catDescription,
+                            amount: catAmount,
+                            date: catDate,
+                            notes: catNotes,
+                          }),
+                        }
+                      );
+                      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+                      const data = await res.json().catch(() => ({}));
+                      const payload = Array.isArray(data) ? data[0] : data;
+                      setCatAiResponse(payload ?? {});
+                      setCatStep("suggestion");
+                    } catch {
+                      toast({
+                        title: "AI suggestion failed",
+                        description: "Please try again.",
+                        variant: "destructive",
+                      });
+                    } finally {
+                      setCatSubmitting(false);
+                    }
+                  }}
+                  className="inline-flex items-center gap-1.5 text-xs font-semibold px-3 py-2 rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-60"
+                >
+                  {catSubmitting && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
+                  {catSubmitting ? "Getting suggestion…" : "Get AI Suggestion"}
+                </button>
+              </div>
+            </div>
+          )}
+
+          {catStep === "suggestion" && catAiResponse && (() => {
+            const aiCategory =
+              catAiResponse.suggestedCategory ||
+              catAiResponse.category ||
+              catAiResponse.aiSuggestedCategory ||
+              "—";
+            const confidenceRaw = (catAiResponse.confidence || "").toString().toLowerCase();
+            const confLabel =
+              confidenceRaw.includes("high") ? "🟢 High" :
+              confidenceRaw.includes("med") ? "🟡 Medium" :
+              confidenceRaw.includes("low") ? "🔴 Low" :
+              confidenceRaw ? `⚪ ${catAiResponse.confidence}` : "—";
+            const reasoning = catAiResponse.reasoning || catAiResponse.explanation || "";
+
+            const sendConfirm = async (action: "confirm" | "override", finalCategory: string) => {
+              setCatConfirmLoading(true);
+              try {
+                const res = await fetch(
+                  "https://n8n.srv1482383.hstgr.cloud/webhook/wf10-dashboard-confirm",
+                  {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                      ...catAiResponse,
+                      clientName: client.name,
+                      ghlContactId,
+                      cycleMonth: client.month,
+                      submittedBy: client.bookkeeper,
+                      description: catDescription,
+                      amount: catAmount,
+                      date: catDate,
+                      notes: catNotes,
+                      finalCategory,
+                      action,
+                    }),
+                  }
+                );
+                if (!res.ok) throw new Error(`HTTP ${res.status}`);
+                toast({
+                  title: action === "confirm"
+                    ? "Category confirmed — logged successfully"
+                    : "Category overridden — logged successfully",
+                });
+                setCategorizeOpen(false);
+              } catch {
+                toast({
+                  title: action === "confirm" ? "Confirm failed" : "Override failed",
+                  description: "Please try again.",
+                  variant: "destructive",
+                });
+              } finally {
+                setCatConfirmLoading(false);
+              }
+            };
+
+            return (
+              <div className="space-y-3">
+                <div className="text-sm font-semibold text-foreground">🤖 AI Category Suggestion</div>
+                <div className="grid grid-cols-2 gap-3 text-xs">
+                  <div><span className="text-muted-foreground">Client: </span>{client.name}</div>
+                  <div><span className="text-muted-foreground">Month: </span>{client.month}</div>
+                  <div className="col-span-2"><span className="text-muted-foreground">Transaction: </span>{catDescription}</div>
+                  <div><span className="text-muted-foreground">Amount: </span>{catAmount}</div>
+                  <div><span className="text-muted-foreground">Date: </span>{catDate}</div>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="inline-flex items-center px-2 py-0.5 rounded-full border border-border bg-muted/30 text-[11px] font-semibold">
+                    {confLabel}
+                  </span>
+                </div>
+                <div>
+                  <div className="text-[10.5px] uppercase tracking-wide text-muted-foreground">Suggested Category</div>
+                  <div className="text-sm font-bold text-foreground">{aiCategory}</div>
+                </div>
+                {reasoning && (
+                  <div className="text-[11px] text-muted-foreground leading-relaxed">{reasoning}</div>
+                )}
+
+                {catStep === "suggestion" && (
+                  <div className="flex justify-end gap-2 pt-2">
+                    <button
+                      type="button"
+                      disabled={catConfirmLoading}
+                      onClick={() => {
+                        setCatOverrideText("");
+                        setCatStep("override");
+                      }}
+                      className="inline-flex items-center gap-1.5 text-xs font-semibold px-3 py-2 rounded-lg border border-border bg-transparent text-foreground hover:bg-muted/40 disabled:opacity-50"
+                    >
+                      ✏️ Override
+                    </button>
+                    <button
+                      type="button"
+                      disabled={catConfirmLoading}
+                      onClick={() => sendConfirm("confirm", aiCategory)}
+                      className="inline-flex items-center gap-1.5 text-xs font-semibold px-3 py-2 rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-60"
+                    >
+                      {catConfirmLoading && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
+                      ✅ Confirm
+                    </button>
+                  </div>
+                )}
+              </div>
+            );
+          })()}
+
+          {catStep === "override" && (
+            <div className="space-y-3">
+              <div className="space-y-1">
+                <label className="text-xs font-medium text-foreground">Enter correct category</label>
+                <input
+                  type="text"
+                  value={catOverrideText}
+                  onChange={(e) => setCatOverrideText(e.target.value)}
+                  className="w-full h-9 rounded-md border border-input bg-background px-3 text-sm"
+                />
+              </div>
+              <div className="flex justify-end gap-2 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setCatStep("suggestion")}
+                  disabled={catConfirmLoading}
+                  className="inline-flex items-center gap-1.5 text-xs font-semibold px-3 py-2 rounded-lg border border-border bg-transparent text-foreground hover:bg-muted/40 disabled:opacity-50"
+                >
+                  Back
+                </button>
+                <button
+                  type="button"
+                  disabled={catConfirmLoading || !catOverrideText.trim()}
+                  onClick={async () => {
+                    setCatConfirmLoading(true);
+                    try {
+                      const res = await fetch(
+                        "https://n8n.srv1482383.hstgr.cloud/webhook/wf10-dashboard-confirm",
+                        {
+                          method: "POST",
+                          headers: { "Content-Type": "application/json" },
+                          body: JSON.stringify({
+                            ...(catAiResponse || {}),
+                            clientName: client.name,
+                            ghlContactId,
+                            cycleMonth: client.month,
+                            submittedBy: client.bookkeeper,
+                            description: catDescription,
+                            amount: catAmount,
+                            date: catDate,
+                            notes: catNotes,
+                            finalCategory: catOverrideText.trim(),
+                            action: "override",
+                          }),
+                        }
+                      );
+                      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+                      toast({ title: "Category overridden — logged successfully" });
+                      setCategorizeOpen(false);
+                    } catch {
+                      toast({
+                        title: "Override failed",
+                        description: "Please try again.",
+                        variant: "destructive",
+                      });
+                    } finally {
+                      setCatConfirmLoading(false);
+                    }
+                  }}
+                  className="inline-flex items-center gap-1.5 text-xs font-semibold px-3 py-2 rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-60"
+                >
+                  {catConfirmLoading && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
+                  Save
+                </button>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </Dialog>
 
   );
