@@ -102,6 +102,7 @@ export default function ClientDetailsModal({ open, onClose, client, onViewHistor
     overridePayload: null,
   });
   const [isOverrideLoading, setIsOverrideLoading] = useState(false);
+  const [showClearCycleConfirm, setShowClearCycleConfirm] = useState(false);
 
   if (!client) return null;
 
