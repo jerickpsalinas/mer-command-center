@@ -108,6 +108,7 @@ export default function ClientDetailsModal({ open, onClose, client, onViewHistor
   const [editCategoryOpen, setEditCategoryOpen] = useState(false);
   const [editCategorySelection, setEditCategorySelection] = useState<Record<string, boolean>>({});
   const [editCategorySaving, setEditCategorySaving] = useState(false);
+  const [clearCycleLoading, setClearCycleLoading] = useState(false);
 
   const ghlContactId =
     client?.ghlContactId ||
