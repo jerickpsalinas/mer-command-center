@@ -72,6 +72,10 @@ export default function ClientsPage() {
   const [newFilterName, setNewFilterName] = useState("");
   const [monthFilter, setMonthFilter] = useState<string>("current");
   const [sequenceFilter, setSequenceFilter] = useState<"all" | "active" | "resolved" | "approved">("all");
+  const [categoryTagFilter, setCategoryTagFilter] = useState<string>("all");
+  const [cycleStatusFilter, setCycleStatusFilter] = useState<
+    "all" | "escalation-active" | "bank-reconnection-active" | "statement-request-active" | "docs-request-active" | "ready-for-pipeline"
+  >("all");
 
   if (isLoading) return <DataLoading />;
   if (error || !data) return <DataError message={error?.message} />;
@@ -112,17 +116,44 @@ export default function ClientsPage() {
     .filter((c) => !typeFilter || c.clientType === typeFilter)
     .filter((c) => c.completionPct >= minCompletion)
     .filter((c) => {
-      if (sequenceFilter === "all") return true;
+      if (categoryTagFilter === "all") return true;
+      const raw = (c as any).categoryTags as string | undefined;
+      if (!raw) return false;
+      const tags = raw.split(",").map((t) => t.trim().toLowerCase()).filter(Boolean);
+      return tags.includes(categoryTagFilter);
+    })
+    .filter((c) => {
+      if (sequenceFilter === "all" && cycleStatusFilter === "all") return true;
       const ghlId = (c as any).ghlContactId || (((c as any).merKey as string) || "").split("_")[0] || "";
       const seqMonth = data.clientMonths[c.name] || data.latestMonth;
       const seq = getSequenceInfoForClient(ghlId, seqMonth, data.actionLog);
-      if (sequenceFilter === "active") return seq.hasActiveSequence;
-      if (sequenceFilter === "resolved")
-        return (
-          seq.bankReconnection.status === "resolved" ||
-          seq.statementRequest.status === "resolved"
-        );
-      if (sequenceFilter === "approved") return seq.notesApprovalCount > 0;
+      if (sequenceFilter !== "all") {
+        if (sequenceFilter === "active" && !seq.hasActiveSequence) return false;
+        if (
+          sequenceFilter === "resolved" &&
+          seq.bankReconnection.status !== "resolved" &&
+          seq.statementRequest.status !== "resolved"
+        )
+          return false;
+        if (sequenceFilter === "approved" && seq.notesApprovalCount === 0) return false;
+      }
+      if (cycleStatusFilter !== "all") {
+        if (cycleStatusFilter === "bank-reconnection-active") {
+          if (seq.bankReconnection.status !== "active") return false;
+        } else if (cycleStatusFilter === "statement-request-active") {
+          if (seq.statementRequest.status !== "active") return false;
+        } else if (cycleStatusFilter === "docs-request-active") {
+          if (seq.docsRequest.status !== "active") return false;
+        } else if (cycleStatusFilter === "escalation-active") {
+          const entries = (data.actionLog || []).filter((e) => e.ghlContactId === ghlId);
+          const hasTrigger = entries.some((e) => /escalat/i.test(e.actionType) && !/resolv/i.test(e.actionType));
+          const hasResolve = entries.some((e) => /escalat/i.test(e.actionType) && /resolv/i.test(e.actionType));
+          if (!hasTrigger || hasResolve) return false;
+        } else if (cycleStatusFilter === "ready-for-pipeline") {
+          const entries = (data.actionLog || []).filter((e) => e.ghlContactId === ghlId);
+          if (!entries.some((e) => /ready[-_ ]?for[-_ ]?pipeline/i.test(e.actionType))) return false;
+        }
+      }
       return true;
     })
     .sort((a, b) => {
@@ -339,6 +370,34 @@ export default function ClientsPage() {
             <option value="active">🟡 Active sequences</option>
             <option value="resolved">✅ Resolved sequences</option>
             <option value="approved">📝 Notes approved</option>
+          </select>
+
+          <select
+            value={categoryTagFilter}
+            onChange={(e) => setCategoryTagFilter(e.target.value)}
+            aria-label="Category Tags"
+            className="rounded-lg border border-border bg-card px-2.5 py-1.5 text-xs font-medium text-foreground flex-1 sm:flex-none min-w-0 max-w-[50%] sm:max-w-none"
+          >
+            <option value="all">All category tags</option>
+            <option value="mer-workflow">MER Workflow</option>
+            <option value="ap-expense">AP — Expense</option>
+            <option value="ap-payroll">AP — Payroll</option>
+            <option value="ar-education">AR — Education</option>
+            <option value="ar-nonprofits">AR — Nonprofits</option>
+          </select>
+
+          <select
+            value={cycleStatusFilter}
+            onChange={(e) => setCycleStatusFilter(e.target.value as typeof cycleStatusFilter)}
+            aria-label="Cycle Status"
+            className="rounded-lg border border-border bg-card px-2.5 py-1.5 text-xs font-medium text-foreground flex-1 sm:flex-none min-w-0 max-w-[50%] sm:max-w-none"
+          >
+            <option value="all">All cycle status</option>
+            <option value="escalation-active">🚨 Escalation Active</option>
+            <option value="bank-reconnection-active">🔌 Bank Reconnection Active</option>
+            <option value="statement-request-active">📄 Statement Request Active</option>
+            <option value="docs-request-active">📁 Docs Request Active</option>
+            <option value="ready-for-pipeline">🔄 Ready for Pipeline</option>
           </select>
 
           <label className="inline-flex items-center gap-2 text-[11px] text-muted-foreground">
