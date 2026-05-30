@@ -108,6 +108,7 @@ export default function ClientDetailsModal({ open, onClose, client, onViewHistor
   const [editCategoryOpen, setEditCategoryOpen] = useState(false);
   const [editCategorySelection, setEditCategorySelection] = useState<Record<string, boolean>>({});
   const [editCategorySaving, setEditCategorySaving] = useState(false);
+  const [clearCycleLoading, setClearCycleLoading] = useState(false);
 
   const ghlContactId =
     client?.ghlContactId ||
@@ -713,19 +714,58 @@ export default function ClientDetailsModal({ open, onClose, client, onViewHistor
 
       <ActionConfirmModal
         open={showClearCycleConfirm}
-        onClose={() => setShowClearCycleConfirm(false)}
-        onConfirm={() => {
+        onClose={() => {
+          if (clearCycleLoading) return;
           setShowClearCycleConfirm(false);
-          toast({
-            title: "Coming soon",
-            description: "Coming soon — cycle tag clearing",
-          });
+        }}
+        onConfirm={async () => {
+          if (!ghlContactId) {
+            setShowClearCycleConfirm(false);
+            return;
+          }
+          const protectedTags = ['active-client', 'mer-workflow', 'ap-expense', 'ap-payroll', 'ar-education', 'ar-nonprofits'];
+          const tagsToRemove = ghlTags.filter((tag) => !protectedTags.includes(tag));
+          if (tagsToRemove.length === 0) {
+            toast({
+              title: "No cycle tags",
+              description: "No cycle tags to clear",
+            });
+            setShowClearCycleConfirm(false);
+            return;
+          }
+          setClearCycleLoading(true);
+          try {
+            const r = await fetch(
+              `https://services.leadconnectorhq.com/contacts/${ghlContactId}/tags`,
+              {
+                method: "DELETE",
+                headers: { ...GHL_HEADERS, "Content-Type": "application/json" },
+                body: JSON.stringify({ tags: tagsToRemove }),
+              }
+            );
+            if (!r.ok) throw new Error(`HTTP ${r.status}`);
+            const refreshed = await fetchGhlTags(ghlContactId);
+            setGhlTags(refreshed);
+            toast({
+              title: "Cycle tags cleared",
+              description: `Cycle tags cleared for ${client.name}`,
+            });
+            setShowClearCycleConfirm(false);
+          } catch {
+            toast({
+              title: "Clear failed",
+              description: "Failed to clear tags. Please try again.",
+              variant: "destructive",
+            });
+          } finally {
+            setClearCycleLoading(false);
+          }
         }}
         actionLabel="Clear Cycle Tags"
         clientName={client.name}
         description={`This will remove all active cycle tags from ${client.name}. Category tags and active-client tag will be preserved. Are you sure?`}
         confirmLabel="Confirm"
-        isLoading={false}
+        isLoading={clearCycleLoading}
         variant="destructive"
       />
 
