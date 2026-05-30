@@ -72,6 +72,10 @@ export default function ClientsPage() {
   const [newFilterName, setNewFilterName] = useState("");
   const [monthFilter, setMonthFilter] = useState<string>("current");
   const [sequenceFilter, setSequenceFilter] = useState<"all" | "active" | "resolved" | "approved">("all");
+  const [categoryTagFilter, setCategoryTagFilter] = useState<string>("all");
+  const [cycleStatusFilter, setCycleStatusFilter] = useState<
+    "all" | "escalation-active" | "bank-reconnection-active" | "statement-request-active" | "docs-request-active" | "ready-for-pipeline"
+  >("all");
 
   if (isLoading) return <DataLoading />;
   if (error || !data) return <DataError message={error?.message} />;
