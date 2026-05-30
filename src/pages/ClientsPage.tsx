@@ -117,13 +117,6 @@ export default function ClientsPage() {
     .filter((c) => !typeFilter || c.clientType === typeFilter)
     .filter((c) => c.completionPct >= minCompletion)
     .filter((c) => {
-      if (!activeOnly) return true;
-      const raw = (c as any).categoryTags as string | undefined;
-      if (!raw) return false;
-      const tags = raw.split(",").map((t) => t.trim().toLowerCase()).filter(Boolean);
-      return tags.includes("active-client");
-    })
-    .filter((c) => {
       if (categoryTagFilter === "all") return true;
       const raw = (c as any).categoryTags as string | undefined;
       if (!raw) return false;
