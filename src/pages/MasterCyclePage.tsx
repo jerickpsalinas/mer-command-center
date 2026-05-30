@@ -12,12 +12,14 @@ import {
   Mail,
   X,
   Tag as TagIcon,
+  Loader2,
 } from "lucide-react";
+import { toast } from "sonner";
 import { useSheetData } from "@/hooks/useSheetData";
 import { DataLoading, DataError } from "@/components/DataStatus";
 import type { CycleEntry } from "@/services/googleSheets";
 import { useClientDetails } from "@/hooks/useClientDetails";
-import GhlLiveCycleSection from "@/components/GhlLiveCycleSection";
+import { useGhlTags, getNextCycleTag } from "@/hooks/useGhlTags";
 
 /* ────────────────────────────────────────────────────────────────────────────
  * Pipeline 1 — Master Bookkeeping Cycle (8 canonical stages)
