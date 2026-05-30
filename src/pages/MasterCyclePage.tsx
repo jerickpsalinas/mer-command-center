@@ -110,6 +110,24 @@ export default function MasterCyclePage() {
   const [filterStage, setFilterStage] = useState<number | null>(null);
   const [expanded, setExpanded] = useState<string | null>(null);
   const { open: openClient, modal: clientModal } = useClientDetails();
+  const { tagsMap, applyTag } = useGhlTags();
+  const [applyingId, setApplyingId] = useState<string | null>(null);
+
+  const handleApplyTag = async (
+    contactId: string,
+    tag: string,
+    displayName: string,
+  ) => {
+    setApplyingId(contactId);
+    try {
+      await applyTag(contactId, tag);
+      toast.success(`Tag ${tag} applied to ${displayName}`);
+    } catch {
+      toast.error("Failed to apply tag. Please try again.");
+    } finally {
+      setApplyingId(null);
+    }
+  };
 
   const entries = data?.cycleEntries ?? [];
 
