@@ -132,7 +132,7 @@ export default function MasterCyclePage() {
         const bookkeeper =
           data?.clients.find(
             (c) =>
-              c.clientName === clientName ||
+              c.name === clientName ||
               (c as any).ghlContactId === contactId,
           )?.bookkeeper ?? "";
         const merKey = `${contactId}_${cycleMonth.replace(/\s+/g, "")}`;
