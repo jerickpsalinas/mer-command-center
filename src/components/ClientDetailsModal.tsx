@@ -340,12 +340,16 @@ export default function ClientDetailsModal({ open, onClose, client, onViewHistor
             <div className="flex flex-wrap gap-2 pt-3 border-t border-border/60">
               <button
                 type="button"
-                onClick={() =>
-                  toast({
-                    title: "Coming soon",
-                    description: "Coming soon — category tag editing",
-                  })
-                }
+                onClick={() => {
+                  const initial: Record<string, boolean> = {};
+                  ["mer-workflow", "ap-expense", "ap-payroll", "ar-education", "ar-nonprofits"].forEach(
+                    (k) => {
+                      initial[k] = tagSet.has(k);
+                    }
+                  );
+                  setEditCategorySelection(initial);
+                  setEditCategoryOpen(true);
+                }}
                 className="inline-flex items-center gap-1.5 text-xs font-semibold px-3 py-2 rounded-lg border border-primary/30 bg-transparent text-primary hover:bg-primary/10 transition-colors"
               >
                 ✏️ Update Category Tags
