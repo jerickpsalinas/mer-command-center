@@ -57,6 +57,39 @@ function getStageInfo(tags: string[], kind: CycleKind): StageInfo {
   return { label: "Awaiting Docs", next: "docs-received-cleanup", completed: false };
 }
 
+function matchesStageFilter(tags: string[], kind: CycleKind, stageFilter: number | null): boolean {
+  if (stageFilter === null) return true;
+  const has = (t: string) => tags.includes(t);
+  if (kind === "regular") {
+    if (stageFilter >= 1 && stageFilter <= 4) {
+      return has("ready-for-pipeline") && !has("docs-received") && !has("review-ready") && !has("jessica-approved");
+    }
+    if (stageFilter === 5 || stageFilter === 6) {
+      return has("docs-received");
+    }
+    if (stageFilter === 7) {
+      return has("review-ready");
+    }
+    if (stageFilter === 8) {
+      return has("jessica-approved");
+    }
+  } else {
+    if (stageFilter >= 1 && stageFilter <= 4) {
+      return has("ready-for-cleanup") && !has("docs-received-cleanup") && !has("review-ready-cleanup") && !has("jessica-approved-cleanup");
+    }
+    if (stageFilter === 5 || stageFilter === 6) {
+      return has("docs-received-cleanup");
+    }
+    if (stageFilter === 7) {
+      return has("review-ready-cleanup");
+    }
+    if (stageFilter === 8) {
+      return has("jessica-approved-cleanup");
+    }
+  }
+  return true;
+}
+
 export default function GhlLiveCycleSection({ clients }: { clients: Client[] }) {
   const [contacts, setContacts] = useState<GhlContact[]>([]);
   const [loading, setLoading] = useState(true);
