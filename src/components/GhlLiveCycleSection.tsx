@@ -57,7 +57,40 @@ function getStageInfo(tags: string[], kind: CycleKind): StageInfo {
   return { label: "Awaiting Docs", next: "docs-received-cleanup", completed: false };
 }
 
-export default function GhlLiveCycleSection({ clients }: { clients: Client[] }) {
+function matchesStageFilter(tags: string[], kind: CycleKind, stageFilter: number | null): boolean {
+  if (stageFilter === null) return true;
+  const has = (t: string) => tags.includes(t);
+  if (kind === "regular") {
+    if (stageFilter >= 1 && stageFilter <= 4) {
+      return has("ready-for-pipeline") && !has("docs-received") && !has("review-ready") && !has("jessica-approved");
+    }
+    if (stageFilter === 5 || stageFilter === 6) {
+      return has("docs-received");
+    }
+    if (stageFilter === 7) {
+      return has("review-ready");
+    }
+    if (stageFilter === 8) {
+      return has("jessica-approved");
+    }
+  } else {
+    if (stageFilter >= 1 && stageFilter <= 4) {
+      return has("ready-for-cleanup") && !has("docs-received-cleanup") && !has("review-ready-cleanup") && !has("jessica-approved-cleanup");
+    }
+    if (stageFilter === 5 || stageFilter === 6) {
+      return has("docs-received-cleanup");
+    }
+    if (stageFilter === 7) {
+      return has("review-ready-cleanup");
+    }
+    if (stageFilter === 8) {
+      return has("jessica-approved-cleanup");
+    }
+  }
+  return true;
+}
+
+export default function GhlLiveCycleSection({ clients, stageFilter }: { clients: Client[]; stageFilter?: number | null }) {
   const [contacts, setContacts] = useState<GhlContact[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -171,15 +204,17 @@ export default function GhlLiveCycleSection({ clients }: { clients: Client[] }) 
     const cl: GhlContact[] = [];
     for (const c of contacts) {
       const tags = c.tags || [];
-      if (tags.includes("ready-for-pipeline")) r.push(c);
-      else if (tags.includes("ready-for-cleanup")) cl.push(c);
+      if (tags.includes("ready-for-pipeline") && matchesStageFilter(tags, "regular", stageFilter ?? null))
+        r.push(c);
+      else if (tags.includes("ready-for-cleanup") && matchesStageFilter(tags, "cleanup", stageFilter ?? null))
+        cl.push(c);
     }
     const cmp = (a: GhlContact, b: GhlContact) =>
       contactName(a).localeCompare(contactName(b));
     r.sort(cmp);
     cl.sort(cmp);
     return { regular: r, cleanup: cl };
-  }, [contacts]);
+  }, [contacts, stageFilter]);
 
   return (
     <section className="rounded-2xl border border-border bg-card shadow-card p-4 lg:p-5 space-y-4">
