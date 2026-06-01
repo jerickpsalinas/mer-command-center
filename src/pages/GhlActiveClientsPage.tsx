@@ -574,15 +574,14 @@ export default function GhlActiveClientsPage() {
                 );
                 const isClearing = clearingId === c.id;
                 const isChecked = selected.has(c.id);
-                const company = (c.companyName || "").trim();
-                const full = [c.firstName, c.lastName]
-                  .filter(Boolean)
-                  .join(" ")
-                  .trim();
+                const company = capitalizeWords((c.companyName || "").trim());
+                const full = capitalizeWords(
+                  [c.firstName, c.lastName].filter(Boolean).join(" ").trim(),
+                );
                 return (
                   <li
                     key={c.id}
-                    className="grid grid-cols-[auto_1.4fr_1.2fr_1.6fr_auto] items-start gap-3 px-4 py-3 hover:bg-muted/30 transition-colors"
+                    className="grid grid-cols-[24px_1.4fr_1.2fr_1.6fr_160px] items-start gap-3 px-4 py-3 hover:bg-muted/30 transition-colors"
                   >
                     <input
                       type="checkbox"
