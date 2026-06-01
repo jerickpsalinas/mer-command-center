@@ -30,7 +30,7 @@ type ManagedUser = {
   created_at: string;
 };
 
-const ROLES: AppRole[] = ["admin", "bookkeeper", "developer"];
+const ROLES: AppRole[] = ["admin", "bookkeeper"];
 
 async function callAdmin(
   action: string,
