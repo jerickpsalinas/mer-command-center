@@ -11,7 +11,7 @@ import MonthFilter from "@/components/MonthFilter";
 import { useUserSettings, type SavedFilter } from "@/hooks/useUserSettings";
 import { DataLoading, DataError } from "@/components/DataStatus";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell, LineChart, Line } from "recharts";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { diffClientMonths } from "@/lib/insights";
 import { toast } from "@/hooks/use-toast";
 import ClientDetailsModal from "@/components/ClientDetailsModal";
