@@ -7,6 +7,8 @@ import { useTheme } from "@/hooks/useTheme";
 import NotificationDropdown from "@/components/NotificationDropdown";
 import MobileTabBar from "@/components/MobileTabBar";
 import MerFormModal from "@/components/MerFormModal";
+import ViewAsBanner from "@/components/ViewAsBanner";
+import ViewAsRoleSwitcher from "@/components/ViewAsRoleSwitcher";
 import {
   LayoutDashboard, CalendarCheck, TrendingUp, Users, Download, Settings,
   Menu, X, ChevronLeft, RefreshCw, Sun, Moon, Workflow, UserCheck, HeartPulse, BookOpen, FilePlus2, FileEdit, LogOut,
@@ -179,6 +181,7 @@ export default function AppLayout() {
                   )}
                 </div>
               </div>
+              <ViewAsRoleSwitcher compact />
               <button
                 onClick={signOut}
                 className="w-full inline-flex items-center gap-2 px-2.5 py-1.5 rounded-md text-[12px] font-medium text-muted-foreground hover:bg-accent hover:text-destructive transition-colors"
@@ -204,6 +207,7 @@ export default function AppLayout() {
 
       {/* Main */}
       <div className="flex-1 flex flex-col min-w-0 relative z-10">
+        <ViewAsBanner />
         <header className="sticky top-0 z-30 flex h-[56px] items-center gap-2 sm:gap-4 border-b border-border glass-panel px-3 sm:px-5 lg:px-8">
           <button
             onClick={() => setMobileOpen(true)}
@@ -280,6 +284,10 @@ export default function AppLayout() {
             {profile?.role && (
               <span className="text-[10px] text-muted-foreground uppercase tracking-wider">{profile.role}</span>
             )}
+          </div>
+
+          <div className="hidden md:block">
+            <ViewAsRoleSwitcher />
           </div>
 
           <div className="h-9 w-9 rounded-full bg-primary/15 flex items-center justify-center overflow-hidden ring-2 ring-primary/20">
