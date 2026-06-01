@@ -92,6 +92,11 @@ export default function GhlActiveClientsPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [filter, setFilter] = useState<"all" | "regular" | "cleanup">("all");
+  const [search, setSearch] = useState("");
+  const [editing, setEditing] = useState<GhlContact | null>(null);
+  const [editingSelected, setEditingSelected] = useState<Set<string>>(new Set());
+  const [savingEdit, setSavingEdit] = useState(false);
 
   const [pending, setPending] = useState<PendingAction>(null);
   const [authStep, setAuthStep] = useState<"password" | "confirm" | null>(null);
