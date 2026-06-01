@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Building2, ShieldCheck, Banknote, Workflow, Clock, History, FileText, Loader2, FilePlus2, FileEdit, Database, Tag, Check, Sparkles } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import { Building2, ShieldCheck, Banknote, Workflow, Clock, History, FileText, Loader2, FilePlus2, FileEdit, Database, Tag, Check, Sparkles, Lock } from "lucide-react";
 import StatusBadge from "@/components/StatusBadge";
 import type { ActionLogEntry, MerHistoryRow } from "@/services/googleSheets";
 import ActionConfirmModal from "@/components/ActionConfirmModal";
@@ -122,6 +122,11 @@ export default function ClientDetailsModal({ open, onClose, client, onViewHistor
   const [catAiResponse, setCatAiResponse] = useState<any>(null);
   const [catConfirmLoading, setCatConfirmLoading] = useState(false);
   const [catOverrideText, setCatOverrideText] = useState("");
+  const [comingSoon, setComingSoon] = useState<{ open: boolean; title: string; message: string }>({
+    open: false,
+    title: "",
+    message: "",
+  });
 
   const ghlContactId =
     client?.ghlContactId ||
@@ -501,6 +506,32 @@ export default function ClientDetailsModal({ open, onClose, client, onViewHistor
                   >
                     <Sparkles className="h-4 w-4" />
                     Categorize Transaction
+                  </button>
+                </div>
+                <div className="flex flex-wrap gap-2 pt-2 border-t border-border/40">
+                  <button
+                    type="button"
+                    onClick={() => setComingSoon({ open: true, title: "Connect QuickBooks Online — Coming Soon", message: "QuickBooks Online integration is currently pending approval from Intuit. Once resolved, this button will let you connect this client's QBO account directly from the dashboard. We'll notify the team when it's ready." })}
+                    className="inline-flex items-center gap-1.5 text-xs font-semibold px-3 py-2 rounded-lg border bg-muted/30 text-muted-foreground border-border/50 hover:bg-muted/50 transition-colors opacity-80 hover:opacity-100"
+                  >
+                    <Lock className="h-3.5 w-3.5" />
+                    Connect QBO
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setComingSoon({ open: true, title: "P&L & Balance Sheet — Coming Soon", message: "This feature will display the client's Profit & Loss Statement and Balance Sheet pulled directly from QuickBooks Online. It requires the QBO integration to be active first." })}
+                    className="inline-flex items-center gap-1.5 text-xs font-semibold px-3 py-2 rounded-lg border bg-muted/30 text-muted-foreground border-border/50 hover:bg-muted/50 transition-colors opacity-80 hover:opacity-100"
+                  >
+                    <Lock className="h-3.5 w-3.5" />
+                    View P&L
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setComingSoon({ open: true, title: "Monthly AI Health Summary — Coming Soon", message: "This feature will generate an AI-powered plain-English health summary for this client at the end of each month, based on their QuickBooks data. It requires the QBO integration to be active first." })}
+                    className="inline-flex items-center gap-1.5 text-xs font-semibold px-3 py-2 rounded-lg border bg-muted/30 text-muted-foreground border-border/50 hover:bg-muted/50 transition-colors opacity-80 hover:opacity-100"
+                  >
+                    <Lock className="h-3.5 w-3.5" />
+                    Health Summary
                   </button>
                 </div>
               </div>
@@ -1186,6 +1217,18 @@ export default function ClientDetailsModal({ open, onClose, client, onViewHistor
               </div>
             </div>
           )}
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={comingSoon.open} onOpenChange={(o) => setComingSoon((s) => ({ ...s, open: o }))}>
+        <DialogContent className="max-w-md w-[calc(100vw-1rem)] sm:w-auto p-5">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 pr-8">
+              <Lock className="h-4 w-4 text-muted-foreground shrink-0" />
+              {comingSoon.title}
+            </DialogTitle>
+            <DialogDescription>{comingSoon.message}</DialogDescription>
+          </DialogHeader>
         </DialogContent>
       </Dialog>
     </Dialog>

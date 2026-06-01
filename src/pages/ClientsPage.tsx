@@ -4,14 +4,14 @@ import ClientSparkline from "@/components/ClientSparkline";
 import SwipeableCard from "@/components/SwipeableCard";
 import { useMemo, useState, useEffect } from "react";
 import { useSearchParams } from "react-router-dom";
-import { Search, AlertTriangle, ArrowUpDown, BarChart3, History, TrendingUp, Bookmark, BookmarkPlus, X, Filter, ArrowUp, ArrowDown, Minus, FileText } from "lucide-react";
+import { Search, AlertTriangle, ArrowUpDown, BarChart3, History, TrendingUp, Bookmark, BookmarkPlus, X, Filter, ArrowUp, ArrowDown, Minus, FileText, Lock } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useSheetData, getClientHistory, getClientsForMonth } from "@/hooks/useSheetData";
 import MonthFilter from "@/components/MonthFilter";
 import { useUserSettings, type SavedFilter } from "@/hooks/useUserSettings";
 import { DataLoading, DataError } from "@/components/DataStatus";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell, LineChart, Line } from "recharts";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { diffClientMonths } from "@/lib/insights";
 import { toast } from "@/hooks/use-toast";
 import ClientDetailsModal from "@/components/ClientDetailsModal";
@@ -76,6 +76,12 @@ export default function ClientsPage() {
   const [cycleStatusFilter, setCycleStatusFilter] = useState<
     "all" | "escalation-active" | "bank-reconnection-active" | "statement-request-active" | "docs-request-active" | "ready-for-pipeline"
   >("all");
+  const [comingSoon, setComingSoon] = useState<{ open: boolean; title: string; message: string }>({
+    open: false,
+    title: "",
+    message: "",
+  });
+
   
 
   if (isLoading) return <DataLoading />;
@@ -318,6 +324,15 @@ export default function ClientsPage() {
               </button>
             )}
           </div>
+
+          <button
+            type="button"
+            onClick={() => setComingSoon({ open: true, title: "QBO Filter — Coming Soon", message: "This filter will show clients who have not yet connected their QuickBooks Online account. It requires the QBO integration to be active first." })}
+            className="inline-flex items-center gap-1.5 text-[11px] font-semibold px-2.5 py-1.5 rounded-md border bg-muted/30 text-muted-foreground border-border/50 hover:bg-muted/50 transition-colors opacity-80 hover:opacity-100"
+          >
+            <Lock className="h-3 w-3" />
+            QBO Not Connected
+          </button>
 
           {hasActiveFilter && (
             <button
@@ -610,6 +625,18 @@ export default function ClientsPage() {
               </button>
             </div>
           </div>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={comingSoon.open} onOpenChange={(o) => setComingSoon((s) => ({ ...s, open: o }))}>
+        <DialogContent className="max-w-md w-[calc(100vw-1rem)] sm:w-auto p-5">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 pr-8">
+              <Lock className="h-4 w-4 text-muted-foreground shrink-0" />
+              {comingSoon.title}
+            </DialogTitle>
+            <DialogDescription>{comingSoon.message}</DialogDescription>
+          </DialogHeader>
         </DialogContent>
       </Dialog>
     </div>
