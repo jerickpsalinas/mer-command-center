@@ -598,6 +598,46 @@ export default function GhlActiveClientsPage() {
           )}
         </AlertDialogContent>
       </AlertDialog>
+
+      <AlertDialog
+        open={!!removing}
+        onOpenChange={(o) => {
+          if (!o && !removingId) setRemoving(null);
+        }}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Remove client?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will remove{" "}
+              <span className="font-semibold text-foreground">
+                {removing ? contactName(removing) : ""}
+              </span>{" "}
+              from the active client list and remove their active-client tag in GHL. Are you sure?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={!!removingId}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={(e) => {
+                e.preventDefault();
+                confirmRemoveClient();
+              }}
+              disabled={!!removingId}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {removingId ? (
+                <>
+                  <Loader2 className="h-3.5 w-3.5 animate-spin mr-1.5" />
+                  Removing…
+                </>
+              ) : (
+                "Confirm"
+              )}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
