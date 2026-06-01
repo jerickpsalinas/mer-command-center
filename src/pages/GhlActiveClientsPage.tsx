@@ -265,6 +265,9 @@ export default function GhlActiveClientsPage() {
     } finally {
       setRemovingId(null);
     }
+  };
+
+
 
   const openSingle = (c: GhlContact) => {
     setPending({ kind: "single", contact: c });
