@@ -31,7 +31,7 @@ async function requireAdmin(req: Request) {
   const { data: profile } = await admin
     .from("user_profiles")
     .select("role")
-    .eq("user_id", user.id)
+    .eq("id", user.id)
     .maybeSingle();
   if (profile?.role !== "admin") return null;
   return { user, admin };
@@ -50,7 +50,7 @@ Deno.serve(async (req) => {
     if (req.method === "GET" || action === "list") {
       const { data, error } = await admin
         .from("user_profiles")
-        .select("id, user_id, name, email, role, created_at")
+        .select("id, name, email, role, created_at")
         .order("created_at", { ascending: false });
       if (error) throw error;
       return json({ users: data ?? [] });
@@ -67,15 +67,14 @@ Deno.serve(async (req) => {
         return json({ error: inviteErr?.message ?? "Invite failed" }, 400);
       }
       const newUserId = invited.user.id;
-      // Trigger may have already created a default-role profile; update it.
       const { error: upsertErr } = await admin
         .from("user_profiles")
         .upsert(
-          { user_id: newUserId, name, email, role },
-          { onConflict: "user_id" },
+          { id: newUserId, name, email, role },
+          { onConflict: "id" },
         );
       if (upsertErr) return json({ error: upsertErr.message }, 400);
-      return json({ ok: true, user_id: newUserId });
+      return json({ ok: true, id: newUserId });
     }
 
     if (action === "update-role") {
@@ -83,7 +82,7 @@ Deno.serve(async (req) => {
       if (!id || !role) return json({ error: "Missing fields" }, 400);
       const { error } = await admin
         .from("user_profiles")
-        .update({ role, updated_at: new Date().toISOString() })
+        .update({ role })
         .eq("id", id);
       if (error) return json({ error: error.message }, 400);
       return json({ ok: true });
@@ -92,14 +91,8 @@ Deno.serve(async (req) => {
     if (action === "remove") {
       const { id } = body as { id: string };
       if (!id) return json({ error: "Missing id" }, 400);
-      const { data: row, error: fetchErr } = await admin
-        .from("user_profiles")
-        .select("user_id")
-        .eq("id", id)
-        .maybeSingle();
-      if (fetchErr || !row) return json({ error: "Profile not found" }, 404);
       await admin.from("user_profiles").delete().eq("id", id);
-      const { error: delErr } = await admin.auth.admin.deleteUser(row.user_id);
+      const { error: delErr } = await admin.auth.admin.deleteUser(id);
       if (delErr) return json({ error: delErr.message }, 400);
       return json({ ok: true });
     }
