@@ -237,6 +237,35 @@ export default function GhlActiveClientsPage() {
     setPasswordError(null);
   };
 
+  const confirmRemoveClient = async () => {
+    if (!removing) return;
+    const c = removing;
+    setRemovingId(c.id);
+    try {
+      const res = await fetch(`${GHL_BASE}/contacts/${c.id}/tags`, {
+        method: "DELETE",
+        headers: ghlHeaders({ "Content-Type": "application/json" }),
+        body: JSON.stringify({ tags: ["active-client"] }),
+      });
+      if (!res.ok) throw new Error(`Failed (${res.status})`);
+      setContacts((prev) => prev.filter((x) => x.id !== c.id));
+      setSelected((prev) => {
+        const next = new Set(prev);
+        next.delete(c.id);
+        return next;
+      });
+      toast({ title: "Client removed from active list", description: contactName(c) });
+      setRemoving(null);
+    } catch (e: any) {
+      toast({
+        title: "Failed to remove client",
+        description: e?.message || "Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setRemovingId(null);
+    }
+
   const openSingle = (c: GhlContact) => {
     setPending({ kind: "single", contact: c });
     setAuthStep("password");
