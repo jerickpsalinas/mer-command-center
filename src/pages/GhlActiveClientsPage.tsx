@@ -402,23 +402,41 @@ export default function GhlActiveClientsPage() {
                       )}
                     </div>
                   </div>
-                  <button
-                    onClick={() => openSingle(c)}
-                    disabled={isClearing || removable.length === 0 || busy}
-                    className="inline-flex items-center gap-1.5 h-8 px-2.5 rounded-md text-[11px] font-semibold bg-destructive/10 text-destructive border border-destructive/20 hover:bg-destructive/15 transition-colors disabled:opacity-40"
-                  >
-                    {isClearing ? (
-                      <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                    ) : (
-                      <Trash2 className="h-3.5 w-3.5" />
+                  <div className="flex items-center gap-2">
+                    {isAdmin && (
+                      <button
+                        onClick={() => openSingle(c)}
+                        disabled={isClearing || removable.length === 0 || busy}
+                        className="inline-flex items-center gap-1.5 h-8 px-2.5 rounded-md text-[11px] font-semibold bg-destructive/10 text-destructive border border-destructive/20 hover:bg-destructive/15 transition-colors disabled:opacity-40"
+                      >
+                        {isClearing ? (
+                          <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                        ) : (
+                          <Trash2 className="h-3.5 w-3.5" />
+                        )}
+                        Clear Cycle Tags
+                        {removable.length > 0 && (
+                          <span className="text-[10px] opacity-70">
+                            ({removable.length})
+                          </span>
+                        )}
+                      </button>
                     )}
-                    Clear Cycle Tags
-                    {removable.length > 0 && (
-                      <span className="text-[10px] opacity-70">
-                        ({removable.length})
-                      </span>
+                    {isAdmin && (
+                      <button
+                        onClick={() => setRemoving(c)}
+                        disabled={busy || removingId === c.id}
+                        className="inline-flex items-center gap-1.5 h-8 px-2.5 rounded-md text-[11px] font-semibold bg-destructive/15 text-destructive border border-destructive/30 hover:bg-destructive/25 transition-colors disabled:opacity-40"
+                      >
+                        {removingId === c.id ? (
+                          <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                        ) : (
+                          <UserMinus className="h-3.5 w-3.5" />
+                        )}
+                        Remove Client
+                      </button>
                     )}
-                  </button>
+                  </div>
                 </li>
               );
             })}
