@@ -669,7 +669,7 @@ export default function MasterCyclePage() {
                         {cycleInfo.kind === "regular" ? "REGULAR" : "CLEANUP"}
                       </span>
                     )}
-                    {cycleInfo?.next && c.ghlContactId && (
+                    {cycleInfo?.next && c.ghlContactId && (cycleInfo.next.startsWith("jessica-approved") ? isAdmin : true) && (
                       <button
                         onClick={(e) => {
                           e.stopPropagation();
