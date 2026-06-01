@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
-import { Loader2, RefreshCw, Trash2, UserCheck } from "lucide-react";
+import { Loader2, RefreshCw, Trash2, UserCheck, UserMinus } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
+import { useAuth } from "@/hooks/useAuth";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -69,6 +70,9 @@ type PendingAction =
   | null;
 
 export default function GhlActiveClientsPage() {
+  const { isAdmin } = useAuth();
+  const [removing, setRemoving] = useState<GhlContact | null>(null);
+  const [removingId, setRemovingId] = useState<string | null>(null);
   const [contacts, setContacts] = useState<GhlContact[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -233,6 +237,38 @@ export default function GhlActiveClientsPage() {
     setPasswordError(null);
   };
 
+  const confirmRemoveClient = async () => {
+    if (!removing) return;
+    const c = removing;
+    setRemovingId(c.id);
+    try {
+      const res = await fetch(`${GHL_BASE}/contacts/${c.id}/tags`, {
+        method: "DELETE",
+        headers: ghlHeaders({ "Content-Type": "application/json" }),
+        body: JSON.stringify({ tags: ["active-client"] }),
+      });
+      if (!res.ok) throw new Error(`Failed (${res.status})`);
+      setContacts((prev) => prev.filter((x) => x.id !== c.id));
+      setSelected((prev) => {
+        const next = new Set(prev);
+        next.delete(c.id);
+        return next;
+      });
+      toast({ title: "Client removed from active list", description: contactName(c) });
+      setRemoving(null);
+    } catch (e: any) {
+      toast({
+        title: "Failed to remove client",
+        description: e?.message || "Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setRemovingId(null);
+    }
+  };
+
+
+
   const openSingle = (c: GhlContact) => {
     setPending({ kind: "single", contact: c });
     setAuthStep("password");
@@ -299,15 +335,17 @@ export default function GhlActiveClientsPage() {
           </span>
         </div>
         <div className="flex items-center gap-2">
-          <button
-            onClick={openBulk}
-            disabled={selected.size === 0 || busy}
-            className="inline-flex items-center gap-1.5 h-9 px-3 rounded-lg text-xs font-semibold bg-destructive/10 text-destructive border border-destructive/20 hover:bg-destructive/15 transition-colors disabled:opacity-40"
-          >
-            <Trash2 className="h-3.5 w-3.5" />
-            Clear Cycle Tags
-            {selected.size > 0 && <span>({selected.size} selected)</span>}
-          </button>
+          {isAdmin && (
+            <button
+              onClick={openBulk}
+              disabled={selected.size === 0 || busy}
+              className="inline-flex items-center gap-1.5 h-9 px-3 rounded-lg text-xs font-semibold bg-destructive/10 text-destructive border border-destructive/20 hover:bg-destructive/15 transition-colors disabled:opacity-40"
+            >
+              <Trash2 className="h-3.5 w-3.5" />
+              Clear Cycle Tags
+              {selected.size > 0 && <span>({selected.size} selected)</span>}
+            </button>
+          )}
           <button
             onClick={fetchAll}
             disabled={loading}
@@ -396,23 +434,41 @@ export default function GhlActiveClientsPage() {
                       )}
                     </div>
                   </div>
-                  <button
-                    onClick={() => openSingle(c)}
-                    disabled={isClearing || removable.length === 0 || busy}
-                    className="inline-flex items-center gap-1.5 h-8 px-2.5 rounded-md text-[11px] font-semibold bg-destructive/10 text-destructive border border-destructive/20 hover:bg-destructive/15 transition-colors disabled:opacity-40"
-                  >
-                    {isClearing ? (
-                      <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                    ) : (
-                      <Trash2 className="h-3.5 w-3.5" />
+                  <div className="flex items-center gap-2">
+                    {isAdmin && (
+                      <button
+                        onClick={() => openSingle(c)}
+                        disabled={isClearing || removable.length === 0 || busy}
+                        className="inline-flex items-center gap-1.5 h-8 px-2.5 rounded-md text-[11px] font-semibold bg-destructive/10 text-destructive border border-destructive/20 hover:bg-destructive/15 transition-colors disabled:opacity-40"
+                      >
+                        {isClearing ? (
+                          <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                        ) : (
+                          <Trash2 className="h-3.5 w-3.5" />
+                        )}
+                        Clear Cycle Tags
+                        {removable.length > 0 && (
+                          <span className="text-[10px] opacity-70">
+                            ({removable.length})
+                          </span>
+                        )}
+                      </button>
                     )}
-                    Clear Cycle Tags
-                    {removable.length > 0 && (
-                      <span className="text-[10px] opacity-70">
-                        ({removable.length})
-                      </span>
+                    {isAdmin && (
+                      <button
+                        onClick={() => setRemoving(c)}
+                        disabled={busy || removingId === c.id}
+                        className="inline-flex items-center gap-1.5 h-8 px-2.5 rounded-md text-[11px] font-semibold bg-destructive/15 text-destructive border border-destructive/30 hover:bg-destructive/25 transition-colors disabled:opacity-40"
+                      >
+                        {removingId === c.id ? (
+                          <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                        ) : (
+                          <UserMinus className="h-3.5 w-3.5" />
+                        )}
+                        Remove Client
+                      </button>
                     )}
-                  </button>
+                  </div>
                 </li>
               );
             })}
@@ -540,6 +596,46 @@ export default function GhlActiveClientsPage() {
               </AlertDialogFooter>
             </>
           )}
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog
+        open={!!removing}
+        onOpenChange={(o) => {
+          if (!o && !removingId) setRemoving(null);
+        }}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Remove client?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will remove{" "}
+              <span className="font-semibold text-foreground">
+                {removing ? contactName(removing) : ""}
+              </span>{" "}
+              from the active client list and remove their active-client tag in GHL. Are you sure?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={!!removingId}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={(e) => {
+                e.preventDefault();
+                confirmRemoveClient();
+              }}
+              disabled={!!removingId}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {removingId ? (
+                <>
+                  <Loader2 className="h-3.5 w-3.5 animate-spin mr-1.5" />
+                  Removing…
+                </>
+              ) : (
+                "Confirm"
+              )}
+            </AlertDialogAction>
+          </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
     </div>

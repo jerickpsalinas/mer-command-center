@@ -20,6 +20,7 @@ import { DataLoading, DataError } from "@/components/DataStatus";
 import type { CycleEntry } from "@/services/googleSheets";
 import { useClientDetails } from "@/hooks/useClientDetails";
 import { useGhlTags, getNextCycleTag } from "@/hooks/useGhlTags";
+import { useAuth } from "@/hooks/useAuth";
 
 /* ────────────────────────────────────────────────────────────────────────────
  * Pipeline 1 — Master Bookkeeping Cycle (8 canonical stages)
@@ -111,6 +112,7 @@ export default function MasterCyclePage() {
   const [expanded, setExpanded] = useState<string | null>(null);
   const { open: openClient, modal: clientModal } = useClientDetails();
   const { tagsMap, applyTag } = useGhlTags();
+  const { isAdmin } = useAuth();
   const [applyingId, setApplyingId] = useState<string | null>(null);
 
   const handleApplyTag = async (
@@ -667,7 +669,7 @@ export default function MasterCyclePage() {
                         {cycleInfo.kind === "regular" ? "REGULAR" : "CLEANUP"}
                       </span>
                     )}
-                    {cycleInfo?.next && c.ghlContactId && (
+                    {cycleInfo?.next && c.ghlContactId && (cycleInfo.next.startsWith("jessica-approved") ? isAdmin : true) && (
                       <button
                         onClick={(e) => {
                           e.stopPropagation();

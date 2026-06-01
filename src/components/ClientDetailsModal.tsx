@@ -20,6 +20,7 @@ import {
   type ActionPayload,
 } from "@/services/dashboardActions";
 import { toast } from "@/hooks/use-toast";
+import { useAuth } from "@/hooks/useAuth";
 
 interface Props {
   open: boolean;
@@ -109,6 +110,7 @@ export default function ClientDetailsModal({ open, onClose, client, onViewHistor
   const [editCategorySelection, setEditCategorySelection] = useState<Record<string, boolean>>({});
   const [editCategorySaving, setEditCategorySaving] = useState(false);
   const [clearCycleLoading, setClearCycleLoading] = useState(false);
+  const { isAdmin } = useAuth();
   const [categorizeLoading, setCategorizeLoading] = useState(false);
   const [categorizeOpen, setCategorizeOpen] = useState(false);
   const [catStep, setCatStep] = useState<"form" | "suggestion" | "override">("form");
@@ -366,7 +368,7 @@ export default function ClientDetailsModal({ open, onClose, client, onViewHistor
               >
                 ✏️ Update Category Tags
               </button>
-              {tagSet.has("active-client") && (
+              {isAdmin && tagSet.has("active-client") && (
                 <button
                   type="button"
                   onClick={() => setShowClearCycleConfirm(true)}
