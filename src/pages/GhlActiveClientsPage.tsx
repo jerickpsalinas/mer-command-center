@@ -70,6 +70,9 @@ type PendingAction =
   | null;
 
 export default function GhlActiveClientsPage() {
+  const { isAdmin } = useAuth();
+  const [removing, setRemoving] = useState<GhlContact | null>(null);
+  const [removingId, setRemovingId] = useState<string | null>(null);
   const [contacts, setContacts] = useState<GhlContact[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
