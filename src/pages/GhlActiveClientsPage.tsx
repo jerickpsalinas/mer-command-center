@@ -512,7 +512,7 @@ export default function GhlActiveClientsPage() {
                     }
                   }}
                   placeholder="Admin password"
-                  className="w-full h-10 px-3 rounded-md border border-border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
+                  className="w-full h-10 px-3 rounded-md border border-border bg-background text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
                 />
                 {passwordError && (
                   <p className="text-xs text-destructive">{passwordError}</p>
