@@ -5,6 +5,7 @@ import { useSheetData } from "@/hooks/useSheetData";
 import { useTheme } from "@/hooks/useTheme";
 import { useUserSettings, DEFAULT_THRESHOLDS, DEFAULT_NOTIF_PREFS } from "@/hooks/useUserSettings";
 import UserManagementSection from "@/components/UserManagementSection";
+import ChangePasswordSection from "@/components/ChangePasswordSection";
 
 export default function SettingsPage() {
   const [autoRefresh, setAutoRefresh] = useState(true);
@@ -317,6 +318,8 @@ export default function SettingsPage() {
           </div>
         </div>
       </motion.div>
+
+      <ChangePasswordSection />
 
       {/* About */}
       <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.32 }}
