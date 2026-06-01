@@ -62,10 +62,25 @@ const ghlHeaders = (extra: Record<string, string> = {}) => ({
   ...extra,
 });
 
+function capitalizeWords(s: string) {
+  return s
+    .split(/\s+/)
+    .filter(Boolean)
+    .map((w) => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase())
+    .join(" ");
+}
+
+function hasTag(c: GhlContact, tag: string) {
+  const t = tag.toLowerCase();
+  return (c.tags || []).some((x) => (x || "").toLowerCase() === t);
+}
+
 function contactName(c: GhlContact) {
-  const company = (c.companyName || "").trim();
+  const company = capitalizeWords((c.companyName || "").trim());
   if (company) return company;
-  const full = [c.firstName, c.lastName].filter(Boolean).join(" ").trim();
+  const full = capitalizeWords(
+    [c.firstName, c.lastName].filter(Boolean).join(" ").trim(),
+  );
   return full || "Unnamed Contact";
 }
 
