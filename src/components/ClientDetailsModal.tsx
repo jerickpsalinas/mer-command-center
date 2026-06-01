@@ -368,7 +368,7 @@ export default function ClientDetailsModal({ open, onClose, client, onViewHistor
               >
                 ✏️ Update Category Tags
               </button>
-              {tagSet.has("active-client") && (
+              {isAdmin && tagSet.has("active-client") && (
                 <button
                   type="button"
                   onClick={() => setShowClearCycleConfirm(true)}
