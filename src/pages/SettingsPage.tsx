@@ -4,6 +4,7 @@ import { motion } from "framer-motion";
 import { useSheetData } from "@/hooks/useSheetData";
 import { useTheme } from "@/hooks/useTheme";
 import { useUserSettings, DEFAULT_THRESHOLDS, DEFAULT_NOTIF_PREFS } from "@/hooks/useUserSettings";
+import UserManagementSection from "@/components/UserManagementSection";
 
 export default function SettingsPage() {
   const [autoRefresh, setAutoRefresh] = useState(true);
@@ -341,6 +342,8 @@ export default function SettingsPage() {
           </div>
         </div>
       </motion.div>
+
+      <UserManagementSection />
     </div>
   );
 }
