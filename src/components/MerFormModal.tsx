@@ -142,8 +142,8 @@ function buildInitial(mode: Mode, client: MerHistoryRow | null | undefined): For
   };
 }
 
-const GHL_URL =
-  "https://services.leadconnectorhq.com/contacts/?locationId=2UvLCJLDqEYjWtuPdjaR&limit=100";
+const GHL_BASE = "https://services.leadconnectorhq.com";
+const LOCATION_ID = "2UvLCJLDqEYjWtuPdjaR";
 const GHL_TOKEN = "pit-9e416e9c-99e8-4507-9c57-e6c824f50723";
 
 type ClientOption = {
@@ -196,16 +196,36 @@ export default function MerFormModal({ open, mode, client, clients, onClose }: P
     setGhlError(null);
     (async () => {
       try {
-        const res = await fetch(GHL_URL, {
-          headers: {
-            Authorization: `Bearer ${GHL_TOKEN}`,
-            Version: "2021-07-28",
-          },
-        });
-        if (!res.ok) throw new Error(`GHL request failed (${res.status})`);
-        const data = await res.json();
-        const contacts: any[] = Array.isArray(data?.contacts) ? data.contacts : [];
-        const filtered = contacts.filter(
+        const collected: any[] = [];
+        let startAfter: string | number | undefined;
+        let startAfterId: string | undefined;
+        for (let i = 0; i < 50; i++) {
+          const params = new URLSearchParams({
+            locationId: LOCATION_ID,
+            limit: "100",
+          });
+          if (startAfter != null) params.set("startAfter", String(startAfter));
+          if (startAfterId) params.set("startAfterId", startAfterId);
+          const res = await fetch(`${GHL_BASE}/contacts/?${params.toString()}`, {
+            headers: {
+              Authorization: `Bearer ${GHL_TOKEN}`,
+              Version: "2021-07-28",
+            },
+          });
+          if (!res.ok) throw new Error(`GHL request failed (${res.status})`);
+          const data = await res.json();
+          const page: any[] = Array.isArray(data?.contacts) ? data.contacts : [];
+          if (page.length === 0) break;
+          collected.push(...page);
+          const meta = data.meta || {};
+          const nextStartAfter = meta.startAfter ?? meta.nextStartAfter;
+          const nextStartAfterId = meta.startAfterId ?? meta.nextStartAfterId;
+          if (!nextStartAfter && !nextStartAfterId) break;
+          if (nextStartAfter === startAfter && nextStartAfterId === startAfterId) break;
+          startAfter = nextStartAfter;
+          startAfterId = nextStartAfterId;
+        }
+        const filtered = collected.filter(
           (c) =>
             Array.isArray(c?.tags) &&
             c.tags.some((t: string) => String(t).toLowerCase() === "active-client"),
