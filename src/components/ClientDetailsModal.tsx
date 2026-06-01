@@ -1219,6 +1219,18 @@ export default function ClientDetailsModal({ open, onClose, client, onViewHistor
           )}
         </DialogContent>
       </Dialog>
+
+      <Dialog open={comingSoon.open} onOpenChange={(o) => setComingSoon((s) => ({ ...s, open: o }))}>
+        <DialogContent className="max-w-md w-[calc(100vw-1rem)] sm:w-auto p-5">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 pr-8">
+              <Lock className="h-4 w-4 text-muted-foreground shrink-0" />
+              {comingSoon.title}
+            </DialogTitle>
+            <DialogDescription>{comingSoon.message}</DialogDescription>
+          </DialogHeader>
+        </DialogContent>
+      </Dialog>
     </Dialog>
 
   );
