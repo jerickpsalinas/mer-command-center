@@ -20,6 +20,7 @@ import { DataLoading, DataError } from "@/components/DataStatus";
 import type { CycleEntry } from "@/services/googleSheets";
 import { useClientDetails } from "@/hooks/useClientDetails";
 import { useGhlTags, getNextCycleTag } from "@/hooks/useGhlTags";
+import { useAuth } from "@/hooks/useAuth";
 
 /* ────────────────────────────────────────────────────────────────────────────
  * Pipeline 1 — Master Bookkeeping Cycle (8 canonical stages)
