@@ -150,7 +150,7 @@ export default function UserManagementSection() {
     try {
       await callAdmin("remove", {
         method: "POST",
-        body: JSON.stringify({ id: removing.id }),
+        body: { id: removing.id },
       });
       setUsers((prev) => prev.filter((x) => x.id !== removing.id));
       toast.success("User removed");
