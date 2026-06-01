@@ -340,24 +340,20 @@ export default function GhlActiveClientsPage() {
   );
 
   const regularCount = useMemo(
-    () =>
-      sortedAll.filter((c) => (c.tags || []).includes("ready-for-pipeline"))
-        .length,
+    () => sortedAll.filter((c) => hasTag(c, "ready-for-pipeline")).length,
     [sortedAll],
   );
   const cleanupCount = useMemo(
-    () =>
-      sortedAll.filter((c) => (c.tags || []).includes("ready-for-cleanup"))
-        .length,
+    () => sortedAll.filter((c) => hasTag(c, "ready-for-cleanup")).length,
     [sortedAll],
   );
 
   const sorted = useMemo(() => {
     let list = sortedAll;
     if (filter === "regular")
-      list = list.filter((c) => (c.tags || []).includes("ready-for-pipeline"));
+      list = list.filter((c) => hasTag(c, "ready-for-pipeline"));
     else if (filter === "cleanup")
-      list = list.filter((c) => (c.tags || []).includes("ready-for-cleanup"));
+      list = list.filter((c) => hasTag(c, "ready-for-cleanup"));
     const q = search.trim().toLowerCase();
     if (q) list = list.filter((c) => contactName(c).toLowerCase().includes(q));
     return list;
