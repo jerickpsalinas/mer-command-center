@@ -142,8 +142,8 @@ function buildInitial(mode: Mode, client: MerHistoryRow | null | undefined): For
   };
 }
 
-const GHL_URL =
-  "https://services.leadconnectorhq.com/contacts/?locationId=2UvLCJLDqEYjWtuPdjaR&limit=100";
+const GHL_BASE = "https://services.leadconnectorhq.com";
+const LOCATION_ID = "2UvLCJLDqEYjWtuPdjaR";
 const GHL_TOKEN = "pit-9e416e9c-99e8-4507-9c57-e6c824f50723";
 
 type ClientOption = {
