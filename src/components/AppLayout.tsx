@@ -9,9 +9,10 @@ import MobileTabBar from "@/components/MobileTabBar";
 import MerFormModal from "@/components/MerFormModal";
 import {
   LayoutDashboard, CalendarCheck, TrendingUp, Users, Download, Settings,
-  Menu, X, ChevronLeft, RefreshCw, Sun, Moon, Workflow, UserCheck, HeartPulse, BookOpen, FilePlus2, FileEdit,
+  Menu, X, ChevronLeft, RefreshCw, Sun, Moon, Workflow, UserCheck, HeartPulse, BookOpen, FilePlus2, FileEdit, LogOut,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
+import { useAuth } from "@/hooks/useAuth";
 import logo from "@/assets/logo.png";
 
 const navItems = [
@@ -61,6 +62,7 @@ export default function AppLayout() {
   const queryClient = useQueryClient();
   const isFetching = useIsFetching({ queryKey: ["sheet-data"] });
   const { data } = useSheetData();
+  const { profile, user, signOut } = useAuth();
   const currentTitle = navItems.find(n => n.url === location.pathname)?.title || "Dashboard";
 
   useEffect(() => {
@@ -241,9 +243,24 @@ export default function AppLayout() {
             trends={data?.monthlyTrends ?? []}
           />
 
+          <div className="hidden md:flex flex-col items-end leading-tight pr-1">
+            <span className="text-[12px] font-semibold text-foreground">{profile?.name || user?.email}</span>
+            {profile?.role && (
+              <span className="text-[10px] text-muted-foreground uppercase tracking-wider">{profile.role}</span>
+            )}
+          </div>
+
           <div className="h-9 w-9 rounded-full bg-primary/15 flex items-center justify-center overflow-hidden ring-2 ring-primary/20">
             <img src={logo} alt="BA" className="h-6 w-6 object-contain" />
           </div>
+
+          <button
+            onClick={signOut}
+            className="h-9 w-9 flex items-center justify-center rounded-lg text-muted-foreground hover:bg-accent hover:text-destructive transition-colors"
+            title="Sign out"
+          >
+            <LogOut className="h-[18px] w-[18px]" />
+          </button>
         </header>
 
         <main className="flex-1 px-3 py-4 sm:px-5 sm:py-5 lg:p-8 w-full max-w-[1600px] mx-auto overflow-x-hidden pb-[72px] lg:pb-8">

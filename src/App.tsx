@@ -6,6 +6,9 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { ThemeProvider } from "@/hooks/useTheme";
 import { UserSettingsProvider } from "@/hooks/useUserSettings";
 import AppLayout from "@/components/AppLayout";
+import ProtectedRoute from "@/components/ProtectedRoute";
+import { AuthProvider } from "@/hooks/useAuth";
+import LoginPage from "@/pages/LoginPage";
 import DashboardPage from "@/pages/DashboardPage";
 import MonthlyProgressPage from "@/pages/MonthlyProgressPage";
 import MonthlyTrendsPage from "@/pages/MonthlyTrendsPage";
@@ -29,22 +32,31 @@ const App = () => (
           <Toaster />
           <Sonner />
           <BrowserRouter>
-            <Routes>
-              <Route element={<AppLayout />}>
-                <Route path="/" element={<DashboardPage />} />
-                <Route path="/monthly-progress" element={<MonthlyProgressPage />} />
-                <Route path="/monthly-trends" element={<MonthlyTrendsPage />} />
-                <Route path="/clients" element={<ClientsPage />} />
-                <Route path="/bookkeepers" element={<BookkeepersPage />} />
-                <Route path="/ghl-active-clients" element={<GhlActiveClientsPage />} />
-                <Route path="/master-cycle" element={<MasterCyclePage />} />
-                <Route path="/health-pillars" element={<HealthPillarsPage />} />
-                <Route path="/reports" element={<ReportsPage />} />
-                <Route path="/user-guide" element={<UserGuidePage />} />
-                <Route path="/settings" element={<SettingsPage />} />
-              </Route>
-              <Route path="*" element={<NotFound />} />
-            </Routes>
+            <AuthProvider>
+              <Routes>
+                <Route path="/login" element={<LoginPage />} />
+                <Route
+                  element={
+                    <ProtectedRoute>
+                      <AppLayout />
+                    </ProtectedRoute>
+                  }
+                >
+                  <Route path="/" element={<DashboardPage />} />
+                  <Route path="/monthly-progress" element={<MonthlyProgressPage />} />
+                  <Route path="/monthly-trends" element={<MonthlyTrendsPage />} />
+                  <Route path="/clients" element={<ClientsPage />} />
+                  <Route path="/bookkeepers" element={<BookkeepersPage />} />
+                  <Route path="/ghl-active-clients" element={<GhlActiveClientsPage />} />
+                  <Route path="/master-cycle" element={<MasterCyclePage />} />
+                  <Route path="/health-pillars" element={<HealthPillarsPage />} />
+                  <Route path="/reports" element={<ReportsPage />} />
+                  <Route path="/user-guide" element={<UserGuidePage />} />
+                  <Route path="/settings" element={<SettingsPage />} />
+                </Route>
+                <Route path="*" element={<NotFound />} />
+              </Routes>
+            </AuthProvider>
           </BrowserRouter>
         </TooltipProvider>
       </UserSettingsProvider>
