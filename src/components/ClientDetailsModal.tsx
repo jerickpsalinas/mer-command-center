@@ -20,6 +20,7 @@ import {
   type ActionPayload,
 } from "@/services/dashboardActions";
 import { toast } from "@/hooks/use-toast";
+import { useAuth } from "@/hooks/useAuth";
 
 interface Props {
   open: boolean;
