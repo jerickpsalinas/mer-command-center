@@ -316,13 +316,37 @@ export default function GhlActiveClientsPage() {
     else runBulk(pending.contacts);
   };
 
-  const sorted = useMemo(
+  const sortedAll = useMemo(
     () =>
       [...contacts].sort((a, b) =>
         contactName(a).localeCompare(contactName(b)),
       ),
     [contacts],
   );
+
+  const regularCount = useMemo(
+    () =>
+      sortedAll.filter((c) => (c.tags || []).includes("ready-for-pipeline"))
+        .length,
+    [sortedAll],
+  );
+  const cleanupCount = useMemo(
+    () =>
+      sortedAll.filter((c) => (c.tags || []).includes("ready-for-cleanup"))
+        .length,
+    [sortedAll],
+  );
+
+  const sorted = useMemo(() => {
+    let list = sortedAll;
+    if (filter === "regular")
+      list = list.filter((c) => (c.tags || []).includes("ready-for-pipeline"));
+    else if (filter === "cleanup")
+      list = list.filter((c) => (c.tags || []).includes("ready-for-cleanup"));
+    const q = search.trim().toLowerCase();
+    if (q) list = list.filter((c) => contactName(c).toLowerCase().includes(q));
+    return list;
+  }, [sortedAll, filter, search]);
 
   const allSelected =
     sorted.length > 0 && sorted.every((c) => selected.has(c.id));
@@ -342,6 +366,88 @@ export default function GhlActiveClientsPage() {
 
   const busy = clearingId !== null || bulkProgress !== null;
 
+  const openEdit = (c: GhlContact) => {
+    const current = new Set(
+      (c.tags || []).filter((t) => CATEGORY_TAGS.has(t)),
+    );
+    setEditingSelected(current);
+    setEditing(c);
+  };
+
+  const toggleEditTag = (tag: string) => {
+    setEditingSelected((prev) => {
+      const next = new Set(prev);
+      if (next.has(tag)) next.delete(tag);
+      else next.add(tag);
+      return next;
+    });
+  };
+
+  const saveEdit = async () => {
+    if (!editing) return;
+    const c = editing;
+    const current = new Set((c.tags || []).filter((t) => CATEGORY_TAGS.has(t)));
+    const toAdd: string[] = [];
+    const toRemove: string[] = [];
+    for (const { tag } of CATEGORY_OPTIONS) {
+      const want = editingSelected.has(tag);
+      const have = current.has(tag);
+      if (want && !have) toAdd.push(tag);
+      if (!want && have) toRemove.push(tag);
+    }
+    setSavingEdit(true);
+    try {
+      if (toAdd.length > 0) {
+        const res = await fetch(`${GHL_BASE}/contacts/${c.id}/tags`, {
+          method: "POST",
+          headers: ghlHeaders({ "Content-Type": "application/json" }),
+          body: JSON.stringify({ tags: toAdd }),
+        });
+        if (!res.ok) throw new Error(`Add failed (${res.status})`);
+      }
+      if (toRemove.length > 0) {
+        const res = await fetch(`${GHL_BASE}/contacts/${c.id}/tags`, {
+          method: "DELETE",
+          headers: ghlHeaders({ "Content-Type": "application/json" }),
+          body: JSON.stringify({ tags: toRemove }),
+        });
+        if (!res.ok) throw new Error(`Remove failed (${res.status})`);
+      }
+      await refetchContact(c.id);
+      toast({ title: `Category tags updated for ${contactName(c)}` });
+      setEditing(null);
+    } catch (e: any) {
+      toast({
+        title: "Failed to update tags",
+        description: e?.message || "Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setSavingEdit(false);
+    }
+  };
+
+  const filterBtn = (
+    key: "all" | "regular" | "cleanup",
+    label: string,
+    count?: number,
+  ) => (
+    <button
+      key={key}
+      onClick={() => setFilter(key)}
+      className={`h-9 px-3 rounded-lg text-xs font-semibold border transition-colors ${
+        filter === key
+          ? "bg-primary text-primary-foreground border-primary"
+          : "bg-card text-foreground border-border hover:bg-muted"
+      }`}
+    >
+      {label}
+      {count !== undefined && (
+        <span className="ml-1 opacity-80">({count})</span>
+      )}
+    </button>
+  );
+
   return (
     <div className="space-y-5">
       <div className="flex items-center justify-between gap-3 flex-wrap">
@@ -351,7 +457,7 @@ export default function GhlActiveClientsPage() {
             GHL Active Clients
           </h2>
           <span className="text-xs text-muted-foreground">
-            {loading ? "…" : `${sorted.length} contacts`}
+            {loading ? "…" : `${sorted.length} of ${sortedAll.length} contacts`}
           </span>
         </div>
         <div className="flex items-center gap-2">
@@ -379,6 +485,24 @@ export default function GhlActiveClientsPage() {
         </div>
       </div>
 
+      <div className="flex items-center justify-between gap-3 flex-wrap">
+        <div className="flex items-center gap-2 flex-wrap">
+          {filterBtn("all", "All", sortedAll.length)}
+          {filterBtn("regular", "Regular", regularCount)}
+          {filterBtn("cleanup", "Cleanup", cleanupCount)}
+        </div>
+        <div className="relative flex-1 min-w-[200px] max-w-sm">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+          <input
+            type="text"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Search clients..."
+            className="w-full h-9 pl-9 pr-3 rounded-lg border border-border bg-background text-foreground text-xs focus:outline-none focus:ring-2 focus:ring-primary/30"
+          />
+        </div>
+      </div>
+
       {loading && (
         <div className="flex items-center justify-center py-16 text-muted-foreground">
           <Loader2 className="h-5 w-5 animate-spin mr-2" />
@@ -399,102 +523,197 @@ export default function GhlActiveClientsPage() {
       )}
 
       {!loading && !error && sorted.length > 0 && (
-        <div className="rounded-xl border border-border bg-card shadow-card overflow-hidden">
-          <div className="grid grid-cols-[auto_1fr_auto] items-center gap-3 px-4 py-2.5 border-b border-border bg-muted/40 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
-            <input
-              type="checkbox"
-              aria-label="Select all"
-              checked={allSelected}
-              ref={(el) => {
-                if (el) el.indeterminate = someSelected;
-              }}
-              onChange={toggleAll}
-              className="h-4 w-4 rounded border-border accent-primary cursor-pointer"
-            />
-            <span>Contact</span>
-            <span className="pr-1">Actions</span>
-          </div>
-          <ul className="divide-y divide-border">
-            {sorted.map((c) => {
-              const tags = c.tags || [];
-              const removable = tags.filter(
-                (t) => !PROTECTED_TAGS.includes(t),
-              );
-              const isClearing = clearingId === c.id;
-              const isChecked = selected.has(c.id);
-              return (
-                <li
-                  key={c.id}
-                  className="grid grid-cols-[auto_1fr_auto] items-center gap-3 px-4 py-3 hover:bg-muted/30 transition-colors"
-                >
-                  <input
-                    type="checkbox"
-                    aria-label={`Select ${contactName(c)}`}
-                    checked={isChecked}
-                    onChange={() => toggleOne(c.id)}
-                    className="h-4 w-4 rounded border-border accent-primary cursor-pointer"
-                  />
-                  <div className="min-w-0 flex items-center gap-2 flex-wrap">
-                    <h3 className="text-sm font-semibold text-foreground truncate max-w-[260px]">
-                      {contactName(c)}
-                    </h3>
-                    <div className="flex flex-wrap gap-1.5">
-                      {tags.map((t) => (
-                        <span
-                          key={t}
-                          className={`inline-flex items-center px-2 py-0.5 rounded-full border text-[10px] font-medium ${tagClass(t)}`}
-                        >
-                          {t}
-                        </span>
-                      ))}
-                      {tags.length === 0 && (
-                        <span className="text-[11px] text-muted-foreground">
-                          No tags
-                        </span>
+        <div className="rounded-xl border border-border bg-card shadow-card overflow-x-auto">
+          <div className="min-w-[760px]">
+            <div className="grid grid-cols-[auto_1.4fr_1.2fr_1.6fr_auto] items-center gap-3 px-4 py-2.5 border-b border-border bg-muted/40 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+              <input
+                type="checkbox"
+                aria-label="Select all"
+                checked={allSelected}
+                ref={(el) => {
+                  if (el) el.indeterminate = someSelected;
+                }}
+                onChange={toggleAll}
+                className="h-4 w-4 rounded border-border accent-primary cursor-pointer"
+              />
+              <span>Contact</span>
+              <span>Category Tags</span>
+              <span>Cycle Tags</span>
+              <span className="pr-1 text-right">Actions</span>
+            </div>
+            <ul className="divide-y divide-border">
+              {sorted.map((c) => {
+                const tags = c.tags || [];
+                const categoryTags = tags.filter((t) => CATEGORY_TAGS.has(t));
+                const cycleTags = tags.filter(
+                  (t) => t !== "active-client" && !CATEGORY_TAGS.has(t),
+                );
+                const removable = tags.filter(
+                  (t) => !PROTECTED_TAGS.includes(t),
+                );
+                const isClearing = clearingId === c.id;
+                const isChecked = selected.has(c.id);
+                const company = (c.companyName || "").trim();
+                const full = [c.firstName, c.lastName]
+                  .filter(Boolean)
+                  .join(" ")
+                  .trim();
+                return (
+                  <li
+                    key={c.id}
+                    className="grid grid-cols-[auto_1.4fr_1.2fr_1.6fr_auto] items-start gap-3 px-4 py-3 hover:bg-muted/30 transition-colors"
+                  >
+                    <input
+                      type="checkbox"
+                      aria-label={`Select ${contactName(c)}`}
+                      checked={isChecked}
+                      onChange={() => toggleOne(c.id)}
+                      className="h-4 w-4 mt-1 rounded border-border accent-primary cursor-pointer"
+                    />
+                    <div className="min-w-0">
+                      <h3 className="text-sm font-semibold text-foreground break-words">
+                        {company || full || "Unnamed Contact"}
+                      </h3>
+                      {company && full && (
+                        <p className="text-[11px] text-muted-foreground break-words">
+                          {full}
+                        </p>
                       )}
                     </div>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    {isAdmin && (
-                      <button
-                        onClick={() => openSingle(c)}
-                        disabled={isClearing || removable.length === 0 || busy}
-                        className="inline-flex items-center gap-1.5 h-8 px-2.5 rounded-md text-[11px] font-semibold bg-destructive/10 text-destructive border border-destructive/20 hover:bg-destructive/15 transition-colors disabled:opacity-40"
-                      >
-                        {isClearing ? (
-                          <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                        ) : (
-                          <Trash2 className="h-3.5 w-3.5" />
-                        )}
-                        Clear Cycle Tags
-                        {removable.length > 0 && (
-                          <span className="text-[10px] opacity-70">
-                            ({removable.length})
+                    <div className="flex flex-wrap gap-1.5">
+                      {categoryTags.length === 0 ? (
+                        <span className="text-[11px] text-muted-foreground">
+                          —
+                        </span>
+                      ) : (
+                        categoryTags.map((t) => (
+                          <span
+                            key={t}
+                            className={`inline-flex items-center px-2 py-0.5 rounded-full border text-[10px] font-medium ${tagClass(t)}`}
+                          >
+                            {t}
                           </span>
-                        )}
-                      </button>
-                    )}
-                    {isAdmin && (
+                        ))
+                      )}
+                    </div>
+                    <div className="flex flex-wrap gap-1.5">
+                      {cycleTags.length === 0 ? (
+                        <span className="text-[11px] text-muted-foreground">
+                          No cycle tags
+                        </span>
+                      ) : (
+                        cycleTags.map((t) => (
+                          <span
+                            key={t}
+                            className={`inline-flex items-center px-2 py-0.5 rounded-full border text-[10px] font-medium ${tagClass(t)}`}
+                          >
+                            {t}
+                          </span>
+                        ))
+                      )}
+                    </div>
+                    <div className="flex flex-col items-stretch gap-1.5 min-w-[140px]">
                       <button
-                        onClick={() => setRemoving(c)}
-                        disabled={busy || removingId === c.id}
-                        className="inline-flex items-center gap-1.5 h-8 px-2.5 rounded-md text-[11px] font-semibold bg-destructive/15 text-destructive border border-destructive/30 hover:bg-destructive/25 transition-colors disabled:opacity-40"
+                        onClick={() => openEdit(c)}
+                        disabled={busy}
+                        className="inline-flex items-center justify-center gap-1.5 h-8 px-2.5 rounded-md text-[11px] font-semibold bg-primary/10 text-primary border border-primary/20 hover:bg-primary/15 transition-colors disabled:opacity-40"
                       >
-                        {removingId === c.id ? (
-                          <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                        ) : (
-                          <UserMinus className="h-3.5 w-3.5" />
-                        )}
-                        Remove Client
+                        <Pencil className="h-3.5 w-3.5" />
+                        Edit Tags
                       </button>
-                    )}
-                  </div>
-                </li>
-              );
-            })}
-          </ul>
+                      {isAdmin && (
+                        <button
+                          onClick={() => openSingle(c)}
+                          disabled={isClearing || removable.length === 0 || busy}
+                          className="inline-flex items-center justify-center gap-1.5 h-8 px-2.5 rounded-md text-[11px] font-semibold bg-destructive/10 text-destructive border border-destructive/20 hover:bg-destructive/15 transition-colors disabled:opacity-40"
+                        >
+                          {isClearing ? (
+                            <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                          ) : (
+                            <Trash2 className="h-3.5 w-3.5" />
+                          )}
+                          Clear Cycle Tags
+                          {removable.length > 0 && (
+                            <span className="text-[10px] opacity-70">
+                              ({removable.length})
+                            </span>
+                          )}
+                        </button>
+                      )}
+                      {isAdmin && (
+                        <button
+                          onClick={() => setRemoving(c)}
+                          disabled={busy || removingId === c.id}
+                          className="inline-flex items-center justify-center gap-1.5 h-8 px-2.5 rounded-md text-[11px] font-semibold bg-destructive/15 text-destructive border border-destructive/30 hover:bg-destructive/25 transition-colors disabled:opacity-40"
+                        >
+                          {removingId === c.id ? (
+                            <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                          ) : (
+                            <UserMinus className="h-3.5 w-3.5" />
+                          )}
+                          Remove Client
+                        </button>
+                      )}
+                    </div>
+                  </li>
+                );
+              })}
+            </ul>
+          </div>
         </div>
       )}
+
+      <Dialog
+        open={!!editing}
+        onOpenChange={(o) => {
+          if (!o && !savingEdit) setEditing(null);
+        }}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>
+              Edit Category Tags — {editing ? contactName(editing) : ""}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-2">
+            {CATEGORY_OPTIONS.map(({ tag, label }) => (
+              <label
+                key={tag}
+                className="flex items-center gap-2 px-3 py-2 rounded-md border border-border hover:bg-muted/30 cursor-pointer"
+              >
+                <input
+                  type="checkbox"
+                  checked={editingSelected.has(tag)}
+                  onChange={() => toggleEditTag(tag)}
+                  className="h-4 w-4 rounded border-border accent-primary cursor-pointer"
+                />
+                <span className="text-sm text-foreground">{label}</span>
+                <span className="ml-auto text-[10px] text-muted-foreground">
+                  {tag}
+                </span>
+              </label>
+            ))}
+          </div>
+          <DialogFooter>
+            <button
+              onClick={() => setEditing(null)}
+              disabled={savingEdit}
+              className="h-9 px-3 rounded-md text-xs font-semibold border border-border bg-card hover:bg-muted transition-colors disabled:opacity-40"
+            >
+              Cancel
+            </button>
+            <button
+              onClick={saveEdit}
+              disabled={savingEdit}
+              className="inline-flex items-center gap-1.5 h-9 px-3 rounded-md text-xs font-semibold bg-primary text-primary-foreground hover:bg-primary/90 transition-colors disabled:opacity-40"
+            >
+              {savingEdit && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
+              Save
+            </button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
 
       <AlertDialog
         open={!!pending}
