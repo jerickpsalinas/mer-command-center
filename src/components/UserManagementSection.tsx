@@ -108,11 +108,11 @@ export default function UserManagementSection() {
     try {
       await callAdmin("invite", {
         method: "POST",
-        body: JSON.stringify({
+        body: {
           name: inviteName.trim(),
           email: inviteEmail.trim(),
           role: inviteRole,
-        }),
+        },
       });
       toast.success(`Invite sent to ${inviteEmail.trim()}`);
       setInviteOpen(false);
