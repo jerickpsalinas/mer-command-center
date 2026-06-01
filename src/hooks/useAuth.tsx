@@ -100,7 +100,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     effectiveRole,
     viewAsRole: actualRole === "developer" ? viewAsRole : null,
     setViewAsRole,
-    isAdmin: effectiveRole === "admin",
+    // Developer has full admin access in addition to its own role
+    isAdmin: effectiveRole === "admin" || effectiveRole === "developer",
     isBookkeeper: effectiveRole === "bookkeeper",
     isDeveloper: effectiveRole === "developer",
     signOut,
