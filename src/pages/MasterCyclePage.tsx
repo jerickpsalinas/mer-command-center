@@ -112,6 +112,7 @@ export default function MasterCyclePage() {
   const [expanded, setExpanded] = useState<string | null>(null);
   const { open: openClient, modal: clientModal } = useClientDetails();
   const { tagsMap, applyTag } = useGhlTags();
+  const { isAdmin } = useAuth();
   const [applyingId, setApplyingId] = useState<string | null>(null);
 
   const handleApplyTag = async (
