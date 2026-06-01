@@ -33,12 +33,15 @@ type ManagedUser = {
 
 const ROLES: AppRole[] = ["admin", "bookkeeper", "developer"];
 
-async function callAdmin(action: string, init: RequestInit = {}) {
+async function callAdmin(
+  action: string,
+  opts: { method?: string; body?: unknown } = {},
+) {
   const { data: { session } } = await supabase.auth.getSession();
   const res = await supabase.functions.invoke(`admin-users?action=${action}`, {
-    ...init,
+    method: (opts.method as any) ?? "POST",
+    body: opts.body,
     headers: {
-      ...(init.headers || {}),
       Authorization: `Bearer ${session?.access_token ?? ""}`,
     },
   });
