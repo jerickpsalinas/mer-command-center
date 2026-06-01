@@ -137,7 +137,18 @@
   h1, h2, h3, h4, h5, h6 {
     text-wrap: balance;
   }
-}
+  }
+
+  /* Prevent browser autofill from forcing black text on dark inputs */
+  input:-webkit-autofill,
+  input:-webkit-autofill:hover,
+  input:-webkit-autofill:focus,
+  input:-webkit-autofill:active {
+    -webkit-text-fill-color: hsl(var(--foreground)) !important;
+    -webkit-box-shadow: 0 0 0 1000px hsl(var(--background)) inset !important;
+    caret-color: hsl(var(--foreground));
+    transition: background-color 5000s ease-in-out 0s;
+  }
 
 @layer utilities {
   .font-mono-data {
