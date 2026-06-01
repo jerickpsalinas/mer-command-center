@@ -325,6 +325,15 @@ export default function ClientsPage() {
             )}
           </div>
 
+          <button
+            type="button"
+            onClick={() => setComingSoon({ open: true, title: "QBO Filter — Coming Soon", message: "This filter will show clients who have not yet connected their QuickBooks Online account. It requires the QBO integration to be active first." })}
+            className="inline-flex items-center gap-1.5 text-[11px] font-semibold px-2.5 py-1.5 rounded-md border bg-muted/30 text-muted-foreground border-border/50 hover:bg-muted/50 transition-colors opacity-80 hover:opacity-100"
+          >
+            <Lock className="h-3 w-3" />
+            QBO Not Connected
+          </button>
+
           {hasActiveFilter && (
             <button
               onClick={() => {
