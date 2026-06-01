@@ -76,6 +76,12 @@ export default function ClientsPage() {
   const [cycleStatusFilter, setCycleStatusFilter] = useState<
     "all" | "escalation-active" | "bank-reconnection-active" | "statement-request-active" | "docs-request-active" | "ready-for-pipeline"
   >("all");
+  const [comingSoon, setComingSoon] = useState<{ open: boolean; title: string; message: string }>({
+    open: false,
+    title: "",
+    message: "",
+  });
+
   
 
   if (isLoading) return <DataLoading />;
