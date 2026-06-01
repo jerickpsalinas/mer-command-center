@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { Loader2, Pencil, RefreshCw, Search, Trash2, UserCheck, UserMinus } from "lucide-react";
+import { Loader2, Pencil, RefreshCw, Search, Trash2, UserCheck, UserMinus, X } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
 import {
@@ -62,10 +62,25 @@ const ghlHeaders = (extra: Record<string, string> = {}) => ({
   ...extra,
 });
 
+function capitalizeWords(s: string) {
+  return s
+    .split(/\s+/)
+    .filter(Boolean)
+    .map((w) => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase())
+    .join(" ");
+}
+
+function hasTag(c: GhlContact, tag: string) {
+  const t = tag.toLowerCase();
+  return (c.tags || []).some((x) => (x || "").toLowerCase() === t);
+}
+
 function contactName(c: GhlContact) {
-  const company = (c.companyName || "").trim();
+  const company = capitalizeWords((c.companyName || "").trim());
   if (company) return company;
-  const full = [c.firstName, c.lastName].filter(Boolean).join(" ").trim();
+  const full = capitalizeWords(
+    [c.firstName, c.lastName].filter(Boolean).join(" ").trim(),
+  );
   return full || "Unnamed Contact";
 }
 
@@ -325,24 +340,20 @@ export default function GhlActiveClientsPage() {
   );
 
   const regularCount = useMemo(
-    () =>
-      sortedAll.filter((c) => (c.tags || []).includes("ready-for-pipeline"))
-        .length,
+    () => sortedAll.filter((c) => hasTag(c, "ready-for-pipeline")).length,
     [sortedAll],
   );
   const cleanupCount = useMemo(
-    () =>
-      sortedAll.filter((c) => (c.tags || []).includes("ready-for-cleanup"))
-        .length,
+    () => sortedAll.filter((c) => hasTag(c, "ready-for-cleanup")).length,
     [sortedAll],
   );
 
   const sorted = useMemo(() => {
     let list = sortedAll;
     if (filter === "regular")
-      list = list.filter((c) => (c.tags || []).includes("ready-for-pipeline"));
+      list = list.filter((c) => hasTag(c, "ready-for-pipeline"));
     else if (filter === "cleanup")
-      list = list.filter((c) => (c.tags || []).includes("ready-for-cleanup"));
+      list = list.filter((c) => hasTag(c, "ready-for-cleanup"));
     const q = search.trim().toLowerCase();
     if (q) list = list.filter((c) => contactName(c).toLowerCase().includes(q));
     return list;
@@ -498,8 +509,18 @@ export default function GhlActiveClientsPage() {
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Search clients..."
-            className="w-full h-9 pl-9 pr-3 rounded-lg border border-border bg-background text-foreground text-xs focus:outline-none focus:ring-2 focus:ring-primary/30"
+            className="w-full h-9 pl-9 pr-9 rounded-lg border border-border bg-background text-foreground text-xs focus:outline-none focus:ring-2 focus:ring-primary/30"
           />
+          {search && (
+            <button
+              type="button"
+              aria-label="Clear search"
+              onClick={() => setSearch("")}
+              className="absolute right-2 top-1/2 -translate-y-1/2 inline-flex items-center justify-center h-6 w-6 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+            >
+              <X className="h-3.5 w-3.5" />
+            </button>
+          )}
         </div>
       </div>
 
@@ -525,7 +546,7 @@ export default function GhlActiveClientsPage() {
       {!loading && !error && sorted.length > 0 && (
         <div className="rounded-xl border border-border bg-card shadow-card overflow-x-auto">
           <div className="min-w-[760px]">
-            <div className="grid grid-cols-[auto_1.4fr_1.2fr_1.6fr_auto] items-center gap-3 px-4 py-2.5 border-b border-border bg-muted/40 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+            <div className="grid grid-cols-[24px_1.4fr_1.2fr_1.6fr_160px] items-center gap-3 px-4 py-2.5 border-b border-border bg-muted/40 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
               <input
                 type="checkbox"
                 aria-label="Select all"
@@ -553,15 +574,14 @@ export default function GhlActiveClientsPage() {
                 );
                 const isClearing = clearingId === c.id;
                 const isChecked = selected.has(c.id);
-                const company = (c.companyName || "").trim();
-                const full = [c.firstName, c.lastName]
-                  .filter(Boolean)
-                  .join(" ")
-                  .trim();
+                const company = capitalizeWords((c.companyName || "").trim());
+                const full = capitalizeWords(
+                  [c.firstName, c.lastName].filter(Boolean).join(" ").trim(),
+                );
                 return (
                   <li
                     key={c.id}
-                    className="grid grid-cols-[auto_1.4fr_1.2fr_1.6fr_auto] items-start gap-3 px-4 py-3 hover:bg-muted/30 transition-colors"
+                    className="grid grid-cols-[24px_1.4fr_1.2fr_1.6fr_160px] items-start gap-3 px-4 py-3 hover:bg-muted/30 transition-colors"
                   >
                     <input
                       type="checkbox"
@@ -612,7 +632,7 @@ export default function GhlActiveClientsPage() {
                         ))
                       )}
                     </div>
-                    <div className="flex flex-col items-stretch gap-1.5 min-w-[140px]">
+                    <div className="flex flex-col items-stretch gap-1.5">
                       <button
                         onClick={() => openEdit(c)}
                         disabled={busy}
