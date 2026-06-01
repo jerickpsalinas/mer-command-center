@@ -122,6 +122,11 @@ export default function ClientDetailsModal({ open, onClose, client, onViewHistor
   const [catAiResponse, setCatAiResponse] = useState<any>(null);
   const [catConfirmLoading, setCatConfirmLoading] = useState(false);
   const [catOverrideText, setCatOverrideText] = useState("");
+  const [comingSoon, setComingSoon] = useState<{ open: boolean; title: string; message: string }>({
+    open: false,
+    title: "",
+    message: "",
+  });
 
   const ghlContactId =
     client?.ghlContactId ||
