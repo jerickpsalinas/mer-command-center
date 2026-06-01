@@ -546,7 +546,7 @@ export default function GhlActiveClientsPage() {
       {!loading && !error && sorted.length > 0 && (
         <div className="rounded-xl border border-border bg-card shadow-card overflow-x-auto">
           <div className="min-w-[760px]">
-            <div className="grid grid-cols-[auto_1.4fr_1.2fr_1.6fr_auto] items-center gap-3 px-4 py-2.5 border-b border-border bg-muted/40 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+            <div className="grid grid-cols-[24px_1.4fr_1.2fr_1.6fr_160px] items-center gap-3 px-4 py-2.5 border-b border-border bg-muted/40 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
               <input
                 type="checkbox"
                 aria-label="Select all"
