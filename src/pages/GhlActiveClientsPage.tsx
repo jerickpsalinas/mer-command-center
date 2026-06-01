@@ -632,7 +632,7 @@ export default function GhlActiveClientsPage() {
                         ))
                       )}
                     </div>
-                    <div className="flex flex-col items-stretch gap-1.5 min-w-[140px]">
+                    <div className="flex flex-col items-stretch gap-1.5">
                       <button
                         onClick={() => openEdit(c)}
                         disabled={busy}
