@@ -303,15 +303,17 @@ export default function GhlActiveClientsPage() {
           </span>
         </div>
         <div className="flex items-center gap-2">
-          <button
-            onClick={openBulk}
-            disabled={selected.size === 0 || busy}
-            className="inline-flex items-center gap-1.5 h-9 px-3 rounded-lg text-xs font-semibold bg-destructive/10 text-destructive border border-destructive/20 hover:bg-destructive/15 transition-colors disabled:opacity-40"
-          >
-            <Trash2 className="h-3.5 w-3.5" />
-            Clear Cycle Tags
-            {selected.size > 0 && <span>({selected.size} selected)</span>}
-          </button>
+          {isAdmin && (
+            <button
+              onClick={openBulk}
+              disabled={selected.size === 0 || busy}
+              className="inline-flex items-center gap-1.5 h-9 px-3 rounded-lg text-xs font-semibold bg-destructive/10 text-destructive border border-destructive/20 hover:bg-destructive/15 transition-colors disabled:opacity-40"
+            >
+              <Trash2 className="h-3.5 w-3.5" />
+              Clear Cycle Tags
+              {selected.size > 0 && <span>({selected.size} selected)</span>}
+            </button>
+          )}
           <button
             onClick={fetchAll}
             disabled={loading}
