@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { Loader2, RefreshCw, Trash2, UserCheck, UserMinus } from "lucide-react";
+import { Loader2, Pencil, RefreshCw, Search, Trash2, UserCheck, UserMinus } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
 import {
@@ -12,6 +12,13 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 
 const GHL_BASE = "https://services.leadconnectorhq.com";
 const LOCATION_ID = "2UvLCJLDqEYjWtuPdjaR";
@@ -19,6 +26,7 @@ const TOKEN = "pit-9e416e9c-99e8-4507-9c57-e6c824f50723";
 
 const PROTECTED_TAGS = [
   "active-client",
+  "ready-for-cleanup",
   "mer-workflow",
   "ap-expense",
   "ap-payroll",
@@ -32,6 +40,13 @@ const CATEGORY_TAGS = new Set([
   "ar-education",
   "ar-nonprofits",
 ]);
+const CATEGORY_OPTIONS: { tag: string; label: string }[] = [
+  { tag: "mer-workflow", label: "MER Workflow" },
+  { tag: "ap-expense", label: "AP — Expense" },
+  { tag: "ap-payroll", label: "AP — Payroll" },
+  { tag: "ar-education", label: "AR — Education" },
+  { tag: "ar-nonprofits", label: "AR — Nonprofits" },
+];
 
 type GhlContact = {
   id: string;
