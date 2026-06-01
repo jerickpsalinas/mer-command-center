@@ -133,7 +133,7 @@ export default function UserManagementSection() {
     try {
       await callAdmin("update-role", {
         method: "POST",
-        body: JSON.stringify({ id: u.id, role }),
+        body: { id: u.id, role },
       });
       setUsers((prev) => prev.map((x) => (x.id === u.id ? { ...x, role } : x)));
       toast.success("Role updated");
