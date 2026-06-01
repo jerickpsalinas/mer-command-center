@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
-import { Loader2, RefreshCw, Trash2, UserCheck } from "lucide-react";
+import { Loader2, RefreshCw, Trash2, UserCheck, UserMinus } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
+import { useAuth } from "@/hooks/useAuth";
 import {
   AlertDialog,
   AlertDialogAction,
