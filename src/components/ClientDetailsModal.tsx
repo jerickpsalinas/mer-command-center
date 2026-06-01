@@ -110,6 +110,7 @@ export default function ClientDetailsModal({ open, onClose, client, onViewHistor
   const [editCategorySelection, setEditCategorySelection] = useState<Record<string, boolean>>({});
   const [editCategorySaving, setEditCategorySaving] = useState(false);
   const [clearCycleLoading, setClearCycleLoading] = useState(false);
+  const { isAdmin } = useAuth();
   const [categorizeLoading, setCategorizeLoading] = useState(false);
   const [categorizeOpen, setCategorizeOpen] = useState(false);
   const [catStep, setCatStep] = useState<"form" | "suggestion" | "override">("form");
