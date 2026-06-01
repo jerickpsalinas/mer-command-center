@@ -161,11 +161,43 @@ export default function AppLayout() {
           })}
         </nav>
 
-        <div className="border-t border-border px-4 py-3">
-          {sidebarOpen && (
-            <p className="text-[11px] text-muted-foreground font-medium">
-              MER Dashboard v1.0
-            </p>
+        <div className="border-t border-border px-3 py-3 space-y-2">
+          {sidebarOpen ? (
+            <>
+              <div className="flex items-center gap-2 px-1">
+                <div className="h-8 w-8 rounded-full bg-primary/15 flex items-center justify-center text-[11px] font-semibold text-primary shrink-0">
+                  {(profile?.name || user?.email || "?").slice(0, 1).toUpperCase()}
+                </div>
+                <div className="min-w-0 flex-1">
+                  <p className="text-[12px] font-semibold text-foreground truncate">
+                    {profile?.name || user?.email}
+                  </p>
+                  {profile?.role && (
+                    <span className="inline-flex items-center px-1.5 py-0.5 mt-0.5 rounded-full text-[9px] font-bold uppercase tracking-wider bg-primary/10 text-primary border border-primary/20">
+                      {profile.role}
+                    </span>
+                  )}
+                </div>
+              </div>
+              <button
+                onClick={signOut}
+                className="w-full inline-flex items-center gap-2 px-2.5 py-1.5 rounded-md text-[12px] font-medium text-muted-foreground hover:bg-accent hover:text-destructive transition-colors"
+              >
+                <LogOut className="h-4 w-4" />
+                Sign Out
+              </button>
+              <p className="text-[10px] text-muted-foreground/70 font-medium pt-1">
+                MER Dashboard v1.0
+              </p>
+            </>
+          ) : (
+            <button
+              onClick={signOut}
+              className="w-full h-9 flex items-center justify-center rounded-md text-muted-foreground hover:bg-accent hover:text-destructive transition-colors"
+              title="Sign out"
+            >
+              <LogOut className="h-4 w-4" />
+            </button>
           )}
         </div>
       </aside>
