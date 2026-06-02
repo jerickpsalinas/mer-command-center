@@ -44,6 +44,14 @@ const WEBHOOK_URL =
 const CLIENT_TYPES = ["School", "For-Profit", "Non-Profit"] as const;
 const BOOKKEEPERS = ["Jessica", "Sahir", "Maricel"] as const;
 const STMT_STATUSES = ["Received", "Not Received"] as const;
+const STATUS_PRESETS = [
+  "Need to reconnect bank feed",
+  "Waiting for bank statements",
+  "Ready for bank reconciliation",
+  "Ready for manager's review",
+  "Completed",
+] as const;
+const STATUS_CUSTOM_VALUE = "__custom__";
 
 type Mode = "add" | "update";
 
@@ -174,6 +182,14 @@ export default function MerFormModal({ open, mode, client, clients, onClose }: P
   const [ghlOptions, setGhlOptions] = useState<ClientOption[]>([]);
   const [ghlLoading, setGhlLoading] = useState(false);
   const [ghlError, setGhlError] = useState<string | null>(null);
+  const [statusCustom, setStatusCustom] = useState<boolean>(
+    () => !!form.status && !STATUS_PRESETS.includes(form.status as any),
+  );
+  useEffect(() => {
+    if (form.status && !STATUS_PRESETS.includes(form.status as any)) {
+      setStatusCustom(true);
+    }
+  }, [form.status]);
 
   // Deduped clients from sheet (one row per client) for Update picker
   const sheetOptions = (() => {
@@ -634,11 +650,47 @@ export default function MerFormModal({ open, mode, client, clients, onClose }: P
             </div>
 
             <Field label="Status (optional)">
-              <Input
-                value={form.status}
-                onChange={(e) => update("status", e.target.value)}
-                placeholder="e.g. On Hold, In Review…"
-              />
+              <div className="space-y-2">
+                <Select
+                  value={
+                    statusCustom
+                      ? STATUS_CUSTOM_VALUE
+                      : STATUS_PRESETS.includes(form.status as any)
+                        ? form.status
+                        : ""
+                  }
+                  onValueChange={(v) => {
+                    if (v === STATUS_CUSTOM_VALUE) {
+                      setStatusCustom(true);
+                      if (STATUS_PRESETS.includes(form.status as any)) {
+                        update("status", "");
+                      }
+                    } else {
+                      setStatusCustom(false);
+                      update("status", v);
+                    }
+                  }}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select status" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {STATUS_PRESETS.map((s) => (
+                      <SelectItem key={s} value={s}>
+                        {s}
+                      </SelectItem>
+                    ))}
+                    <SelectItem value={STATUS_CUSTOM_VALUE}>Custom…</SelectItem>
+                  </SelectContent>
+                </Select>
+                {statusCustom && (
+                  <Input
+                    value={form.status}
+                    onChange={(e) => update("status", e.target.value)}
+                    placeholder="Enter custom status…"
+                  />
+                )}
+              </div>
             </Field>
 
             {error && (

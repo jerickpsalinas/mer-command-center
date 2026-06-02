@@ -15,6 +15,16 @@ import {
   Loader2,
 } from "lucide-react";
 import { toast } from "sonner";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { useSheetData } from "@/hooks/useSheetData";
 import { DataLoading, DataError } from "@/components/DataStatus";
 import type { CycleEntry } from "@/services/googleSheets";
@@ -114,6 +124,16 @@ export default function MasterCyclePage() {
   const { tagsMap, applyTag } = useGhlTags();
   const { isAdmin } = useAuth();
   const [applyingId, setApplyingId] = useState<string | null>(null);
+  const [pendingTag, setPendingTag] = useState<
+    | {
+        contactId: string;
+        tag: string;
+        displayName: string;
+        clientName: string;
+        cycleMonth: string;
+      }
+    | null
+  >(null);
 
   const handleApplyTag = async (
     contactId: string,
@@ -673,7 +693,10 @@ export default function MasterCyclePage() {
                       <button
                         onClick={(e) => {
                           e.stopPropagation();
-                          handleApplyTag(c.ghlContactId, cycleInfo.next!, primary, {
+                          setPendingTag({
+                            contactId: c.ghlContactId,
+                            tag: cycleInfo.next!,
+                            displayName: primary,
                             clientName: c.clientName,
                             cycleMonth: c.month,
                           });
@@ -836,6 +859,45 @@ export default function MasterCyclePage() {
         })}
       </div>
       {clientModal}
+      <AlertDialog
+        open={pendingTag !== null}
+        onOpenChange={(open) => {
+          if (!open) setPendingTag(null);
+        }}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Apply tag?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will apply{" "}
+              <span className="font-mono-data font-semibold text-foreground">
+                {pendingTag?.tag}
+              </span>{" "}
+              to{" "}
+              <span className="font-semibold text-foreground">
+                {pendingTag?.displayName}
+              </span>
+              . This will trigger automation. Are you sure?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                if (!pendingTag) return;
+                const p = pendingTag;
+                setPendingTag(null);
+                handleApplyTag(p.contactId, p.tag, p.displayName, {
+                  clientName: p.clientName,
+                  cycleMonth: p.cycleMonth,
+                });
+              }}
+            >
+              Apply tag
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
