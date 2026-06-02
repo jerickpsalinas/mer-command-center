@@ -859,6 +859,45 @@ export default function MasterCyclePage() {
         })}
       </div>
       {clientModal}
+      <AlertDialog
+        open={pendingTag !== null}
+        onOpenChange={(open) => {
+          if (!open) setPendingTag(null);
+        }}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Apply tag?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will apply{" "}
+              <span className="font-mono-data font-semibold text-foreground">
+                {pendingTag?.tag}
+              </span>{" "}
+              to{" "}
+              <span className="font-semibold text-foreground">
+                {pendingTag?.displayName}
+              </span>
+              . This will trigger automation. Are you sure?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                if (!pendingTag) return;
+                const p = pendingTag;
+                setPendingTag(null);
+                handleApplyTag(p.contactId, p.tag, p.displayName, {
+                  clientName: p.clientName,
+                  cycleMonth: p.cycleMonth,
+                });
+              }}
+            >
+              Apply tag
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
