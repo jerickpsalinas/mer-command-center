@@ -693,7 +693,10 @@ export default function MasterCyclePage() {
                       <button
                         onClick={(e) => {
                           e.stopPropagation();
-                          handleApplyTag(c.ghlContactId, cycleInfo.next!, primary, {
+                          setPendingTag({
+                            contactId: c.ghlContactId,
+                            tag: cycleInfo.next!,
+                            displayName: primary,
                             clientName: c.clientName,
                             cycleMonth: c.month,
                           });
