@@ -124,6 +124,16 @@ export default function MasterCyclePage() {
   const { tagsMap, applyTag } = useGhlTags();
   const { isAdmin } = useAuth();
   const [applyingId, setApplyingId] = useState<string | null>(null);
+  const [pendingTag, setPendingTag] = useState<
+    | {
+        contactId: string;
+        tag: string;
+        displayName: string;
+        clientName: string;
+        cycleMonth: string;
+      }
+    | null
+  >(null);
 
   const handleApplyTag = async (
     contactId: string,
