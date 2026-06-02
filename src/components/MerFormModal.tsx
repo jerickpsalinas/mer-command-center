@@ -182,6 +182,14 @@ export default function MerFormModal({ open, mode, client, clients, onClose }: P
   const [ghlOptions, setGhlOptions] = useState<ClientOption[]>([]);
   const [ghlLoading, setGhlLoading] = useState(false);
   const [ghlError, setGhlError] = useState<string | null>(null);
+  const [statusCustom, setStatusCustom] = useState<boolean>(
+    () => !!form.status && !STATUS_PRESETS.includes(form.status as any),
+  );
+  useEffect(() => {
+    if (form.status && !STATUS_PRESETS.includes(form.status as any)) {
+      setStatusCustom(true);
+    }
+  }, [form.status]);
 
   // Deduped clients from sheet (one row per client) for Update picker
   const sheetOptions = (() => {
