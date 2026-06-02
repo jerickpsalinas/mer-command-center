@@ -650,11 +650,47 @@ export default function MerFormModal({ open, mode, client, clients, onClose }: P
             </div>
 
             <Field label="Status (optional)">
-              <Input
-                value={form.status}
-                onChange={(e) => update("status", e.target.value)}
-                placeholder="e.g. On Hold, In Review…"
-              />
+              <div className="space-y-2">
+                <Select
+                  value={
+                    statusCustom
+                      ? STATUS_CUSTOM_VALUE
+                      : STATUS_PRESETS.includes(form.status as any)
+                        ? form.status
+                        : ""
+                  }
+                  onValueChange={(v) => {
+                    if (v === STATUS_CUSTOM_VALUE) {
+                      setStatusCustom(true);
+                      if (STATUS_PRESETS.includes(form.status as any)) {
+                        update("status", "");
+                      }
+                    } else {
+                      setStatusCustom(false);
+                      update("status", v);
+                    }
+                  }}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select status" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {STATUS_PRESETS.map((s) => (
+                      <SelectItem key={s} value={s}>
+                        {s}
+                      </SelectItem>
+                    ))}
+                    <SelectItem value={STATUS_CUSTOM_VALUE}>Custom…</SelectItem>
+                  </SelectContent>
+                </Select>
+                {statusCustom && (
+                  <Input
+                    value={form.status}
+                    onChange={(e) => update("status", e.target.value)}
+                    placeholder="Enter custom status…"
+                  />
+                )}
+              </div>
             </Field>
 
             {error && (
