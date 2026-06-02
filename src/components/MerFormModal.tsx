@@ -44,6 +44,14 @@ const WEBHOOK_URL =
 const CLIENT_TYPES = ["School", "For-Profit", "Non-Profit"] as const;
 const BOOKKEEPERS = ["Jessica", "Sahir", "Maricel"] as const;
 const STMT_STATUSES = ["Received", "Not Received"] as const;
+const STATUS_PRESETS = [
+  "Need to reconnect bank feed",
+  "Waiting for bank statements",
+  "Ready for bank reconciliation",
+  "Ready for manager's review",
+  "Completed",
+] as const;
+const STATUS_CUSTOM_VALUE = "__custom__";
 
 type Mode = "add" | "update";
 
