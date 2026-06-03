@@ -10,7 +10,7 @@ type UnifiedEntry = {
   id: string;
   timestamp: number;
   timestampLabel: string;
-  source: "Action Log" | "MER History";
+  source: "Action Log" | "MER History" | "Status Change";
   action: string;
   clientName: string;
   triggeredBy: string;
@@ -43,6 +43,7 @@ function formatTs(ms: number): string {
 export default function ActivityLogPage() {
   const { data } = useSheetData();
   const [merHistory, setMerHistory] = useState<any[]>([]);
+  const [statusHistory, setStatusHistory] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [bookkeeper, setBookkeeper] = useState<string>("all");
@@ -54,13 +55,13 @@ export default function ActivityLogPage() {
     let cancelled = false;
     (async () => {
       setLoading(true);
-      const { data: rows, error } = await supabase
-        .from("mer_history")
-        .select("*")
-        .order("created_at", { ascending: false })
-        .limit(1000);
+      const [merRes, statusRes] = await Promise.all([
+        supabase.from("mer_history").select("*").order("created_at", { ascending: false }).limit(1000),
+        supabase.from("client_status_history").select("*").order("recorded_at", { ascending: false }).limit(2000),
+      ]);
       if (!cancelled) {
-        setMerHistory(rows ?? []);
+        setMerHistory(merRes.data ?? []);
+        setStatusHistory(statusRes.data ?? []);
         setLoading(false);
       }
     })();
@@ -103,8 +104,23 @@ export default function ActivityLogPage() {
       });
     }
 
+    for (const s of statusHistory) {
+      const ts = s.recorded_at ? Date.parse(s.recorded_at) : 0;
+      out.push({
+        id: `sh-${s.id}`,
+        timestamp: ts,
+        timestampLabel: formatTs(ts),
+        source: "Status Change",
+        action: "Status Change",
+        clientName: s.client_name || "—",
+        triggeredBy: "—",
+        category: "update",
+        details: s.status ? `Status: ${s.status}` : undefined,
+      });
+    }
+
     return out.sort((a, b) => b.timestamp - a.timestamp);
-  }, [data?.actionLog, merHistory]);
+  }, [data?.actionLog, merHistory, statusHistory]);
 
   const bookkeepers = useMemo(() => {
     const s = new Set<string>();
