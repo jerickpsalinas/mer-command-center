@@ -1,6 +1,6 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { motion } from "framer-motion";
-import { Award, TrendingUp, TrendingDown, Users, Clock, AlertTriangle, FileText, Activity, ArrowRight, Search } from "lucide-react";
+import { Award, TrendingUp, TrendingDown, Users, Clock, AlertTriangle, FileText, Activity, ArrowRight, Search, Camera, Loader2 } from "lucide-react";
 import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
 import { useSheetData } from "@/hooks/useSheetData";
 import { DataLoading, DataError } from "@/components/DataStatus";
@@ -8,6 +8,12 @@ import { getBookkeeperPerformance, getBookkeeperPerformanceForMonth, type Bookke
 import KPICard from "@/components/KPICard";
 import MonthFilter from "@/components/MonthFilter";
 import { useClientDetails } from "@/hooks/useClientDetails";
+import { useMerWorkflowContacts, contactDisplayName } from "@/hooks/useMerWorkflowContacts";
+import { useAuth } from "@/hooks/useAuth";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "@/hooks/use-toast";
+import type { Client } from "@/data/mockData";
+
 
 const tooltipStyle = {
   background: "hsl(var(--popover))",
