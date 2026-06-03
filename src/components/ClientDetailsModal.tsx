@@ -784,7 +784,7 @@ export default function ClientDetailsModal({ open, onClose, client, onViewHistor
             setShowClearCycleConfirm(false);
             return;
           }
-          const protectedTags = ['active-client', 'mer-workflow', 'ap-expense', 'ap-payroll', 'ar-education', 'ar-nonprofits'];
+          const protectedTags = ['active-client', 'ready-for-cleanup', 'mer-workflow', 'ap-expense', 'ap-payroll', 'ar-education', 'ar-nonprofits'];
           const tagsToRemove = ghlTags.filter((tag) => !protectedTags.includes(tag));
           if (tagsToRemove.length === 0) {
             toast({
