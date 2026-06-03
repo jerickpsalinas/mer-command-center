@@ -143,7 +143,7 @@ export async function fireDashboardAction(
       data = {};
     }
     if (res.ok && data.success) {
-      void logActivity(payload, true, data.message);
+      void logActivity(payload, true, data.message, triggeredByUser);
       return { success: true, message: data.message };
     }
     if (res.status === 409 && data.allowOverride) {
