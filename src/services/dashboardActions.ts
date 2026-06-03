@@ -16,7 +16,7 @@ export interface ActionPayload {
   merKey: string;
   ghlContactId: string;
   cycleMonth: string;
-  triggeredBy: "dashboard";
+  triggeredBy: string;
   override?: boolean;
   forceOverride?: boolean;
 }
@@ -124,17 +124,12 @@ async function logActivity(
 
 export async function fireDashboardAction(
   payload: ActionPayload,
-  triggeredByUser?: string,
 ): Promise<ActionResult> {
   try {
-    const webhookBody = {
-      ...payload,
-      dashboardUser: triggeredByUser || null,
-    };
     const res = await fetch(WEBHOOK_URL, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(webhookBody),
+      body: JSON.stringify(payload),
     });
     let data: any = {};
     try {
@@ -143,7 +138,7 @@ export async function fireDashboardAction(
       data = {};
     }
     if (res.ok && data.success) {
-      void logActivity(payload, true, data.message, triggeredByUser);
+      void logActivity(payload, true, data.message, payload.triggeredBy);
       return { success: true, message: data.message };
     }
     if (res.status === 409 && data.allowOverride) {
@@ -155,7 +150,7 @@ export async function fireDashboardAction(
         overridePayload: { ...payload, override: true },
       };
     }
-    void logActivity(payload, false, data.message || "Failed", triggeredByUser);
+    void logActivity(payload, false, data.message || "Failed", payload.triggeredBy);
     return {
       success: false,
       errorType: data.errorType || "UNKNOWN_ERROR",
@@ -164,7 +159,7 @@ export async function fireDashboardAction(
       error: data.message,
     };
   } catch {
-    void logActivity(payload, false, "Network error", triggeredByUser);
+    void logActivity(payload, false, "Network error", payload.triggeredBy);
     return {
       success: false,
       errorType: "NETWORK_ERROR",
