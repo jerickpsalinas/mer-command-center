@@ -85,6 +85,7 @@ async function logActivity(
   payload: ActionPayload,
   success: boolean,
   message?: string,
+  triggeredByUser?: string,
 ) {
   try {
     // Capture the actual logged-in user so the Activity Log shows WHO
