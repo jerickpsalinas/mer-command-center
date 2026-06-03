@@ -94,6 +94,45 @@ export default function ClientsPage() {
   const isLatest = monthFilter === "current";
   const monthClients = isLatest ? data.clients : getClientsForMonth(data.merHistory, monthFilter);
 
+  // Source of truth for WHO appears = GHL contacts with the mer-workflow tag.
+  // For each contact, overlay matching MER snapshot data when present; otherwise
+  // emit a "Pending" placeholder so the client still appears.
+  const mergedClients: Client[] = (() => {
+    const norm = (s: string) => s.trim().toLowerCase();
+    const byGhlId = new Map<string, Client>();
+    const byName = new Map<string, Client>();
+    for (const c of monthClients) {
+      const gid = (c as any).ghlContactId as string | undefined;
+      if (gid) byGhlId.set(gid, c);
+      byName.set(norm(c.name), c);
+    }
+    return merWorkflowContacts.map<Client>((contact) => {
+      const matched = byGhlId.get(contact.id) || byName.get(norm(contactDisplayName(contact)));
+      if (matched) return matched;
+      return {
+        id: contact.id,
+        name: contactDisplayName(contact),
+        clientType: "For-Profit",
+        bookkeeper: "—",
+        status: "Pending MER",
+        bankTransactions: "",
+        uncategorizedTransactions: 0,
+        transactionsWithoutPayees: 0,
+        undepositedFunds: 0,
+        unappliedPayments: 0,
+        statementRequestStatus: "",
+        lastReconciledDate: "",
+        prevMonthNotesApproved: false,
+        financialsSentToClient: false,
+        booksClosedInQB: false,
+        completionPct: 0,
+        complianceStatus: "On Hold",
+        ghlContactId: contact.id,
+        categoryTags: (contact.tags || []).join(","),
+      } as Client;
+    });
+  })();
+
   const history = historyClient ? getClientHistory(data.merHistory, historyClient) : [];
   const monthDiff = history.length >= 2 ? diffClientMonths(history[history.length - 2], history[history.length - 1]) : [];
 
