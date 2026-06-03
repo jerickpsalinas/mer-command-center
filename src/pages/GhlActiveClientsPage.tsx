@@ -728,56 +728,8 @@ export default function GhlActiveClientsPage() {
         }}
       >
         <AlertDialogContent>
-          {authStep === "password" && (
-            <>
-              <AlertDialogHeader>
-                <AlertDialogTitle>Admin password required</AlertDialogTitle>
-                <AlertDialogDescription>
-                  Enter the admin password to clear cycle tags
-                  {pending?.kind === "bulk"
-                    ? ` for ${pending.contacts.length} contacts.`
-                    : pending?.kind === "single"
-                      ? ` for ${contactName(pending.contact)}.`
-                      : "."}
-                </AlertDialogDescription>
-              </AlertDialogHeader>
-              <div className="space-y-2">
-                <input
-                  type="password"
-                  autoFocus
-                  value={password}
-                  onChange={(e) => {
-                    setPassword(e.target.value);
-                    if (passwordError) setPasswordError(null);
-                  }}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter") {
-                      e.preventDefault();
-                      submitPassword();
-                    }
-                  }}
-                  placeholder="Admin password"
-                  className="w-full h-10 px-3 rounded-md border border-border bg-background text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
-                />
-                {passwordError && (
-                  <p className="text-xs text-destructive">{passwordError}</p>
-                )}
-              </div>
-              <AlertDialogFooter>
-                <AlertDialogCancel>Cancel</AlertDialogCancel>
-                <AlertDialogAction
-                  onClick={(e) => {
-                    e.preventDefault();
-                    submitPassword();
-                  }}
-                >
-                  Continue
-                </AlertDialogAction>
-              </AlertDialogFooter>
-            </>
-          )}
+          {pending && (
 
-          {authStep === "confirm" && pending && (
             <>
               <AlertDialogHeader>
                 <AlertDialogTitle>Clear cycle tags?</AlertDialogTitle>
