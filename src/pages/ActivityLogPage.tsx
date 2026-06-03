@@ -60,7 +60,6 @@ export default function ActivityLogPage() {
         .order("created_at", { ascending: false })
         .limit(1000);
       if (!cancelled) {
-        if (error) console.error(error);
         setMerHistory(rows ?? []);
         setLoading(false);
       }
