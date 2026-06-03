@@ -104,8 +104,23 @@ export default function ActivityLogPage() {
       });
     }
 
+    for (const s of statusHistory) {
+      const ts = s.recorded_at ? Date.parse(s.recorded_at) : 0;
+      out.push({
+        id: `sh-${s.id}`,
+        timestamp: ts,
+        timestampLabel: formatTs(ts),
+        source: "Status Change",
+        action: "Status Change",
+        clientName: s.client_name || "—",
+        triggeredBy: "—",
+        category: "update",
+        details: s.status ? `Status: ${s.status}` : undefined,
+      });
+    }
+
     return out.sort((a, b) => b.timestamp - a.timestamp);
-  }, [data?.actionLog, merHistory]);
+  }, [data?.actionLog, merHistory, statusHistory]);
 
   const bookkeepers = useMemo(() => {
     const s = new Set<string>();
