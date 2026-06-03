@@ -15,7 +15,7 @@ export interface Client {
   financialsSentToClient: boolean;
   booksClosedInQB: boolean;
   completionPct: number;
-  complianceStatus: "Compliant" | "Non-Compliant" | "On Hold";
+  complianceStatus: "Compliant" | "Non-Compliant" | "On Hold" | "Pending MER";
   merKey?: string;
   ghlContactId?: string;
   categoryTags?: string;

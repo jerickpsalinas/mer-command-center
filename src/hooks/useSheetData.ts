@@ -89,15 +89,16 @@ export function getClientHistory(merHistory: MerHistoryRow[], clientName: string
 // Derived helpers that mirror the old mockData functions
 export function getKPIMetrics(clients: Client[]) {
   const total = clients.length;
-  if (total === 0) return { total: 0, compliant: 0, nonCompliant: 0, onHold: 0, avgCompletion: 0, notReconciled: 0, outstandingStatements: 0, withoutNotes: 0 };
+  if (total === 0) return { total: 0, compliant: 0, nonCompliant: 0, onHold: 0, pendingMer: 0, avgCompletion: 0, notReconciled: 0, outstandingStatements: 0, withoutNotes: 0 };
   const compliant = clients.filter((c) => c.complianceStatus === "Compliant").length;
   const nonCompliant = clients.filter((c) => c.complianceStatus === "Non-Compliant").length;
   const onHold = clients.filter((c) => c.complianceStatus === "On Hold").length;
+  const pendingMer = clients.filter((c) => c.complianceStatus === "Pending MER").length;
   const avgCompletion = Math.round(clients.reduce((s, c) => s + c.completionPct, 0) / total);
   const notReconciled = clients.filter((c) => isUnreconciled(c.lastReconciledDate)).length;
   const outstandingStatements = clients.filter((c) => c.statementRequestStatus.trim().toLowerCase() !== "received").length;
   const withoutNotes = clients.filter((c) => !c.prevMonthNotesApproved).length;
-  return { total, compliant, nonCompliant, onHold, avgCompletion, notReconciled, outstandingStatements, withoutNotes };
+  return { total, compliant, nonCompliant, onHold, pendingMer, avgCompletion, notReconciled, outstandingStatements, withoutNotes };
 }
 
 export function getComplianceBreakdown(clients: Client[]) {

@@ -126,7 +126,7 @@ export default function ClientsPage() {
         financialsSentToClient: false,
         booksClosedInQB: false,
         completionPct: 0,
-        complianceStatus: "On Hold",
+        complianceStatus: "Pending MER",
         ghlContactId: contact.id,
         categoryTags: (contact.tags || []).join(","),
       } as Client;
@@ -405,6 +405,7 @@ export default function ClientsPage() {
             <option value="Compliant">Compliant</option>
             <option value="Non-Compliant">Non-Compliant</option>
             <option value="On Hold">On Hold</option>
+            <option value="Pending MER">Pending MER</option>
           </select>
 
           <select value={bookkeeperFilter} onChange={(e) => setBookkeeperFilter(e.target.value)}

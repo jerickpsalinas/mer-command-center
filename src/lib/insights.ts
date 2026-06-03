@@ -329,7 +329,7 @@ export interface HeatmapCell {
   client: string;
   month: string;
   completionPct: number | null;
-  status: "Compliant" | "Non-Compliant" | "On Hold" | null;
+  status: "Compliant" | "Non-Compliant" | "On Hold" | "Pending MER" | null;
 }
 
 export function buildComplianceHeatmap(history: MerHistoryRow[]): {
