@@ -54,6 +54,7 @@ const App = () => (
                   <Route path="/reports" element={<ReportsPage />} />
                   <Route path="/user-guide" element={<UserGuidePage />} />
                   <Route path="/settings" element={<SettingsPage />} />
+                  <Route path="/activity-log" element={<ActivityLogPage />} />
                 </Route>
                 <Route path="*" element={<NotFound />} />
               </Routes>
