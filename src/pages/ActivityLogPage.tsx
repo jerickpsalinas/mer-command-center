@@ -5,7 +5,9 @@ import { useDeveloperFilter } from "@/hooks/useDeveloperFilter";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { ClipboardList, Search, Loader2 } from "lucide-react";
+import { ClipboardList, Search, Loader2, Calendar } from "lucide-react";
+
+const DEVELOPER_EMAILS = new Set(["jerickpsalinas@gmail.com"]);
 
 type UnifiedEntry = {
   id: string;
