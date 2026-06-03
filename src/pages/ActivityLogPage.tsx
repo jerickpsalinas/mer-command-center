@@ -165,26 +165,36 @@ export default function ActivityLogPage() {
       .sort((a, b) => b.timestamp - a.timestamp);
   }, [data?.actionLog, merHistory, statusHistory, dashboardActions, isDeveloper]);
 
-  // Dropdown lists active non-developer users from user_profiles (so newly
-  // added users show up immediately, even before they've taken any action).
+  // Dynamic user list: union of Action Log triggeredBy + mer_history
+  // submitted_by, excluding any developer (by role or known email).
   const bookkeepers = useMemo(() => {
     const names = new Set<string>();
+    const devEmails = new Set<string>([...DEVELOPER_EMAILS]);
     for (const p of profiles) {
-      if ((p.role || "").toLowerCase() === "developer") continue;
-      if (p.name) names.add(p.name);
+      if ((p.role || "").toLowerCase() === "developer" && p.email) {
+        devEmails.add(p.email.trim().toLowerCase());
+      }
     }
-    // Also include any actor names found in entries that aren't in user_profiles yet.
-    entries.forEach((e) => {
-      if (e.triggeredBy && e.triggeredBy !== "—") names.add(e.triggeredBy);
-    });
-    return Array.from(names).sort();
-  }, [profiles, entries]);
+    const add = (v?: string | null) => {
+      if (!v) return;
+      const trimmed = v.trim();
+      if (!trimmed || trimmed === "—") return;
+      if (devEmails.has(trimmed.toLowerCase())) return;
+      if (isDeveloper(trimmed)) return;
+      names.add(trimmed);
+    };
+    (data?.actionLog ?? []).forEach((a) => add(a.triggeredBy));
+    merHistory.forEach((r) => add(r.submitted_by));
+    return Array.from(names).sort((a, b) => a.localeCompare(b));
+  }, [data?.actionLog, merHistory, profiles, isDeveloper]);
 
+  // Dynamic action list: union of Action Log actionType + mer_history action.
   const actionTypes = useMemo(() => {
     const s = new Set<string>();
-    entries.forEach((e) => e.action && s.add(e.action));
-    return Array.from(s).sort();
-  }, [entries]);
+    (data?.actionLog ?? []).forEach((a) => a.actionType && s.add(a.actionType));
+    merHistory.forEach((r) => r.action && s.add(r.action));
+    return Array.from(s).sort((a, b) => a.localeCompare(b));
+  }, [data?.actionLog, merHistory]);
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
