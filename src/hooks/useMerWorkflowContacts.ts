@@ -1,13 +1,6 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { GHL_BASE, GHL_LOCATION_ID, ghlHeaders } from "@/lib/ghlConfig";
 
-const GHL_BASE = "https://services.leadconnectorhq.com";
-const LOCATION_ID = "2UvLCJLDqEYjWtuPdjaR";
-const TOKEN = "pit-9e416e9c-99e8-4507-9c57-e6c824f50723";
-
-const headers = () => ({
-  Authorization: `Bearer ${TOKEN}`,
-  Version: "2021-07-28",
-});
 
 export type MerWorkflowContact = {
   id: string;
