@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useSheetData } from "@/hooks/useSheetData";
 import { supabase } from "@/integrations/supabase/client";
+import { useDeveloperFilter } from "@/hooks/useDeveloperFilter";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
