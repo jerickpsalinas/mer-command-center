@@ -114,9 +114,7 @@ export default function GhlActiveClientsPage() {
   const [savingEdit, setSavingEdit] = useState(false);
 
   const [pending, setPending] = useState<PendingAction>(null);
-  const [authStep, setAuthStep] = useState<"password" | "confirm" | null>(null);
-  const [password, setPassword] = useState("");
-  const [passwordError, setPasswordError] = useState<string | null>(null);
+
 
   const [clearingId, setClearingId] = useState<string | null>(null);
   const [bulkProgress, setBulkProgress] = useState<{
