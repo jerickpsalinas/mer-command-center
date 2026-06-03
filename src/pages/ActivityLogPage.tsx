@@ -247,8 +247,14 @@ export default function ActivityLogPage() {
           </SelectContent>
         </Select>
         <div className="flex gap-2 lg:col-span-2">
-          <Input type="date" value={fromDate} onChange={(e) => setFromDate(e.target.value)} className="activity-date-input flex-1 min-w-0" />
-          <Input type="date" value={toDate} onChange={(e) => setToDate(e.target.value)} className="activity-date-input flex-1 min-w-0" />
+          <div className="relative flex-1 min-w-0">
+            <Calendar className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input type="date" value={fromDate} onChange={(e) => setFromDate(e.target.value)} className="activity-date-input pl-9" />
+          </div>
+          <div className="relative flex-1 min-w-0">
+            <Calendar className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input type="date" value={toDate} onChange={(e) => setToDate(e.target.value)} className="activity-date-input pl-9" />
+          </div>
         </div>
       </div>
 
