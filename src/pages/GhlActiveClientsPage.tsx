@@ -121,7 +121,7 @@ export default function GhlActiveClientsPage() {
     setError(null);
     try {
       const tagged = await fetch(
-        `${GHL_BASE}/contacts/?locationId=${LOCATION_ID}&limit=100&tags[]=active-client`,
+        `${GHL_BASE}/contacts/?locationId=${GHL_LOCATION_ID}&limit=100&tags[]=active-client`,
         { headers: ghlHeaders() },
       );
       if (tagged.ok) {
@@ -141,7 +141,7 @@ export default function GhlActiveClientsPage() {
       let startAfterId: string | undefined;
       for (let i = 0; i < 50; i++) {
         const params = new URLSearchParams({
-          locationId: LOCATION_ID,
+          locationId: GHL_LOCATION_ID,
           limit: "100",
         });
         if (startAfter != null) params.set("startAfter", String(startAfter));
