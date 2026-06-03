@@ -50,7 +50,7 @@ function getIssueDetails(c: { uncategorizedTransactions: number; bankTransaction
 }
 
 export default function ClientsPage() {
-  const { data, isLoading, error } = useSheetData();
+  const { data: sheetData, isLoading, error } = useSheetData();
   const { contacts: merWorkflowContacts, loading: ghlLoading } = useMerWorkflowContacts();
   const { savedFilters, saveFilter, deleteFilter } = useUserSettings();
   const [searchParams] = useSearchParams();
