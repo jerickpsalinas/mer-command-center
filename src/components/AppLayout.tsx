@@ -209,7 +209,7 @@ export default function AppLayout() {
       {/* Main */}
       <div className="flex-1 flex flex-col min-w-0 relative z-10">
         <ViewAsBanner />
-        <header className="sticky top-0 z-30 flex h-[56px] items-center gap-2 sm:gap-4 border-b border-border glass-panel px-3 sm:px-5 lg:px-8">
+        <header className="sticky top-0 z-40 flex h-[56px] items-center gap-2 sm:gap-4 border-b border-border glass-panel px-3 sm:px-5 lg:px-8">
           <button
             onClick={() => setMobileOpen(true)}
             className="lg:hidden h-8 w-8 flex items-center justify-center rounded-md text-muted-foreground hover:bg-accent shrink-0"
