@@ -410,7 +410,10 @@ export default function DashboardPage() {
   if (isLoading) return <DataLoading />;
   if (error || !data) return <DataError message={error?.message} />;
 
-  const { monthlyTrends, bookkeepers, merHistory, availableMonths, latestMonth } = data;
+  const { monthlyTrends, bookkeepers: allBookkeepers, merHistory, availableMonths, latestMonth } = data;
+  const { isDeveloper } = useDeveloperFilter();
+  // Strip developer-role users from any list shown to operations.
+  const bookkeepers = allBookkeepers.filter((bk) => !isDeveloper(bk));
 
   // "current" = live latest, else historical snapshot for the picked month
   const isLatest = monthFilter === "current";
