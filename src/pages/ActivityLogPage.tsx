@@ -11,7 +11,7 @@ type UnifiedEntry = {
   id: string;
   timestamp: number;
   timestampLabel: string;
-  source: "Action Log" | "MER History" | "Status Change";
+  source: "Dashboard Action" | "Action Log" | "MER History" | "Status Change";
   action: string;
   clientName: string;
   triggeredBy: string;
@@ -47,6 +47,7 @@ export default function ActivityLogPage() {
   const { data } = useSheetData();
   const [merHistory, setMerHistory] = useState<any[]>([]);
   const [statusHistory, setStatusHistory] = useState<any[]>([]);
+  const [dashboardActions, setDashboardActions] = useState<any[]>([]);
   const [profiles, setProfiles] = useState<Profile[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
@@ -60,14 +61,16 @@ export default function ActivityLogPage() {
     let cancelled = false;
     (async () => {
       setLoading(true);
-      const [merRes, statusRes, profilesRes] = await Promise.all([
+      const [merRes, statusRes, actionsRes, profilesRes] = await Promise.all([
         supabase.from("mer_history").select("*").order("created_at", { ascending: false }).limit(1000),
         supabase.from("client_status_history").select("*").order("recorded_at", { ascending: false }).limit(2000),
+        supabase.from("activity_log").select("*").order("created_at", { ascending: false }).limit(2000),
         supabase.from("user_profiles").select("id,name,email,role"),
       ]);
       if (!cancelled) {
         setMerHistory(merRes.data ?? []);
         setStatusHistory(statusRes.data ?? []);
+        setDashboardActions(actionsRes.data ?? []);
         setProfiles((profilesRes.data ?? []) as Profile[]);
         setLoading(false);
       }
@@ -128,10 +131,37 @@ export default function ActivityLogPage() {
       });
     }
 
+    // Dashboard CTA button actions (Bank Reconnect, Docs Request, Notes
+    // Approval, Mark Resolved, etc.) — recorded by fireDashboardAction().
+    for (const a of dashboardActions) {
+      const ts = a.created_at ? Date.parse(a.created_at) : 0;
+      // Humanize "bank-reconnection" -> "Bank Reconnection"
+      const pretty = String(a.action || "")
+        .split(/[-_]/)
+        .map((w) => (w ? w[0].toUpperCase() + w.slice(1) : w))
+        .join(" ") || "Dashboard Action";
+      out.push({
+        id: `da-${a.id}`,
+        timestamp: ts,
+        timestampLabel: formatTs(ts),
+        source: "Dashboard Action",
+        action: pretty,
+        clientName: a.client_name || "—",
+        triggeredBy: a.triggered_by || "—",
+        category: pretty,
+        details: [
+          a.success === false ? "❌ Failed" : null,
+          a.message || null,
+          a.cycle_month ? `Cycle: ${a.cycle_month}` : null,
+          a.bookkeeper ? `Bookkeeper: ${a.bookkeeper}` : null,
+        ].filter(Boolean).join(" · ") || undefined,
+      });
+    }
+
     return out
       .filter((e) => !isDeveloper(e.triggeredBy))
       .sort((a, b) => b.timestamp - a.timestamp);
-  }, [data?.actionLog, merHistory, statusHistory, isDeveloper]);
+  }, [data?.actionLog, merHistory, statusHistory, dashboardActions, isDeveloper]);
 
   // Dropdown lists active non-developer users from user_profiles (so newly
   // added users show up immediately, even before they've taken any action).

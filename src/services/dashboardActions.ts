@@ -87,12 +87,30 @@ async function logActivity(
   message?: string,
 ) {
   try {
+    // Capture the actual logged-in user so the Activity Log shows WHO
+    // clicked the CTA, not just the literal "dashboard" source.
+    let actor: string | null = null;
+    try {
+      const { data: authData } = await supabase.auth.getUser();
+      const uid = authData?.user?.id;
+      if (uid) {
+        const { data: profile } = await supabase
+          .from("user_profiles")
+          .select("name,email")
+          .eq("id", uid)
+          .maybeSingle();
+        actor = profile?.name || profile?.email || authData.user?.email || null;
+      }
+    } catch {
+      /* fall back to payload.triggeredBy */
+    }
+
     await supabase.from("activity_log").insert({
       action: payload.action,
       client_name: payload.clientName,
       bookkeeper: payload.bookkeeper,
       cycle_month: payload.cycleMonth,
-      triggered_by: payload.triggeredBy,
+      triggered_by: actor || payload.triggeredBy,
       success,
       message: message ?? null,
     });
@@ -138,6 +156,7 @@ export async function fireDashboardAction(
       error: data.message,
     };
   } catch {
+    void logActivity(payload, false, "Network error");
     return {
       success: false,
       errorType: "NETWORK_ERROR",
