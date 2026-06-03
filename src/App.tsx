@@ -20,6 +20,7 @@ import HealthPillarsPage from "@/pages/HealthPillarsPage";
 import ReportsPage from "@/pages/ReportsPage";
 import UserGuidePage from "@/pages/UserGuidePage";
 import SettingsPage from "@/pages/SettingsPage";
+import ActivityLogPage from "@/pages/ActivityLogPage";
 import NotFound from "@/pages/NotFound";
 
 const queryClient = new QueryClient();
