@@ -674,7 +674,7 @@ export default function ClientDetailsModal({ open, onClose, client, onViewHistor
                 : ""),
             cycleMonth: client.month,
             triggeredBy: "dashboard",
-          });
+          }, dashboardUser);
           setIsLoading(false);
           if (result.success) {
             recordSessionAction(client.merKey ?? "", client.month, pendingAction);
