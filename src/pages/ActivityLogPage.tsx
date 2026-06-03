@@ -11,7 +11,7 @@ type UnifiedEntry = {
   id: string;
   timestamp: number;
   timestampLabel: string;
-  source: "Action Log" | "MER History" | "Status Change";
+  source: "Dashboard Action" | "Action Log" | "MER History" | "Status Change";
   action: string;
   clientName: string;
   triggeredBy: string;
