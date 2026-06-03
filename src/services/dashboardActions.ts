@@ -150,7 +150,7 @@ export async function fireDashboardAction(
         overridePayload: { ...payload, override: true },
       };
     }
-    void logActivity(payload, false, data.message || "Failed", triggeredByUser);
+    void logActivity(payload, false, data.message || "Failed", payload.triggeredBy);
     return {
       success: false,
       errorType: data.errorType || "UNKNOWN_ERROR",
