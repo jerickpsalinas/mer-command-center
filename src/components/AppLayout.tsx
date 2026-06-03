@@ -11,7 +11,7 @@ import ViewAsBanner from "@/components/ViewAsBanner";
 import ViewAsRoleSwitcher from "@/components/ViewAsRoleSwitcher";
 import {
   LayoutDashboard, CalendarCheck, TrendingUp, Users, Download, Settings,
-  Menu, X, ChevronLeft, RefreshCw, Sun, Moon, Workflow, UserCheck, HeartPulse, BookOpen, FilePlus2, FileEdit, LogOut,
+  Menu, X, ChevronLeft, RefreshCw, Sun, Moon, Workflow, UserCheck, HeartPulse, BookOpen, FilePlus2, FileEdit, LogOut, ClipboardList,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useAuth } from "@/hooks/useAuth";
