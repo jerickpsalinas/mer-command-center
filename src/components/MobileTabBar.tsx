@@ -17,7 +17,7 @@ export default function MobileTabBar({ onMore }: Props) {
   const tabs: { to?: string; label: string; icon: typeof LayoutDashboard; onClick?: () => void }[] = [
     { to: "/", label: "Dashboard", icon: LayoutDashboard },
     { to: "/master-cycle", label: "Cycle", icon: Workflow },
-    { to: "/reports", label: "Exports", icon: Download },
+    { to: "/clients", label: "Clients", icon: Users },
     { label: "More", icon: MoreHorizontal, onClick: onMore },
   ];
 
