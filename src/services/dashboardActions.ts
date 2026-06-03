@@ -121,12 +121,17 @@ async function logActivity(
 
 export async function fireDashboardAction(
   payload: ActionPayload,
+  triggeredByUser?: string,
 ): Promise<ActionResult> {
   try {
+    const webhookBody = {
+      ...payload,
+      dashboardUser: triggeredByUser || null,
+    };
     const res = await fetch(WEBHOOK_URL, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload),
+      body: JSON.stringify(webhookBody),
     });
     let data: any = {};
     try {
