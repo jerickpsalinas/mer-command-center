@@ -407,11 +407,12 @@ export default function DashboardPage() {
     }
   }, [capturing]);
 
+  const { isDeveloper } = useDeveloperFilter();
+
   if (isLoading) return <DataLoading />;
   if (error || !data) return <DataError message={error?.message} />;
 
   const { monthlyTrends, bookkeepers: allBookkeepers, merHistory, availableMonths, latestMonth } = data;
-  const { isDeveloper } = useDeveloperFilter();
   // Strip developer-role users from any list shown to operations.
   const bookkeepers = allBookkeepers.filter((bk) => !isDeveloper(bk));
 
