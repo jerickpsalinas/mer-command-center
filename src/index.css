@@ -306,23 +306,18 @@ body:hover,
 }
 
 
-/* Native date input picker indicator — force visible on dark theme */
-.activity-date-input::-webkit-calendar-picker-indicator {
-  filter: invert(1) brightness(1.4);
-  opacity: 1;
-  cursor: pointer;
-  margin-left: 4px;
-}
-.activity-date-input::-webkit-calendar-picker-indicator:hover {
-  filter: invert(1) brightness(2);
-}
-.light .activity-date-input::-webkit-calendar-picker-indicator {
-  filter: none;
-}
-/* Firefox / fallback: ensure the input text itself is visible */
+/* Native date input: let the browser draw a light icon via color-scheme,
+   and nudge it inward so it isn't clipped against the right edge. */
 .activity-date-input {
   color-scheme: dark;
+  padding-right: 0.5rem;
 }
 .light .activity-date-input {
   color-scheme: light;
+}
+.activity-date-input::-webkit-calendar-picker-indicator {
+  opacity: 1;
+  cursor: pointer;
+  margin-left: 6px;
+  margin-right: 2px;
 }
