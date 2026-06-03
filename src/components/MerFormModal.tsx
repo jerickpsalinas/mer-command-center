@@ -37,6 +37,7 @@ import {
 import { cn } from "@/lib/utils";
 import { toast } from "@/hooks/use-toast";
 import type { MerHistoryRow } from "@/services/googleSheets";
+import { GHL_BASE, GHL_LOCATION_ID, ghlHeaders } from "@/lib/ghlConfig";
 
 const WEBHOOK_URL =
   "https://n8n.srv1482383.hstgr.cloud/webhook/mer-dashboard-submit";
@@ -150,9 +151,6 @@ function buildInitial(mode: Mode, client: MerHistoryRow | null | undefined): For
   };
 }
 
-const GHL_BASE = "https://services.leadconnectorhq.com";
-const LOCATION_ID = "2UvLCJLDqEYjWtuPdjaR";
-const GHL_TOKEN = "pit-9e416e9c-99e8-4507-9c57-e6c824f50723";
 
 type ClientOption = {
   name: string;
@@ -217,16 +215,13 @@ export default function MerFormModal({ open, mode, client, clients, onClose }: P
         let startAfterId: string | undefined;
         for (let i = 0; i < 50; i++) {
           const params = new URLSearchParams({
-            locationId: LOCATION_ID,
+            locationId: GHL_LOCATION_ID,
             limit: "100",
           });
           if (startAfter != null) params.set("startAfter", String(startAfter));
           if (startAfterId) params.set("startAfterId", startAfterId);
           const res = await fetch(`${GHL_BASE}/contacts/?${params.toString()}`, {
-            headers: {
-              Authorization: `Bearer ${GHL_TOKEN}`,
-              Version: "2021-07-28",
-            },
+            headers: ghlHeaders(),
           });
           if (!res.ok) throw new Error(`GHL request failed (${res.status})`);
           const data = await res.json();

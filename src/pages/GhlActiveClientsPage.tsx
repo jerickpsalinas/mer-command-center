@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Loader2, Pencil, RefreshCw, Search, Trash2, UserCheck, UserMinus, X } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
+import { GHL_BASE, GHL_LOCATION_ID, ghlHeaders } from "@/lib/ghlConfig";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -20,9 +21,6 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 
-const GHL_BASE = "https://services.leadconnectorhq.com";
-const LOCATION_ID = "2UvLCJLDqEYjWtuPdjaR";
-const TOKEN = "pit-9e416e9c-99e8-4507-9c57-e6c824f50723";
 
 const PROTECTED_TAGS = [
   "active-client",
@@ -56,11 +54,6 @@ type GhlContact = {
   tags?: string[];
 };
 
-const ghlHeaders = (extra: Record<string, string> = {}) => ({
-  Authorization: `Bearer ${TOKEN}`,
-  Version: "2021-07-28",
-  ...extra,
-});
 
 function capitalizeWords(s: string) {
   return s
