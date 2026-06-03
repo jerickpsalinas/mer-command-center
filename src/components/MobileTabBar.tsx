@@ -1,5 +1,5 @@
 import { NavLink, useLocation } from "react-router-dom";
-import { LayoutDashboard, Workflow, Download, MoreHorizontal } from "lucide-react";
+import { LayoutDashboard, Workflow, Users, MoreHorizontal } from "lucide-react";
 import { motion } from "framer-motion";
 
 interface Props {
@@ -9,7 +9,7 @@ interface Props {
 
 /**
  * Mobile bottom tab bar.
- * 4 destinations: Dashboard, Master Cycle, Export Center, More (opens sidebar).
+ * 4 destinations: Dashboard, Master Cycle, Clients, More (opens sidebar).
  */
 export default function MobileTabBar({ onMore }: Props) {
   const { pathname } = useLocation();
