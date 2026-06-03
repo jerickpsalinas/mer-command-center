@@ -210,7 +210,18 @@ export default function BookkeepersPage() {
             Showing performance for <span className="font-semibold text-foreground">{monthFilter}</span>
           </span>
         )}
+        {isAdmin && monthFilter === "current" && (
+          <button
+            onClick={handleSaveSnapshot}
+            disabled={savingSnap}
+            className="sm:ml-auto inline-flex items-center justify-center gap-1.5 rounded-lg border border-primary/30 bg-primary/10 px-3 py-1.5 text-xs font-semibold text-primary hover:bg-primary/20 transition-colors disabled:opacity-50"
+          >
+            {savingSnap ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Camera className="h-3.5 w-3.5" />}
+            {savingSnap ? "Saving…" : "Save Snapshot"}
+          </button>
+        )}
       </div>
+
 
       {/* Leaderboard cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
