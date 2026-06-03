@@ -264,7 +264,7 @@ export default function ClientsPage() {
       <StickyPageHeader>
         <span className="inline-flex items-center gap-1.5 rounded-full bg-card px-2.5 py-1 text-[11px] font-semibold text-foreground border border-border">
           <Search className="h-3 w-3 text-muted-foreground" />
-          {filtered.length} of {monthClients.length}
+          {filtered.length} of {mergedClients.length}
         </span>
         {statusFilter !== "all" && (
           <span className="inline-flex items-center gap-1 rounded-full bg-primary/10 text-primary px-2 py-0.5 text-[11px] font-medium border border-primary/20">
