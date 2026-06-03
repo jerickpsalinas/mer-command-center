@@ -92,7 +92,7 @@ function tagClass(tag: string) {
   return "bg-amber-500/15 text-amber-600 border-amber-500/30 dark:text-amber-400";
 }
 
-const ADMIN_PASSWORD = "@Access.H20";
+
 
 type PendingAction =
   | { kind: "single"; contact: GhlContact }
