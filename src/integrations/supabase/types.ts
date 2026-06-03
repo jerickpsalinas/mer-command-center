@@ -97,6 +97,7 @@ export type Database = {
       }
       client_status_history: {
         Row: {
+          changed_by: string | null
           client_name: string
           ghl_contact_id: string
           id: string
@@ -105,6 +106,7 @@ export type Database = {
           status: string
         }
         Insert: {
+          changed_by?: string | null
           client_name: string
           ghl_contact_id: string
           id?: string
@@ -113,6 +115,7 @@ export type Database = {
           status: string
         }
         Update: {
+          changed_by?: string | null
           client_name?: string
           ghl_contact_id?: string
           id?: string
