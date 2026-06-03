@@ -247,13 +247,23 @@ export default function ActivityLogPage() {
           </SelectContent>
         </Select>
         <div className="flex gap-2 lg:col-span-2">
-          <div className="relative flex-1 min-w-0">
-            <Calendar className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input type="date" value={fromDate} onChange={(e) => setFromDate(e.target.value)} className="activity-date-input pl-9" />
+          <div className="relative flex items-center flex-1 min-w-0">
+            <Calendar className="absolute left-3 h-4 w-4 text-muted-foreground pointer-events-none z-10" />
+            <Input
+              type="date"
+              value={fromDate}
+              onChange={(e) => setFromDate(e.target.value)}
+              className="activity-date-input pl-9 [&::-webkit-calendar-picker-indicator]:opacity-0 [&::-webkit-calendar-picker-indicator]:absolute [&::-webkit-calendar-picker-indicator]:inset-0 [&::-webkit-calendar-picker-indicator]:w-full [&::-webkit-calendar-picker-indicator]:cursor-pointer"
+            />
           </div>
-          <div className="relative flex-1 min-w-0">
-            <Calendar className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input type="date" value={toDate} onChange={(e) => setToDate(e.target.value)} className="activity-date-input pl-9" />
+          <div className="relative flex items-center flex-1 min-w-0">
+            <Calendar className="absolute left-3 h-4 w-4 text-muted-foreground pointer-events-none z-10" />
+            <Input
+              type="date"
+              value={toDate}
+              onChange={(e) => setToDate(e.target.value)}
+              className="activity-date-input pl-9 [&::-webkit-calendar-picker-indicator]:opacity-0 [&::-webkit-calendar-picker-indicator]:absolute [&::-webkit-calendar-picker-indicator]:inset-0 [&::-webkit-calendar-picker-indicator]:w-full [&::-webkit-calendar-picker-indicator]:cursor-pointer"
+            />
           </div>
         </div>
       </div>
