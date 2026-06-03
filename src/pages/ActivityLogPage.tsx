@@ -43,6 +43,7 @@ function formatTs(ms: number): string {
 export default function ActivityLogPage() {
   const { data } = useSheetData();
   const [merHistory, setMerHistory] = useState<any[]>([]);
+  const [statusHistory, setStatusHistory] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [bookkeeper, setBookkeeper] = useState<string>("all");
@@ -54,13 +55,13 @@ export default function ActivityLogPage() {
     let cancelled = false;
     (async () => {
       setLoading(true);
-      const { data: rows, error } = await supabase
-        .from("mer_history")
-        .select("*")
-        .order("created_at", { ascending: false })
-        .limit(1000);
+      const [merRes, statusRes] = await Promise.all([
+        supabase.from("mer_history").select("*").order("created_at", { ascending: false }).limit(1000),
+        supabase.from("client_status_history").select("*").order("recorded_at", { ascending: false }).limit(2000),
+      ]);
       if (!cancelled) {
-        setMerHistory(rows ?? []);
+        setMerHistory(merRes.data ?? []);
+        setStatusHistory(statusRes.data ?? []);
         setLoading(false);
       }
     })();
