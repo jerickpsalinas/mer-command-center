@@ -424,3 +424,84 @@ function StatTile({
     </div>
   );
 }
+
+type PerfRow = {
+  date: string;
+  compliant: number;
+  avg_completion_pct: number | string;
+};
+
+function PerformanceHistory({ bookkeeper }: { bookkeeper: string }) {
+  const [rows, setRows] = useState<PerfRow[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      setLoading(true);
+      const since = new Date();
+      since.setDate(since.getDate() - 30);
+      const { data: snap, error } = await supabase
+        .from("bookkeeper_performance")
+        .select("date, compliant, avg_completion_pct")
+        .eq("bookkeeper", bookkeeper)
+        .gte("date", since.toISOString().slice(0, 10))
+        .order("date", { ascending: true });
+      if (!cancelled) {
+        if (error) setRows([]);
+        else setRows((snap as PerfRow[]) || []);
+        setLoading(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [bookkeeper]);
+
+  const chartData = rows.map((r) => ({
+    date: r.date.slice(5), // MM-DD
+    compliant: Number(r.compliant) || 0,
+    avgPct: Number(r.avg_completion_pct) || 0,
+  }));
+
+  return (
+    <div className="rounded-xl border border-border bg-card/60 p-3 shadow-card">
+      <div className="flex items-center justify-between mb-1.5">
+        <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+          Performance History
+        </span>
+        <span className="text-[10px] text-muted-foreground">last 30 days</span>
+      </div>
+      {loading ? (
+        <div className="h-[90px] flex items-center justify-center text-[10px] text-muted-foreground">
+          Loading…
+        </div>
+      ) : chartData.length === 0 ? (
+        <div className="h-[90px] flex items-center justify-center text-[10px] text-muted-foreground">
+          No snapshots yet
+        </div>
+      ) : (
+        <ResponsiveContainer width="100%" height={90}>
+          <LineChart data={chartData} margin={{ top: 4, right: 4, bottom: 0, left: -24 }}>
+            <CartesianGrid strokeDasharray="3 3" stroke="hsl(20, 8%, 16%)" />
+            <XAxis dataKey="date" tick={{ fontSize: 9, fill: "hsl(25, 10%, 50%)" }} interval="preserveStartEnd" />
+            <YAxis tick={{ fontSize: 9, fill: "hsl(25, 10%, 50%)" }} width={28} />
+            <Tooltip
+              contentStyle={{
+                background: "hsl(var(--popover))",
+                border: "1px solid hsl(var(--border))",
+                borderRadius: "8px",
+                fontSize: "10px",
+                padding: "4px 8px",
+                color: "hsl(var(--popover-foreground))",
+              }}
+            />
+            <Line type="monotone" dataKey="compliant" stroke="hsl(160, 55%, 42%)" strokeWidth={1.75} dot={false} name="Compliant" />
+            <Line type="monotone" dataKey="avgPct" stroke="hsl(340, 45%, 55%)" strokeWidth={1.75} dot={false} name="Avg %" />
+          </LineChart>
+        </ResponsiveContainer>
+      )}
+    </div>
+  );
+}
+
