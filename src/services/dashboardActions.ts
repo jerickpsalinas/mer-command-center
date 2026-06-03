@@ -164,7 +164,7 @@ export async function fireDashboardAction(
       error: data.message,
     };
   } catch {
-    void logActivity(payload, false, "Network error");
+    void logActivity(payload, false, "Network error", triggeredByUser);
     return {
       success: false,
       errorType: "NETWORK_ERROR",
