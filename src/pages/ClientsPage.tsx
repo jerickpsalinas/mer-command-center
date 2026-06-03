@@ -50,7 +50,7 @@ function getIssueDetails(c: { uncategorizedTransactions: number; bankTransaction
 }
 
 export default function ClientsPage() {
-  const { data, isLoading, error } = useSheetData();
+  const { data: sheetData, isLoading, error } = useSheetData();
   const { contacts: merWorkflowContacts, loading: ghlLoading } = useMerWorkflowContacts();
   const { savedFilters, saveFilter, deleteFilter } = useUserSettings();
   const [searchParams] = useSearchParams();
@@ -87,8 +87,19 @@ export default function ClientsPage() {
 
   
 
-  if (isLoading) return <DataLoading />;
-  if (error || !data) return <DataError message={error?.message} />;
+  if (isLoading && ghlLoading) return <DataLoading />;
+  if (error) return <DataError message={error?.message} />;
+
+  const sheetLoading = isLoading || !sheetData;
+  const data = sheetData ?? {
+    clients: [] as Client[],
+    merHistory: [] as any[],
+    clientMonths: {} as Record<string, string>,
+    latestMonth: "",
+    actionLog: [] as any[],
+    bookkeepers: [] as string[],
+    availableMonths: [] as string[],
+  };
 
   // Snapshot of clients for the chosen month (or live latest)
   const isLatest = monthFilter === "current";
@@ -306,6 +317,9 @@ export default function ClientsPage() {
           Lowest Completion % Clients
         </h2>
         <p className="text-[11px] text-muted-foreground mb-4">Bottom {chartData.length} clients by completion percentage</p>
+        {sheetLoading ? (
+          <div className="h-[280px] w-full rounded-md bg-muted/40 animate-pulse" />
+        ) : (
         <ResponsiveContainer width="100%" height={280}>
           <BarChart data={chartData} layout="vertical" margin={{ left: 0, right: 16 }}>
             <CartesianGrid strokeDasharray="3 3" stroke="hsl(20, 8%, 16%)" horizontal={false} />
@@ -328,6 +342,7 @@ export default function ClientsPage() {
             </Bar>
           </BarChart>
         </ResponsiveContainer>
+        )}
       </motion.div>
 
       {/* Saved filter chips */}
