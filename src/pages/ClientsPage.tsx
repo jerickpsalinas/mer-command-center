@@ -126,7 +126,7 @@ export default function ClientsPage() {
         financialsSentToClient: false,
         booksClosedInQB: false,
         completionPct: 0,
-        complianceStatus: "On Hold",
+        complianceStatus: "Pending MER",
         ghlContactId: contact.id,
         categoryTags: (contact.tags || []).join(","),
       } as Client;
