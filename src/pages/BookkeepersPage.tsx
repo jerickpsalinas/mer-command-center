@@ -89,14 +89,59 @@ export default function BookkeepersPage() {
     if (!data) return [];
     if (monthFilter === "current") {
       return data.bookkeepers
-        .map((bk) => getBookkeeperPerformance(data.clients, data.merHistory, bk))
+        .map((bk) => getBookkeeperPerformance(mergedClients, data.merHistory, bk))
         .sort((a, b) => b.rate - a.rate);
     }
     return data.bookkeepers
       .map((bk) => getBookkeeperPerformanceForMonth(data.merHistory, bk, monthFilter))
       .filter((x): x is BookkeeperPerformance => x !== null)
       .sort((a, b) => b.rate - a.rate);
-  }, [data, monthFilter]);
+  }, [data, mergedClients, monthFilter]);
+
+  const handleSaveSnapshot = async () => {
+    if (!data || savingSnap) return;
+    setSavingSnap(true);
+    try {
+      const today = new Date().toISOString().slice(0, 10);
+      const rows = data.bookkeepers.map((bk) => {
+        const own = mergedClients.filter((c) => c.bookkeeper === bk);
+        const total = own.length;
+        const compliant = own.filter((c) => c.complianceStatus === "Compliant").length;
+        const nonCompliant = own.filter((c) => c.complianceStatus === "Non-Compliant").length;
+        const onHold = own.filter((c) => /hold/i.test((c as any).status || "")).length;
+        const pendingMer = own.filter((c) => ((c as any).status || "") === "Pending MER").length;
+        const avg = total ? Math.round(own.reduce((s, c) => s + (c.completionPct || 0), 0) / total) : 0;
+        const outstanding = own.filter((c) => (c.bankTransactions || "").includes("Missing")).length;
+        const uncat = own.reduce((s, c) => s + (c.uncategorizedTransactions || 0), 0);
+        return {
+          date: today,
+          bookkeeper: bk,
+          total_clients: total,
+          compliant,
+          non_compliant: nonCompliant,
+          on_hold: onHold,
+          pending_mer: pendingMer,
+          avg_completion_pct: avg,
+          outstanding_statements: outstanding,
+          uncategorized_total: uncat,
+        };
+      });
+      const { error: upErr } = await supabase
+        .from("bookkeeper_performance")
+        .upsert(rows, { onConflict: "date,bookkeeper" });
+      if (upErr) throw upErr;
+      toast({ title: "Snapshot saved", description: `${rows.length} bookkeeper rows saved for ${today}.` });
+    } catch (e: any) {
+      toast({
+        title: "Snapshot failed",
+        description: e?.message || "Could not save snapshot.",
+        variant: "destructive",
+      });
+    } finally {
+      setSavingSnap(false);
+    }
+  };
+
 
   if (isLoading) return <DataLoading />;
   if (error || !data) return <DataError message={error?.message} />;
