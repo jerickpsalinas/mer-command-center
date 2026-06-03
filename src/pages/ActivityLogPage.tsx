@@ -5,7 +5,9 @@ import { useDeveloperFilter } from "@/hooks/useDeveloperFilter";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { ClipboardList, Search, Loader2 } from "lucide-react";
+import { ClipboardList, Search, Loader2, Calendar } from "lucide-react";
+
+const DEVELOPER_EMAILS = new Set(["jerickpsalinas@gmail.com"]);
 
 type UnifiedEntry = {
   id: string;
@@ -163,26 +165,36 @@ export default function ActivityLogPage() {
       .sort((a, b) => b.timestamp - a.timestamp);
   }, [data?.actionLog, merHistory, statusHistory, dashboardActions, isDeveloper]);
 
-  // Dropdown lists active non-developer users from user_profiles (so newly
-  // added users show up immediately, even before they've taken any action).
+  // Dynamic user list: union of Action Log triggeredBy + mer_history
+  // submitted_by, excluding any developer (by role or known email).
   const bookkeepers = useMemo(() => {
     const names = new Set<string>();
+    const devEmails = new Set<string>([...DEVELOPER_EMAILS]);
     for (const p of profiles) {
-      if ((p.role || "").toLowerCase() === "developer") continue;
-      if (p.name) names.add(p.name);
+      if ((p.role || "").toLowerCase() === "developer" && p.email) {
+        devEmails.add(p.email.trim().toLowerCase());
+      }
     }
-    // Also include any actor names found in entries that aren't in user_profiles yet.
-    entries.forEach((e) => {
-      if (e.triggeredBy && e.triggeredBy !== "—") names.add(e.triggeredBy);
-    });
-    return Array.from(names).sort();
-  }, [profiles, entries]);
+    const add = (v?: string | null) => {
+      if (!v) return;
+      const trimmed = v.trim();
+      if (!trimmed || trimmed === "—") return;
+      if (devEmails.has(trimmed.toLowerCase())) return;
+      if (isDeveloper(trimmed)) return;
+      names.add(trimmed);
+    };
+    (data?.actionLog ?? []).forEach((a) => add(a.triggeredBy));
+    merHistory.forEach((r) => add(r.submitted_by));
+    return Array.from(names).sort((a, b) => a.localeCompare(b));
+  }, [data?.actionLog, merHistory, profiles, isDeveloper]);
 
+  // Dynamic action list: union of Action Log actionType + mer_history action.
   const actionTypes = useMemo(() => {
     const s = new Set<string>();
-    entries.forEach((e) => e.action && s.add(e.action));
-    return Array.from(s).sort();
-  }, [entries]);
+    (data?.actionLog ?? []).forEach((a) => a.actionType && s.add(a.actionType));
+    merHistory.forEach((r) => r.action && s.add(r.action));
+    return Array.from(s).sort((a, b) => a.localeCompare(b));
+  }, [data?.actionLog, merHistory]);
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
@@ -235,8 +247,14 @@ export default function ActivityLogPage() {
           </SelectContent>
         </Select>
         <div className="flex gap-2 lg:col-span-2">
-          <Input type="date" value={fromDate} onChange={(e) => setFromDate(e.target.value)} className="activity-date-input flex-1 min-w-0" />
-          <Input type="date" value={toDate} onChange={(e) => setToDate(e.target.value)} className="activity-date-input flex-1 min-w-0" />
+          <div className="relative flex-1 min-w-0">
+            <Calendar className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input type="date" value={fromDate} onChange={(e) => setFromDate(e.target.value)} className="activity-date-input pl-9" />
+          </div>
+          <div className="relative flex-1 min-w-0">
+            <Calendar className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input type="date" value={toDate} onChange={(e) => setToDate(e.target.value)} className="activity-date-input pl-9" />
+          </div>
         </div>
       </div>
 
