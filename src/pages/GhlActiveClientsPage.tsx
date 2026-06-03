@@ -92,7 +92,7 @@ function tagClass(tag: string) {
   return "bg-amber-500/15 text-amber-600 border-amber-500/30 dark:text-amber-400";
 }
 
-const ADMIN_PASSWORD = "@Access.H20";
+
 
 type PendingAction =
   | { kind: "single"; contact: GhlContact }
@@ -114,9 +114,7 @@ export default function GhlActiveClientsPage() {
   const [savingEdit, setSavingEdit] = useState(false);
 
   const [pending, setPending] = useState<PendingAction>(null);
-  const [authStep, setAuthStep] = useState<"password" | "confirm" | null>(null);
-  const [password, setPassword] = useState("");
-  const [passwordError, setPasswordError] = useState<string | null>(null);
+
 
   const [clearingId, setClearingId] = useState<string | null>(null);
   const [bulkProgress, setBulkProgress] = useState<{
@@ -267,10 +265,8 @@ export default function GhlActiveClientsPage() {
 
   const closeDialog = () => {
     setPending(null);
-    setAuthStep(null);
-    setPassword("");
-    setPasswordError(null);
   };
+
 
   const confirmRemoveClient = async () => {
     if (!removing) return;
@@ -306,24 +302,14 @@ export default function GhlActiveClientsPage() {
 
   const openSingle = (c: GhlContact) => {
     setPending({ kind: "single", contact: c });
-    setAuthStep("password");
   };
 
   const openBulk = () => {
     const list = sorted.filter((c) => selected.has(c.id));
     if (list.length === 0) return;
     setPending({ kind: "bulk", contacts: list });
-    setAuthStep("password");
   };
 
-  const submitPassword = () => {
-    if (password !== ADMIN_PASSWORD) {
-      setPasswordError("Incorrect password");
-      return;
-    }
-    setPasswordError(null);
-    setAuthStep("confirm");
-  };
 
   const submitConfirm = () => {
     if (!pending) return;
@@ -742,56 +728,8 @@ export default function GhlActiveClientsPage() {
         }}
       >
         <AlertDialogContent>
-          {authStep === "password" && (
-            <>
-              <AlertDialogHeader>
-                <AlertDialogTitle>Admin password required</AlertDialogTitle>
-                <AlertDialogDescription>
-                  Enter the admin password to clear cycle tags
-                  {pending?.kind === "bulk"
-                    ? ` for ${pending.contacts.length} contacts.`
-                    : pending?.kind === "single"
-                      ? ` for ${contactName(pending.contact)}.`
-                      : "."}
-                </AlertDialogDescription>
-              </AlertDialogHeader>
-              <div className="space-y-2">
-                <input
-                  type="password"
-                  autoFocus
-                  value={password}
-                  onChange={(e) => {
-                    setPassword(e.target.value);
-                    if (passwordError) setPasswordError(null);
-                  }}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter") {
-                      e.preventDefault();
-                      submitPassword();
-                    }
-                  }}
-                  placeholder="Admin password"
-                  className="w-full h-10 px-3 rounded-md border border-border bg-background text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
-                />
-                {passwordError && (
-                  <p className="text-xs text-destructive">{passwordError}</p>
-                )}
-              </div>
-              <AlertDialogFooter>
-                <AlertDialogCancel>Cancel</AlertDialogCancel>
-                <AlertDialogAction
-                  onClick={(e) => {
-                    e.preventDefault();
-                    submitPassword();
-                  }}
-                >
-                  Continue
-                </AlertDialogAction>
-              </AlertDialogFooter>
-            </>
-          )}
+          {pending && (
 
-          {authStep === "confirm" && pending && (
             <>
               <AlertDialogHeader>
                 <AlertDialogTitle>Clear cycle tags?</AlertDialogTitle>
