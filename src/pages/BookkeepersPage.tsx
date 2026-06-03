@@ -12,6 +12,7 @@ import { useMerWorkflowContacts, contactDisplayName } from "@/hooks/useMerWorkfl
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
+import { useDeveloperFilter } from "@/hooks/useDeveloperFilter";
 import type { Client } from "@/data/mockData";
 
 
@@ -85,18 +86,22 @@ export default function BookkeepersPage() {
       .map(([label]) => label);
   }, [data]);
 
+  const { isDeveloper } = useDeveloperFilter();
+
   const stats = useMemo<BookkeeperPerformance[]>(() => {
     if (!data) return [];
+    // Filter out developer-role users from the leaderboard.
+    const ops = data.bookkeepers.filter((bk) => !isDeveloper(bk));
     if (monthFilter === "current") {
-      return data.bookkeepers
+      return ops
         .map((bk) => getBookkeeperPerformance(mergedClients, data.merHistory, bk))
         .sort((a, b) => b.rate - a.rate);
     }
-    return data.bookkeepers
+    return ops
       .map((bk) => getBookkeeperPerformanceForMonth(data.merHistory, bk, monthFilter))
       .filter((x): x is BookkeeperPerformance => x !== null)
       .sort((a, b) => b.rate - a.rate);
-  }, [data, mergedClients, monthFilter]);
+  }, [data, mergedClients, monthFilter, isDeveloper]);
 
   const handleSaveSnapshot = async () => {
     if (!data || savingSnap) return;

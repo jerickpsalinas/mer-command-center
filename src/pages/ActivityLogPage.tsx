@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useSheetData } from "@/hooks/useSheetData";
 import { supabase } from "@/integrations/supabase/client";
+import { useDeveloperFilter } from "@/hooks/useDeveloperFilter";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
@@ -53,6 +54,7 @@ export default function ActivityLogPage() {
   const [actionType, setActionType] = useState<string>("all");
   const [fromDate, setFromDate] = useState<string>("");
   const [toDate, setToDate] = useState<string>("");
+  const { isDeveloper } = useDeveloperFilter();
 
   useEffect(() => {
     let cancelled = false;
@@ -75,23 +77,6 @@ export default function ActivityLogPage() {
     };
   }, []);
 
-  // Identities (name + email, lowercased) of developer-role users — their
-  // activity is hidden from the Activity Log entirely.
-  const developerIds = useMemo(() => {
-    const set = new Set<string>();
-    for (const p of profiles) {
-      if ((p.role || "").toLowerCase() === "developer") {
-        if (p.name) set.add(p.name.trim().toLowerCase());
-        if (p.email) set.add(p.email.trim().toLowerCase());
-      }
-    }
-    return set;
-  }, [profiles]);
-
-  const isDeveloperActor = (actor: string | undefined | null) => {
-    if (!actor) return false;
-    return developerIds.has(actor.trim().toLowerCase());
-  };
 
 
   const entries: UnifiedEntry[] = useMemo(() => {
@@ -144,9 +129,9 @@ export default function ActivityLogPage() {
     }
 
     return out
-      .filter((e) => !isDeveloperActor(e.triggeredBy))
+      .filter((e) => !isDeveloper(e.triggeredBy))
       .sort((a, b) => b.timestamp - a.timestamp);
-  }, [data?.actionLog, merHistory, statusHistory, developerIds]);
+  }, [data?.actionLog, merHistory, statusHistory, isDeveloper]);
 
   // Dropdown lists active non-developer users from user_profiles (so newly
   // added users show up immediately, even before they've taken any action).
