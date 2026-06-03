@@ -21,6 +21,7 @@ import {
 } from "@/services/dashboardActions";
 import { toast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
+import { GHL_BASE, ghlHeaders } from "@/lib/ghlConfig";
 
 interface Props {
   open: boolean;
@@ -132,14 +133,10 @@ export default function ClientDetailsModal({ open, onClose, client, onViewHistor
     client?.ghlContactId ||
     (client?.merKey?.includes("_") ? client.merKey.split("_")[0] : "");
 
-  const GHL_HEADERS = {
-    Authorization: "Bearer pit-9e416e9c-99e8-4507-9c57-e6c824f50723",
-    Version: "2021-07-28",
-  };
 
   const fetchGhlTags = async (contactId: string): Promise<string[]> => {
-    const r = await fetch(`https://services.leadconnectorhq.com/contacts/${contactId}`, {
-      headers: GHL_HEADERS,
+    const r = await fetch(`${GHL_BASE}/contacts/${contactId}`, {
+      headers: ghlHeaders(),
     });
     if (!r.ok) throw new Error(`HTTP ${r.status}`);
     const data = await r.json();
@@ -797,10 +794,10 @@ export default function ClientDetailsModal({ open, onClose, client, onViewHistor
           setClearCycleLoading(true);
           try {
             const r = await fetch(
-              `https://services.leadconnectorhq.com/contacts/${ghlContactId}/tags`,
+              `${GHL_BASE}/contacts/${ghlContactId}/tags`,
               {
                 method: "DELETE",
-                headers: { ...GHL_HEADERS, "Content-Type": "application/json" },
+                headers: ghlHeaders({ "Content-Type": "application/json" }),
                 body: JSON.stringify({ tags: tagsToRemove }),
               }
             );
@@ -887,18 +884,18 @@ export default function ClientDetailsModal({ open, onClose, client, onViewHistor
                   const calls: Promise<Response>[] = [];
                   if (toAdd.length) {
                     calls.push(
-                      fetch(`https://services.leadconnectorhq.com/contacts/${ghlContactId}/tags`, {
+                      fetch(`${GHL_BASE}/contacts/${ghlContactId}/tags`, {
                         method: "POST",
-                        headers: { ...GHL_HEADERS, "Content-Type": "application/json" },
+                        headers: ghlHeaders({ "Content-Type": "application/json" }),
                         body: JSON.stringify({ tags: toAdd }),
                       })
                     );
                   }
                   if (toRemove.length) {
                     calls.push(
-                      fetch(`https://services.leadconnectorhq.com/contacts/${ghlContactId}/tags`, {
+                      fetch(`${GHL_BASE}/contacts/${ghlContactId}/tags`, {
                         method: "DELETE",
-                        headers: { ...GHL_HEADERS, "Content-Type": "application/json" },
+                        headers: ghlHeaders({ "Content-Type": "application/json" }),
                         body: JSON.stringify({ tags: toRemove }),
                       })
                     );
