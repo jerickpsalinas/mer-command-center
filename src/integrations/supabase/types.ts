@@ -50,6 +50,51 @@ export type Database = {
         }
         Relationships: []
       }
+      bookkeeper_performance: {
+        Row: {
+          avg_completion_pct: number
+          bookkeeper: string
+          compliant: number
+          created_at: string
+          date: string
+          id: string
+          non_compliant: number
+          on_hold: number
+          outstanding_statements: number
+          pending_mer: number
+          total_clients: number
+          uncategorized_total: number
+        }
+        Insert: {
+          avg_completion_pct?: number
+          bookkeeper: string
+          compliant?: number
+          created_at?: string
+          date: string
+          id?: string
+          non_compliant?: number
+          on_hold?: number
+          outstanding_statements?: number
+          pending_mer?: number
+          total_clients?: number
+          uncategorized_total?: number
+        }
+        Update: {
+          avg_completion_pct?: number
+          bookkeeper?: string
+          compliant?: number
+          created_at?: string
+          date?: string
+          id?: string
+          non_compliant?: number
+          on_hold?: number
+          outstanding_statements?: number
+          pending_mer?: number
+          total_clients?: number
+          uncategorized_total?: number
+        }
+        Relationships: []
+      }
       client_status_history: {
         Row: {
           client_name: string
