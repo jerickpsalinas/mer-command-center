@@ -43,7 +43,7 @@ export interface SavedFilter {
   id: string;
   name: string;
   search: string;
-  status: "all" | "Compliant" | "Non-Compliant" | "On Hold";
+  status: "all" | "Compliant" | "Non-Compliant" | "On Hold" | "Pending MER";
   bookkeeper: string;
   clientType: string;
   minCompletion: number;
