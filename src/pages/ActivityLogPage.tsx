@@ -160,7 +160,7 @@ export default function ActivityLogPage() {
         </div>
       </div>
 
-      <div className="glass-panel rounded-xl border border-border p-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
+      <div className="glass-panel rounded-xl border border-border p-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-3">
         <div className="relative lg:col-span-2">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
@@ -184,9 +184,9 @@ export default function ActivityLogPage() {
             {actionTypes.map((a) => <SelectItem key={a} value={a}>{a}</SelectItem>)}
           </SelectContent>
         </Select>
-        <div className="flex gap-2">
-          <Input type="date" value={fromDate} onChange={(e) => setFromDate(e.target.value)} />
-          <Input type="date" value={toDate} onChange={(e) => setToDate(e.target.value)} />
+        <div className="flex gap-2 lg:col-span-2">
+          <Input type="date" value={fromDate} onChange={(e) => setFromDate(e.target.value)} className="activity-date-input flex-1 min-w-0" />
+          <Input type="date" value={toDate} onChange={(e) => setToDate(e.target.value)} className="activity-date-input flex-1 min-w-0" />
         </div>
       </div>
 
