@@ -673,8 +673,8 @@ export default function ClientDetailsModal({ open, onClose, client, onViewHistor
                 ? client.merKey.split("_")[0]
                 : ""),
             cycleMonth: client.month,
-            triggeredBy: "dashboard",
-          }, dashboardUser);
+            triggeredBy: dashboardUser || "Dashboard",
+          });
           setIsLoading(false);
           if (result.success) {
             recordSessionAction(client.merKey ?? "", client.month, pendingAction);
