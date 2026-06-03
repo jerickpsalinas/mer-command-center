@@ -5,7 +5,7 @@ import type { Client } from "@/data/mockData";
 import { getComplianceChecks, COMPLIANCE_RULE_SUMMARY } from "@/lib/complianceExplain";
 
 interface StatusBadgeProps {
-  status: "Compliant" | "Non-Compliant" | "On Hold" | string;
+  status: "Compliant" | "Non-Compliant" | "On Hold" | "Pending MER" | string;
   className?: string;
   /** When provided alongside a compliance status, a tooltip explains which checks passed/failed. */
   client?: Client;
@@ -17,6 +17,7 @@ export default function StatusBadge({ status, className, client }: StatusBadgePr
     Compliant: "bg-success/10 text-success",
     "Non-Compliant": "bg-destructive/10 text-destructive",
     "On Hold": "bg-warning/10 text-warning",
+    "Pending MER": "bg-muted text-muted-foreground",
     Received: "bg-success/10 text-success",
     "Not Received": "bg-destructive/10 text-destructive",
     Yes: "bg-success/10 text-success",
@@ -27,6 +28,7 @@ export default function StatusBadge({ status, className, client }: StatusBadgePr
     Compliant: "bg-success",
     "Non-Compliant": "bg-destructive",
     "On Hold": "bg-warning",
+    "Pending MER": "bg-muted-foreground",
     Received: "bg-success",
     "Not Received": "bg-destructive",
     Yes: "bg-success",
