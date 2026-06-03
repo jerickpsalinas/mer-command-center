@@ -25,7 +25,7 @@ const navItems = [
   { title: "Monthly Progress", url: "/monthly-progress", icon: CalendarCheck },
   { title: "Clients", url: "/clients", icon: Users },
   { title: "Bookkeepers", url: "/bookkeepers", icon: UserCheck },
-  { title: "GHL Active Clients", url: "/ghl-active-clients", icon: UserCheck },
+  { title: "GHL Active Clients", url: "/ghl-active-clients", icon: Tags },
   { title: "Monthly Trends", url: "/monthly-trends", icon: TrendingUp },
   { title: "Activity Log", url: "/activity-log", icon: ClipboardList },
   { title: "Export Center", url: "/reports", icon: Download },
