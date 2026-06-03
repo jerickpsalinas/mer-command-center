@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 
 const GHL_BASE = "https://services.leadconnectorhq.com";
 const LOCATION_ID = "2UvLCJLDqEYjWtuPdjaR";
@@ -34,62 +34,68 @@ export function contactDisplayName(c: MerWorkflowContact): string {
   return full || "Unnamed Contact";
 }
 
+async function fetchAllContacts(): Promise<MerWorkflowContact[]> {
+  const collected: MerWorkflowContact[] = [];
+  let startAfter: string | number | undefined;
+  let startAfterId: string | undefined;
+
+  for (let i = 0; i < 50; i++) {
+    const params = new URLSearchParams({
+      locationId: LOCATION_ID,
+      limit: "100",
+    });
+    if (startAfter != null) params.set("startAfter", String(startAfter));
+    if (startAfterId) params.set("startAfterId", startAfterId);
+
+    const res = await fetch(`${GHL_BASE}/contacts/?${params.toString()}`, {
+      headers: headers(),
+    });
+    if (!res.ok) throw new Error(`GHL fetch failed (${res.status})`);
+
+    const json = await res.json();
+    const page: MerWorkflowContact[] = json.contacts || [];
+    if (page.length === 0) break;
+
+    collected.push(...page);
+    const meta = json.meta || {};
+    const nextStartAfter = meta.startAfter ?? meta.nextStartAfter;
+    const nextStartAfterId = meta.startAfterId ?? meta.nextStartAfterId;
+    if (!nextStartAfter && !nextStartAfterId) break;
+    if (nextStartAfter === startAfter && nextStartAfterId === startAfterId)
+      break;
+
+    startAfter = nextStartAfter;
+    startAfterId = nextStartAfterId;
+  }
+
+  return collected.filter((c) => {
+    const tags = c.tags || [];
+    const normalized = tags.map((t) => (t || "").toLowerCase());
+    return (
+      normalized.includes("mer-workflow") &&
+      !normalized.includes("ready-for-cleanup")
+    );
+  });
+}
+
 export function useMerWorkflowContacts() {
-  const [contacts, setContacts] = useState<MerWorkflowContact[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const queryClient = useQueryClient();
 
-  const fetchAll = useCallback(async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      const collected: MerWorkflowContact[] = [];
-      let startAfter: string | number | undefined;
-      let startAfterId: string | undefined;
-      for (let i = 0; i < 50; i++) {
-        const params = new URLSearchParams({
-          locationId: LOCATION_ID,
-          limit: "100",
-        });
-        if (startAfter != null) params.set("startAfter", String(startAfter));
-        if (startAfterId) params.set("startAfterId", startAfterId);
-        const res = await fetch(`${GHL_BASE}/contacts/?${params.toString()}`, {
-          headers: headers(),
-        });
-        if (!res.ok) throw new Error(`GHL fetch failed (${res.status})`);
-        const json = await res.json();
-        const page: MerWorkflowContact[] = json.contacts || [];
-        if (page.length === 0) break;
-        collected.push(...page);
-        const meta = json.meta || {};
-        const nextStartAfter = meta.startAfter ?? meta.nextStartAfter;
-        const nextStartAfterId = meta.startAfterId ?? meta.nextStartAfterId;
-        if (!nextStartAfter && !nextStartAfterId) break;
-        if (nextStartAfter === startAfter && nextStartAfterId === startAfterId)
-          break;
-        startAfter = nextStartAfter;
-        startAfterId = nextStartAfterId;
-      }
-      setContacts(
-        collected.filter((c) => {
-          const tags = c.tags || [];
-          const normalized = tags.map((t) => (t || "").toLowerCase());
-          return (
-            normalized.includes("mer-workflow") &&
-            !normalized.includes("ready-for-cleanup")
-          );
-        }),
-      );
-    } catch (e: any) {
-      setError(e?.message || "Failed to load contacts");
-    } finally {
-      setLoading(false);
-    }
-  }, []);
+  const { data, isLoading, error } = useQuery({
+    queryKey: ["mer-workflow-contacts"],
+    queryFn: fetchAllContacts,
+    staleTime: 300_000,
+    refetchOnWindowFocus: false,
+  });
 
-  useEffect(() => {
-    fetchAll();
-  }, [fetchAll]);
+  const refresh = () => {
+    queryClient.invalidateQueries({ queryKey: ["mer-workflow-contacts"] });
+  };
 
-  return { contacts, loading, error, refresh: fetchAll };
+  return {
+    contacts: data ?? [],
+    loading: isLoading,
+    error: error ? (error as Error).message || "Failed to load contacts" : null,
+    refresh,
+  };
 }
