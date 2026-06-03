@@ -16,7 +16,7 @@ export interface ActionPayload {
   merKey: string;
   ghlContactId: string;
   cycleMonth: string;
-  triggeredBy: "dashboard";
+  triggeredBy: string;
   override?: boolean;
   forceOverride?: boolean;
 }
