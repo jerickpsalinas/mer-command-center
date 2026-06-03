@@ -1,14 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-
-const GHL_BASE = "https://services.leadconnectorhq.com";
-const LOCATION_ID = "2UvLCJLDqEYjWtuPdjaR";
-const TOKEN = "pit-9e416e9c-99e8-4507-9c57-e6c824f50723";
-
-const ghlHeaders = (extra: Record<string, string> = {}) => ({
-  Authorization: `Bearer ${TOKEN}`,
-  Version: "2021-07-28",
-  ...extra,
-});
+import { GHL_BASE, GHL_LOCATION_ID, ghlHeaders } from "@/lib/ghlConfig";
 
 type GhlContact = {
   id: string;
@@ -31,7 +22,7 @@ export function useGhlTags() {
       let startAfterId: string | undefined;
       for (let i = 0; i < 50; i++) {
         const params = new URLSearchParams({
-          locationId: LOCATION_ID,
+          locationId: GHL_LOCATION_ID,
           limit: "100",
         });
         if (startAfter != null) params.set("startAfter", String(startAfter));
