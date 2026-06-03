@@ -158,7 +158,7 @@ export default function ClientsPage() {
     else { setSortKey(key); setSortDir(key === "completionPct" ? "asc" : "desc"); }
   };
 
-  const filtered = monthClients
+  const filtered = mergedClients
     .filter((c) => c.name.toLowerCase().includes(search.toLowerCase()))
     .filter((c) => statusFilter === "all" || c.complianceStatus === statusFilter)
     .filter((c) => !bookkeeperFilter || c.bookkeeper === bookkeeperFilter)
