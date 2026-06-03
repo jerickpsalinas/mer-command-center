@@ -131,10 +131,37 @@ export default function ActivityLogPage() {
       });
     }
 
+    // Dashboard CTA button actions (Bank Reconnect, Docs Request, Notes
+    // Approval, Mark Resolved, etc.) — recorded by fireDashboardAction().
+    for (const a of dashboardActions) {
+      const ts = a.created_at ? Date.parse(a.created_at) : 0;
+      // Humanize "bank-reconnection" -> "Bank Reconnection"
+      const pretty = String(a.action || "")
+        .split(/[-_]/)
+        .map((w) => (w ? w[0].toUpperCase() + w.slice(1) : w))
+        .join(" ") || "Dashboard Action";
+      out.push({
+        id: `da-${a.id}`,
+        timestamp: ts,
+        timestampLabel: formatTs(ts),
+        source: "Dashboard Action",
+        action: pretty,
+        clientName: a.client_name || "—",
+        triggeredBy: a.triggered_by || "—",
+        category: pretty,
+        details: [
+          a.success === false ? "❌ Failed" : null,
+          a.message || null,
+          a.cycle_month ? `Cycle: ${a.cycle_month}` : null,
+          a.bookkeeper ? `Bookkeeper: ${a.bookkeeper}` : null,
+        ].filter(Boolean).join(" · ") || undefined,
+      });
+    }
+
     return out
       .filter((e) => !isDeveloper(e.triggeredBy))
       .sort((a, b) => b.timestamp - a.timestamp);
-  }, [data?.actionLog, merHistory, statusHistory, isDeveloper]);
+  }, [data?.actionLog, merHistory, statusHistory, dashboardActions, isDeveloper]);
 
   // Dropdown lists active non-developer users from user_profiles (so newly
   // added users show up immediately, even before they've taken any action).
