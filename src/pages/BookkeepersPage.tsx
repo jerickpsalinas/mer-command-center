@@ -1,6 +1,6 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { motion } from "framer-motion";
-import { Award, TrendingUp, TrendingDown, Users, Clock, AlertTriangle, FileText, Activity, ArrowRight, Search } from "lucide-react";
+import { Award, TrendingUp, TrendingDown, Users, Clock, AlertTriangle, FileText, Activity, ArrowRight, Search, Camera, Loader2 } from "lucide-react";
 import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
 import { useSheetData } from "@/hooks/useSheetData";
 import { DataLoading, DataError } from "@/components/DataStatus";
@@ -8,6 +8,12 @@ import { getBookkeeperPerformance, getBookkeeperPerformanceForMonth, type Bookke
 import KPICard from "@/components/KPICard";
 import MonthFilter from "@/components/MonthFilter";
 import { useClientDetails } from "@/hooks/useClientDetails";
+import { useMerWorkflowContacts, contactDisplayName } from "@/hooks/useMerWorkflowContacts";
+import { useAuth } from "@/hooks/useAuth";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "@/hooks/use-toast";
+import type { Client } from "@/data/mockData";
+
 
 const tooltipStyle = {
   background: "hsl(var(--popover))",
@@ -19,10 +25,53 @@ const tooltipStyle = {
 
 export default function BookkeepersPage() {
   const { data, isLoading, error } = useSheetData();
+  const { contacts: merWorkflowContacts } = useMerWorkflowContacts();
+  const { isAdmin } = useAuth();
   const [search, setSearch] = useState("");
   const [selected, setSelected] = useState<string | null>(null);
   const [monthFilter, setMonthFilter] = useState<string>("current");
+  const [savingSnap, setSavingSnap] = useState(false);
   const { open: openClient, modal: clientModal } = useClientDetails();
+
+  // Merge GHL mer-workflow contacts with sheet clients (only for current month).
+  const mergedClients: Client[] = useMemo(() => {
+    if (!data) return [];
+    if (monthFilter !== "current") return data.clients;
+    const norm = (s: string) => s.trim().toLowerCase();
+    const byGhlId = new Map<string, Client>();
+    const byName = new Map<string, Client>();
+    for (const c of data.clients) {
+      const gid = (c as any).ghlContactId as string | undefined;
+      if (gid) byGhlId.set(gid, c);
+      byName.set(norm(c.name), c);
+    }
+    return merWorkflowContacts.map<Client>((contact) => {
+      const matched = byGhlId.get(contact.id) || byName.get(norm(contactDisplayName(contact)));
+      if (matched) return matched;
+      return {
+        id: contact.id,
+        name: contactDisplayName(contact),
+        clientType: "For-Profit",
+        bookkeeper: "—",
+        status: "Pending MER",
+        bankTransactions: "",
+        uncategorizedTransactions: 0,
+        transactionsWithoutPayees: 0,
+        undepositedFunds: 0,
+        unappliedPayments: 0,
+        statementRequestStatus: "",
+        lastReconciledDate: "",
+        prevMonthNotesApproved: false,
+        financialsSentToClient: false,
+        booksClosedInQB: false,
+        completionPct: 0,
+        complianceStatus: "On Hold",
+        ghlContactId: contact.id,
+        categoryTags: (contact.tags || []).join(","),
+      } as Client;
+    });
+  }, [data, merWorkflowContacts, monthFilter]);
+
 
   // Available months (most recent first) derived from MER history
   const monthOptions = useMemo(() => {
@@ -40,14 +89,59 @@ export default function BookkeepersPage() {
     if (!data) return [];
     if (monthFilter === "current") {
       return data.bookkeepers
-        .map((bk) => getBookkeeperPerformance(data.clients, data.merHistory, bk))
+        .map((bk) => getBookkeeperPerformance(mergedClients, data.merHistory, bk))
         .sort((a, b) => b.rate - a.rate);
     }
     return data.bookkeepers
       .map((bk) => getBookkeeperPerformanceForMonth(data.merHistory, bk, monthFilter))
       .filter((x): x is BookkeeperPerformance => x !== null)
       .sort((a, b) => b.rate - a.rate);
-  }, [data, monthFilter]);
+  }, [data, mergedClients, monthFilter]);
+
+  const handleSaveSnapshot = async () => {
+    if (!data || savingSnap) return;
+    setSavingSnap(true);
+    try {
+      const today = new Date().toISOString().slice(0, 10);
+      const rows = data.bookkeepers.map((bk) => {
+        const own = mergedClients.filter((c) => c.bookkeeper === bk);
+        const total = own.length;
+        const compliant = own.filter((c) => c.complianceStatus === "Compliant").length;
+        const nonCompliant = own.filter((c) => c.complianceStatus === "Non-Compliant").length;
+        const onHold = own.filter((c) => /hold/i.test((c as any).status || "")).length;
+        const pendingMer = own.filter((c) => ((c as any).status || "") === "Pending MER").length;
+        const avg = total ? Math.round(own.reduce((s, c) => s + (c.completionPct || 0), 0) / total) : 0;
+        const outstanding = own.filter((c) => (c.bankTransactions || "").includes("Missing")).length;
+        const uncat = own.reduce((s, c) => s + (c.uncategorizedTransactions || 0), 0);
+        return {
+          date: today,
+          bookkeeper: bk,
+          total_clients: total,
+          compliant,
+          non_compliant: nonCompliant,
+          on_hold: onHold,
+          pending_mer: pendingMer,
+          avg_completion_pct: avg,
+          outstanding_statements: outstanding,
+          uncategorized_total: uncat,
+        };
+      });
+      const { error: upErr } = await supabase
+        .from("bookkeeper_performance")
+        .upsert(rows, { onConflict: "date,bookkeeper" });
+      if (upErr) throw upErr;
+      toast({ title: "Snapshot saved", description: `${rows.length} bookkeeper rows saved for ${today}.` });
+    } catch (e: any) {
+      toast({
+        title: "Snapshot failed",
+        description: e?.message || "Could not save snapshot.",
+        variant: "destructive",
+      });
+    } finally {
+      setSavingSnap(false);
+    }
+  };
+
 
   if (isLoading) return <DataLoading />;
   if (error || !data) return <DataError message={error?.message} />;
@@ -116,7 +210,18 @@ export default function BookkeepersPage() {
             Showing performance for <span className="font-semibold text-foreground">{monthFilter}</span>
           </span>
         )}
+        {isAdmin && monthFilter === "current" && (
+          <button
+            onClick={handleSaveSnapshot}
+            disabled={savingSnap}
+            className="sm:ml-auto inline-flex items-center justify-center gap-1.5 rounded-lg border border-primary/30 bg-primary/10 px-3 py-1.5 text-xs font-semibold text-primary hover:bg-primary/20 transition-colors disabled:opacity-50"
+          >
+            {savingSnap ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Camera className="h-3.5 w-3.5" />}
+            {savingSnap ? "Saving…" : "Save Snapshot"}
+          </button>
+        )}
       </div>
+
 
       {/* Leaderboard cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
@@ -125,73 +230,76 @@ export default function BookkeepersPage() {
           const trendIcon = s.trendPct >= 0 ? TrendingUp : TrendingDown;
           const trendColor = s.trendPct >= 0 ? "text-success" : "text-destructive";
           return (
-            <motion.button
-              key={s.name}
-              onClick={() => setSelected(s.name)}
-              initial={{ opacity: 0, y: 12 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: i * 0.04 }}
-              whileHover={{ scale: 1.01, y: -2 }}
-              className={`text-left rounded-xl border bg-card p-4 shadow-card hover:shadow-card-hover transition-[box-shadow] duration-300 ${
-                isTop ? "border-primary/30 ring-1 ring-primary/15" : "border-border"
-              }`}
-            >
-              <div className="flex items-start justify-between mb-3">
-                <div>
-                  <div className="flex items-center gap-1.5">
-                    {isTop && <Award className="h-3.5 w-3.5 text-primary" />}
-                    <h3 className="text-sm font-semibold text-foreground">{s.name}</h3>
+            <div key={s.name} className="flex flex-col gap-2">
+              <motion.button
+                onClick={() => setSelected(s.name)}
+                initial={{ opacity: 0, y: 12 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: i * 0.04 }}
+                whileHover={{ scale: 1.01, y: -2 }}
+                className={`text-left rounded-xl border bg-card p-4 shadow-card hover:shadow-card-hover transition-[box-shadow] duration-300 ${
+                  isTop ? "border-primary/30 ring-1 ring-primary/15" : "border-border"
+                }`}
+              >
+                <div className="flex items-start justify-between mb-3">
+                  <div>
+                    <div className="flex items-center gap-1.5">
+                      {isTop && <Award className="h-3.5 w-3.5 text-primary" />}
+                      <h3 className="text-sm font-semibold text-foreground">{s.name}</h3>
+                    </div>
+                    <p className="text-[11px] text-muted-foreground mt-0.5">{s.totalClients} client{s.totalClients !== 1 ? "s" : ""}</p>
                   </div>
-                  <p className="text-[11px] text-muted-foreground mt-0.5">{s.totalClients} client{s.totalClients !== 1 ? "s" : ""}</p>
+                  <span className={`inline-flex items-center gap-1 text-[11px] font-semibold ${trendColor}`}>
+                    {(() => { const TI = trendIcon; return <TI className="h-3 w-3" />; })()}
+                    {s.trendPct > 0 ? "+" : ""}{s.trendPct}pp
+                  </span>
                 </div>
-                <span className={`inline-flex items-center gap-1 text-[11px] font-semibold ${trendColor}`}>
-                  {(() => { const TI = trendIcon; return <TI className="h-3 w-3" />; })()}
-                  {s.trendPct > 0 ? "+" : ""}{s.trendPct}pp
-                </span>
-              </div>
 
-              <div className="mb-3">
-                <div className="flex items-center justify-between text-[11px] mb-1">
-                  <span className="text-muted-foreground">Compliance</span>
-                  <span className="font-mono-data font-semibold text-foreground">{s.rate}%</span>
+                <div className="mb-3">
+                  <div className="flex items-center justify-between text-[11px] mb-1">
+                    <span className="text-muted-foreground">Compliance</span>
+                    <span className="font-mono-data font-semibold text-foreground">{s.rate}%</span>
+                  </div>
+                  <div className="h-1.5 rounded-full bg-muted overflow-hidden">
+                    <div
+                      className="h-full rounded-full transition-all duration-500"
+                      style={{
+                        width: `${s.rate}%`,
+                        backgroundColor:
+                          s.rate >= 80 ? "hsl(160, 55%, 42%)" : s.rate >= 50 ? "hsl(38, 70%, 50%)" : "hsl(0, 65%, 50%)",
+                      }}
+                    />
+                  </div>
                 </div>
-                <div className="h-1.5 rounded-full bg-muted overflow-hidden">
-                  <div
-                    className="h-full rounded-full transition-all duration-500"
-                    style={{
-                      width: `${s.rate}%`,
-                      backgroundColor:
-                        s.rate >= 80 ? "hsl(160, 55%, 42%)" : s.rate >= 50 ? "hsl(38, 70%, 50%)" : "hsl(0, 65%, 50%)",
-                    }}
-                  />
-                </div>
-              </div>
 
-              <div className="grid grid-cols-2 gap-2 text-xs">
-                <div>
-                  <span className="text-muted-foreground">Avg Completion</span>
-                  <p className="font-mono-data text-foreground">{s.avgCompletion}%</p>
+                <div className="grid grid-cols-2 gap-2 text-xs">
+                  <div>
+                    <span className="text-muted-foreground">Avg Completion</span>
+                    <p className="font-mono-data text-foreground">{s.avgCompletion}%</p>
+                  </div>
+                  <div>
+                    <span className="text-muted-foreground">Velocity</span>
+                    <p className="font-mono-data text-foreground">{s.velocityDays !== null ? `${s.velocityDays}d` : "—"}</p>
+                  </div>
+                  <div>
+                    <span className="text-muted-foreground">Uncat. Txns</span>
+                    <p className="font-mono-data text-foreground">{s.totalUncategorized}</p>
+                  </div>
+                  <div>
+                    <span className="text-muted-foreground">Missing Stmts</span>
+                    <p className="font-mono-data text-foreground">{s.missingStatements}</p>
+                  </div>
                 </div>
-                <div>
-                  <span className="text-muted-foreground">Velocity</span>
-                  <p className="font-mono-data text-foreground">{s.velocityDays !== null ? `${s.velocityDays}d` : "—"}</p>
-                </div>
-                <div>
-                  <span className="text-muted-foreground">Uncat. Txns</span>
-                  <p className="font-mono-data text-foreground">{s.totalUncategorized}</p>
-                </div>
-                <div>
-                  <span className="text-muted-foreground">Missing Stmts</span>
-                  <p className="font-mono-data text-foreground">{s.missingStatements}</p>
-                </div>
-              </div>
 
-              <div className="mt-3 pt-2 border-t border-border/50 text-[10px] text-muted-foreground/70 hover:text-primary transition-colors flex items-center justify-between">
-                <span>View detailed breakdown</span>
-                <ArrowRight className="h-3 w-3" />
-              </div>
-            </motion.button>
+                <div className="mt-3 pt-2 border-t border-border/50 text-[10px] text-muted-foreground/70 hover:text-primary transition-colors flex items-center justify-between">
+                  <span>View detailed breakdown</span>
+                  <ArrowRight className="h-3 w-3" />
+                </div>
+              </motion.button>
+              <PerformanceHistory bookkeeper={s.name} />
+            </div>
           );
+
         })}
       </div>
 
@@ -316,3 +424,84 @@ function StatTile({
     </div>
   );
 }
+
+type PerfRow = {
+  date: string;
+  compliant: number;
+  avg_completion_pct: number | string;
+};
+
+function PerformanceHistory({ bookkeeper }: { bookkeeper: string }) {
+  const [rows, setRows] = useState<PerfRow[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      setLoading(true);
+      const since = new Date();
+      since.setDate(since.getDate() - 30);
+      const { data: snap, error } = await supabase
+        .from("bookkeeper_performance")
+        .select("date, compliant, avg_completion_pct")
+        .eq("bookkeeper", bookkeeper)
+        .gte("date", since.toISOString().slice(0, 10))
+        .order("date", { ascending: true });
+      if (!cancelled) {
+        if (error) setRows([]);
+        else setRows((snap as PerfRow[]) || []);
+        setLoading(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [bookkeeper]);
+
+  const chartData = rows.map((r) => ({
+    date: r.date.slice(5), // MM-DD
+    compliant: Number(r.compliant) || 0,
+    avgPct: Number(r.avg_completion_pct) || 0,
+  }));
+
+  return (
+    <div className="rounded-xl border border-border bg-card/60 p-3 shadow-card">
+      <div className="flex items-center justify-between mb-1.5">
+        <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+          Performance History
+        </span>
+        <span className="text-[10px] text-muted-foreground">last 30 days</span>
+      </div>
+      {loading ? (
+        <div className="h-[90px] flex items-center justify-center text-[10px] text-muted-foreground">
+          Loading…
+        </div>
+      ) : chartData.length === 0 ? (
+        <div className="h-[90px] flex items-center justify-center text-[10px] text-muted-foreground">
+          No snapshots yet
+        </div>
+      ) : (
+        <ResponsiveContainer width="100%" height={90}>
+          <LineChart data={chartData} margin={{ top: 4, right: 4, bottom: 0, left: -24 }}>
+            <CartesianGrid strokeDasharray="3 3" stroke="hsl(20, 8%, 16%)" />
+            <XAxis dataKey="date" tick={{ fontSize: 9, fill: "hsl(25, 10%, 50%)" }} interval="preserveStartEnd" />
+            <YAxis tick={{ fontSize: 9, fill: "hsl(25, 10%, 50%)" }} width={28} />
+            <Tooltip
+              contentStyle={{
+                background: "hsl(var(--popover))",
+                border: "1px solid hsl(var(--border))",
+                borderRadius: "8px",
+                fontSize: "10px",
+                padding: "4px 8px",
+                color: "hsl(var(--popover-foreground))",
+              }}
+            />
+            <Line type="monotone" dataKey="compliant" stroke="hsl(160, 55%, 42%)" strokeWidth={1.75} dot={false} name="Compliant" />
+            <Line type="monotone" dataKey="avgPct" stroke="hsl(340, 45%, 55%)" strokeWidth={1.75} dot={false} name="Avg %" />
+          </LineChart>
+        </ResponsiveContainer>
+      )}
+    </div>
+  );
+}
+
