@@ -19,6 +19,8 @@ import { getSequenceInfoForClient } from "@/utils/sequenceStatus";
 import { Tooltip as UTooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { useMerWorkflowContacts, contactDisplayName, type MerWorkflowContact } from "@/hooks/useMerWorkflowContacts";
+import type { Client } from "@/data/mockData";
 
 
 type SortKey = "name" | "completionPct" | "complianceStatus" | "uncategorizedTransactions";
