@@ -87,8 +87,19 @@ export default function ClientsPage() {
 
   
 
-  if (isLoading) return <DataLoading />;
-  if (error || !data) return <DataError message={error?.message} />;
+  if (isLoading && ghlLoading) return <DataLoading />;
+  if (error) return <DataError message={error?.message} />;
+
+  const sheetLoading = isLoading || !sheetData;
+  const data = sheetData ?? {
+    clients: [] as Client[],
+    merHistory: [] as any[],
+    clientMonths: {} as Record<string, string>,
+    latestMonth: "",
+    actionLog: [] as any[],
+    bookkeepers: [] as string[],
+    availableMonths: [] as string[],
+  };
 
   // Snapshot of clients for the chosen month (or live latest)
   const isLatest = monthFilter === "current";
