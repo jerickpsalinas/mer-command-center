@@ -47,6 +47,7 @@ export default function ActivityLogPage() {
   const { data } = useSheetData();
   const [merHistory, setMerHistory] = useState<any[]>([]);
   const [statusHistory, setStatusHistory] = useState<any[]>([]);
+  const [dashboardActions, setDashboardActions] = useState<any[]>([]);
   const [profiles, setProfiles] = useState<Profile[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
@@ -60,14 +61,16 @@ export default function ActivityLogPage() {
     let cancelled = false;
     (async () => {
       setLoading(true);
-      const [merRes, statusRes, profilesRes] = await Promise.all([
+      const [merRes, statusRes, actionsRes, profilesRes] = await Promise.all([
         supabase.from("mer_history").select("*").order("created_at", { ascending: false }).limit(1000),
         supabase.from("client_status_history").select("*").order("recorded_at", { ascending: false }).limit(2000),
+        supabase.from("activity_log").select("*").order("created_at", { ascending: false }).limit(2000),
         supabase.from("user_profiles").select("id,name,email,role"),
       ]);
       if (!cancelled) {
         setMerHistory(merRes.data ?? []);
         setStatusHistory(statusRes.data ?? []);
+        setDashboardActions(actionsRes.data ?? []);
         setProfiles((profilesRes.data ?? []) as Profile[]);
         setLoading(false);
       }
