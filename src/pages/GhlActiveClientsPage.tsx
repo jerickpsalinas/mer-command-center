@@ -302,24 +302,14 @@ export default function GhlActiveClientsPage() {
 
   const openSingle = (c: GhlContact) => {
     setPending({ kind: "single", contact: c });
-    setAuthStep("password");
   };
 
   const openBulk = () => {
     const list = sorted.filter((c) => selected.has(c.id));
     if (list.length === 0) return;
     setPending({ kind: "bulk", contacts: list });
-    setAuthStep("password");
   };
 
-  const submitPassword = () => {
-    if (password !== ADMIN_PASSWORD) {
-      setPasswordError("Incorrect password");
-      return;
-    }
-    setPasswordError(null);
-    setAuthStep("confirm");
-  };
 
   const submitConfirm = () => {
     if (!pending) return;
