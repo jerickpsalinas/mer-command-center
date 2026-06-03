@@ -261,7 +261,6 @@ export default function ReportsPage() {
     try {
       return def.run(fmt, filteredHistory, filteredCycle, rangeLabel, base);
     } catch (e) {
-      console.error("[Export] build failed", e);
       toast({ title: "Export failed", description: String(e), variant: "destructive" });
       return null;
     }
@@ -281,7 +280,6 @@ export default function ReportsPage() {
       downloadPayload(payload);
       toast({ title: "Export complete", description: payload.filename });
     } catch (e) {
-      console.error("[Export] download failed", e);
       toast({ title: "Download failed", description: String(e), variant: "destructive" });
     }
   };
