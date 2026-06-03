@@ -306,15 +306,23 @@ body:hover,
 }
 
 
-/* Native date input picker indicator — invert on dark theme so it stays visible */
+/* Native date input picker indicator — force visible on dark theme */
 .activity-date-input::-webkit-calendar-picker-indicator {
-  filter: invert(0.7);
-  opacity: 0.85;
+  filter: invert(1) brightness(1.4);
+  opacity: 1;
   cursor: pointer;
+  margin-left: 4px;
 }
 .activity-date-input::-webkit-calendar-picker-indicator:hover {
-  opacity: 1;
+  filter: invert(1) brightness(2);
 }
 .light .activity-date-input::-webkit-calendar-picker-indicator {
   filter: none;
+}
+/* Firefox / fallback: ensure the input text itself is visible */
+.activity-date-input {
+  color-scheme: dark;
+}
+.light .activity-date-input {
+  color-scheme: light;
 }
