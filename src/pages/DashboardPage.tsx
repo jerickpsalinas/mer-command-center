@@ -20,6 +20,7 @@ import { useClientDetails } from "@/hooks/useClientDetails";
 import type { Client } from "@/data/mockData";
 import type { MerHistoryRow } from "@/services/googleSheets";
 import { useMerWorkflowContacts, contactDisplayName } from "@/hooks/useMerWorkflowContacts";
+import { useDeveloperFilter } from "@/hooks/useDeveloperFilter";
 
 const CHART_COLORS = {
   primary: "hsl(340, 45%, 55%)",
