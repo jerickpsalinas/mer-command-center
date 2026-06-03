@@ -71,11 +71,14 @@ export function useMerWorkflowContacts() {
         startAfterId = nextStartAfterId;
       }
       setContacts(
-        collected.filter((c) =>
-          (c.tags || []).some(
-            (t) => (t || "").toLowerCase() === "mer-workflow",
-          ),
-        ),
+        collected.filter((c) => {
+          const tags = c.tags || [];
+          const normalized = tags.map((t) => (t || "").toLowerCase());
+          return (
+            normalized.includes("mer-workflow") &&
+            !normalized.includes("ready-for-cleanup")
+          );
+        }),
       );
     } catch (e: any) {
       setError(e?.message || "Failed to load contacts");

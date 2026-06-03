@@ -19,6 +19,7 @@ import ClientDetailsModal from "@/components/ClientDetailsModal";
 import { useClientDetails } from "@/hooks/useClientDetails";
 import type { Client } from "@/data/mockData";
 import type { MerHistoryRow } from "@/services/googleSheets";
+import { useMerWorkflowContacts, contactDisplayName } from "@/hooks/useMerWorkflowContacts";
 
 const CHART_COLORS = {
   primary: "hsl(340, 45%, 55%)",
@@ -377,6 +378,7 @@ function ReportsSummarySection({ clients, bookkeepers }: { clients: Client[]; bo
 
 export default function DashboardPage() {
   const { data, isLoading, error } = useSheetData();
+  const { contacts: merWorkflowContacts } = useMerWorkflowContacts();
   const dashRef = useRef<HTMLDivElement>(null);
   const [capturing, setCapturing] = useLocalState(false);
   const [monthFilter, setMonthFilter] = useLocalState<string>("current");
@@ -412,7 +414,48 @@ export default function DashboardPage() {
   // "current" = live latest, else historical snapshot for the picked month
   const isLatest = monthFilter === "current";
   const activeMonth = isLatest ? latestMonth : monthFilter;
-  const clients = isLatest ? data.clients : getClientsForMonth(merHistory, monthFilter);
+  const sheetClients = isLatest ? data.clients : getClientsForMonth(merHistory, monthFilter);
+
+  // When viewing the current month, GHL mer-workflow contacts are the source of
+  // truth for WHO appears. Overlay matching MER data; otherwise show a placeholder.
+  const mergedClients: Client[] = (() => {
+    if (!isLatest) return sheetClients;
+    const norm = (s: string) => s.trim().toLowerCase();
+    const byGhlId = new Map<string, Client>();
+    const byName = new Map<string, Client>();
+    for (const c of data.clients) {
+      const gid = (c as any).ghlContactId as string | undefined;
+      if (gid) byGhlId.set(gid, c);
+      byName.set(norm(c.name), c);
+    }
+    return merWorkflowContacts.map<Client>((contact) => {
+      const matched = byGhlId.get(contact.id) || byName.get(norm(contactDisplayName(contact)));
+      if (matched) return matched;
+      return {
+        id: contact.id,
+        name: contactDisplayName(contact),
+        clientType: "For-Profit",
+        bookkeeper: "—",
+        status: "Pending MER",
+        bankTransactions: "",
+        uncategorizedTransactions: 0,
+        transactionsWithoutPayees: 0,
+        undepositedFunds: 0,
+        unappliedPayments: 0,
+        statementRequestStatus: "",
+        lastReconciledDate: "",
+        prevMonthNotesApproved: false,
+        financialsSentToClient: false,
+        booksClosedInQB: false,
+        completionPct: 0,
+        complianceStatus: "On Hold",
+        ghlContactId: contact.id,
+        categoryTags: (contact.tags || []).join(","),
+      } as Client;
+    });
+  })();
+
+  const clients = mergedClients;
 
   const kpi = getKPIMetrics(clients);
   const breakdown = getComplianceBreakdown(clients);
