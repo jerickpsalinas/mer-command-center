@@ -265,10 +265,8 @@ export default function GhlActiveClientsPage() {
 
   const closeDialog = () => {
     setPending(null);
-    setAuthStep(null);
-    setPassword("");
-    setPasswordError(null);
   };
+
 
   const confirmRemoveClient = async () => {
     if (!removing) return;
