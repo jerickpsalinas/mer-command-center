@@ -41,14 +41,14 @@ async function fetchAllContacts(): Promise<MerWorkflowContact[]> {
 
   for (let i = 0; i < 50; i++) {
     const params = new URLSearchParams({
-      locationId: LOCATION_ID,
+      locationId: GHL_LOCATION_ID,
       limit: "100",
     });
     if (startAfter != null) params.set("startAfter", String(startAfter));
     if (startAfterId) params.set("startAfterId", startAfterId);
 
     const res = await fetch(`${GHL_BASE}/contacts/?${params.toString()}`, {
-      headers: headers(),
+      headers: ghlHeaders(),
     });
     if (!res.ok) throw new Error(`GHL fetch failed (${res.status})`);
 
