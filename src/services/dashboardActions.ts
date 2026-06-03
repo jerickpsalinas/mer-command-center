@@ -85,24 +85,27 @@ async function logActivity(
   payload: ActionPayload,
   success: boolean,
   message?: string,
+  triggeredByUser?: string,
 ) {
   try {
     // Capture the actual logged-in user so the Activity Log shows WHO
     // clicked the CTA, not just the literal "dashboard" source.
-    let actor: string | null = null;
-    try {
-      const { data: authData } = await supabase.auth.getUser();
-      const uid = authData?.user?.id;
-      if (uid) {
-        const { data: profile } = await supabase
-          .from("user_profiles")
-          .select("name,email")
-          .eq("id", uid)
-          .maybeSingle();
-        actor = profile?.name || profile?.email || authData.user?.email || null;
+    let actor: string | null = triggeredByUser?.trim() || null;
+    if (!actor) {
+      try {
+        const { data: authData } = await supabase.auth.getUser();
+        const uid = authData?.user?.id;
+        if (uid) {
+          const { data: profile } = await supabase
+            .from("user_profiles")
+            .select("name,email")
+            .eq("id", uid)
+            .maybeSingle();
+          actor = profile?.name || profile?.email || authData.user?.email || null;
+        }
+      } catch {
+        /* fall back to payload.triggeredBy */
       }
-    } catch {
-      /* fall back to payload.triggeredBy */
     }
 
     await supabase.from("activity_log").insert({
@@ -121,12 +124,17 @@ async function logActivity(
 
 export async function fireDashboardAction(
   payload: ActionPayload,
+  triggeredByUser?: string,
 ): Promise<ActionResult> {
   try {
+    const webhookBody = {
+      ...payload,
+      dashboardUser: triggeredByUser || null,
+    };
     const res = await fetch(WEBHOOK_URL, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload),
+      body: JSON.stringify(webhookBody),
     });
     let data: any = {};
     try {
@@ -135,7 +143,7 @@ export async function fireDashboardAction(
       data = {};
     }
     if (res.ok && data.success) {
-      void logActivity(payload, true, data.message);
+      void logActivity(payload, true, data.message, triggeredByUser);
       return { success: true, message: data.message };
     }
     if (res.status === 409 && data.allowOverride) {
@@ -147,7 +155,7 @@ export async function fireDashboardAction(
         overridePayload: { ...payload, override: true },
       };
     }
-    void logActivity(payload, false, data.message || "Failed");
+    void logActivity(payload, false, data.message || "Failed", triggeredByUser);
     return {
       success: false,
       errorType: data.errorType || "UNKNOWN_ERROR",
@@ -156,7 +164,7 @@ export async function fireDashboardAction(
       error: data.message,
     };
   } catch {
-    void logActivity(payload, false, "Network error");
+    void logActivity(payload, false, "Network error", triggeredByUser);
     return {
       success: false,
       errorType: "NETWORK_ERROR",

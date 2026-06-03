@@ -111,7 +111,8 @@ export default function ClientDetailsModal({ open, onClose, client, onViewHistor
   const [editCategorySelection, setEditCategorySelection] = useState<Record<string, boolean>>({});
   const [editCategorySaving, setEditCategorySaving] = useState(false);
   const [clearCycleLoading, setClearCycleLoading] = useState(false);
-  const { isAdmin } = useAuth();
+  const { isAdmin, profile, user } = useAuth();
+  const dashboardUser = profile?.name || user?.email || undefined;
   const [categorizeLoading, setCategorizeLoading] = useState(false);
   const [categorizeOpen, setCategorizeOpen] = useState(false);
   const [catStep, setCatStep] = useState<"form" | "suggestion" | "override">("form");
@@ -673,7 +674,7 @@ export default function ClientDetailsModal({ open, onClose, client, onViewHistor
                 : ""),
             cycleMonth: client.month,
             triggeredBy: "dashboard",
-          });
+          }, dashboardUser);
           setIsLoading(false);
           if (result.success) {
             recordSessionAction(client.merKey ?? "", client.month, pendingAction);
@@ -726,7 +727,7 @@ export default function ClientDetailsModal({ open, onClose, client, onViewHistor
         }
         onConfirmOverride={async (payload) => {
           setIsOverrideLoading(true);
-          const result = await fireDashboardAction(payload);
+          const result = await fireDashboardAction(payload, dashboardUser);
           setIsOverrideLoading(false);
           if (result.success) {
             recordSessionAction(payload.merKey, payload.cycleMonth, payload.action);
