@@ -191,7 +191,7 @@ export default function AppLayout() {
                 Sign Out
               </button>
               <p className="text-[10px] text-muted-foreground/70 font-medium pt-1">
-                MER Dashboard v1.0
+                MER Dashboard v2.0
               </p>
             </>
           ) : (
