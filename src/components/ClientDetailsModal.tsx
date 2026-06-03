@@ -727,7 +727,7 @@ export default function ClientDetailsModal({ open, onClose, client, onViewHistor
         }
         onConfirmOverride={async (payload) => {
           setIsOverrideLoading(true);
-          const result = await fireDashboardAction(payload);
+          const result = await fireDashboardAction(payload, dashboardUser);
           setIsOverrideLoading(false);
           if (result.success) {
             recordSessionAction(payload.merKey, payload.cycleMonth, payload.action);
