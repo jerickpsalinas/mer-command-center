@@ -19,6 +19,8 @@ import { getSequenceInfoForClient } from "@/utils/sequenceStatus";
 import { Tooltip as UTooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { useMerWorkflowContacts, contactDisplayName, type MerWorkflowContact } from "@/hooks/useMerWorkflowContacts";
+import type { Client } from "@/data/mockData";
 
 
 type SortKey = "name" | "completionPct" | "complianceStatus" | "uncategorizedTransactions";
@@ -49,6 +51,7 @@ function getIssueDetails(c: { uncategorizedTransactions: number; bankTransaction
 
 export default function ClientsPage() {
   const { data, isLoading, error } = useSheetData();
+  const { contacts: merWorkflowContacts, loading: ghlLoading } = useMerWorkflowContacts();
   const { savedFilters, saveFilter, deleteFilter } = useUserSettings();
   const [searchParams] = useSearchParams();
 
@@ -91,6 +94,45 @@ export default function ClientsPage() {
   const isLatest = monthFilter === "current";
   const monthClients = isLatest ? data.clients : getClientsForMonth(data.merHistory, monthFilter);
 
+  // Source of truth for WHO appears = GHL contacts with the mer-workflow tag.
+  // For each contact, overlay matching MER snapshot data when present; otherwise
+  // emit a "Pending" placeholder so the client still appears.
+  const mergedClients: Client[] = (() => {
+    const norm = (s: string) => s.trim().toLowerCase();
+    const byGhlId = new Map<string, Client>();
+    const byName = new Map<string, Client>();
+    for (const c of monthClients) {
+      const gid = (c as any).ghlContactId as string | undefined;
+      if (gid) byGhlId.set(gid, c);
+      byName.set(norm(c.name), c);
+    }
+    return merWorkflowContacts.map<Client>((contact) => {
+      const matched = byGhlId.get(contact.id) || byName.get(norm(contactDisplayName(contact)));
+      if (matched) return matched;
+      return {
+        id: contact.id,
+        name: contactDisplayName(contact),
+        clientType: "For-Profit",
+        bookkeeper: "—",
+        status: "Pending MER",
+        bankTransactions: "",
+        uncategorizedTransactions: 0,
+        transactionsWithoutPayees: 0,
+        undepositedFunds: 0,
+        unappliedPayments: 0,
+        statementRequestStatus: "",
+        lastReconciledDate: "",
+        prevMonthNotesApproved: false,
+        financialsSentToClient: false,
+        booksClosedInQB: false,
+        completionPct: 0,
+        complianceStatus: "On Hold",
+        ghlContactId: contact.id,
+        categoryTags: (contact.tags || []).join(","),
+      } as Client;
+    });
+  })();
+
   const history = historyClient ? getClientHistory(data.merHistory, historyClient) : [];
   const monthDiff = history.length >= 2 ? diffClientMonths(history[history.length - 2], history[history.length - 1]) : [];
 
@@ -116,7 +158,7 @@ export default function ClientsPage() {
     else { setSortKey(key); setSortDir(key === "completionPct" ? "asc" : "desc"); }
   };
 
-  const filtered = monthClients
+  const filtered = mergedClients
     .filter((c) => c.name.toLowerCase().includes(search.toLowerCase()))
     .filter((c) => statusFilter === "all" || c.complianceStatus === statusFilter)
     .filter((c) => !bookkeeperFilter || c.bookkeeper === bookkeeperFilter)
@@ -222,7 +264,7 @@ export default function ClientsPage() {
       <StickyPageHeader>
         <span className="inline-flex items-center gap-1.5 rounded-full bg-card px-2.5 py-1 text-[11px] font-semibold text-foreground border border-border">
           <Search className="h-3 w-3 text-muted-foreground" />
-          {filtered.length} of {monthClients.length}
+          {filtered.length} of {mergedClients.length}
         </span>
         {statusFilter !== "all" && (
           <span className="inline-flex items-center gap-1 rounded-full bg-primary/10 text-primary px-2 py-0.5 text-[11px] font-medium border border-primary/20">
@@ -445,6 +487,10 @@ export default function ClientsPage() {
           <span className="text-[11px] text-muted-foreground sm:ml-auto">{filtered.length} clients</span>
         </div>
       </motion.div>
+
+      {ghlLoading && mergedClients.length === 0 && (
+        <p className="text-xs text-muted-foreground text-center py-6">Loading clients from GHL…</p>
+      )}
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 density-gap-3">
         {filtered.map((c, i) => {
