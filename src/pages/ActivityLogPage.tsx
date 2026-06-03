@@ -137,20 +137,31 @@ export default function ActivityLogPage() {
         source: "Status Change",
         action: "Status Change",
         clientName: s.client_name || "—",
-        triggeredBy: "—",
+        triggeredBy: s.changed_by || "—",
         category: "update",
         details: s.status ? `Status: ${s.status}` : undefined,
       });
     }
 
-    return out.sort((a, b) => b.timestamp - a.timestamp);
-  }, [data?.actionLog, merHistory, statusHistory]);
+    return out
+      .filter((e) => !isDeveloperActor(e.triggeredBy))
+      .sort((a, b) => b.timestamp - a.timestamp);
+  }, [data?.actionLog, merHistory, statusHistory, developerIds]);
 
+  // Dropdown lists active non-developer users from user_profiles (so newly
+  // added users show up immediately, even before they've taken any action).
   const bookkeepers = useMemo(() => {
-    const s = new Set<string>();
-    entries.forEach((e) => e.triggeredBy && e.triggeredBy !== "—" && s.add(e.triggeredBy));
-    return Array.from(s).sort();
-  }, [entries]);
+    const names = new Set<string>();
+    for (const p of profiles) {
+      if ((p.role || "").toLowerCase() === "developer") continue;
+      if (p.name) names.add(p.name);
+    }
+    // Also include any actor names found in entries that aren't in user_profiles yet.
+    entries.forEach((e) => {
+      if (e.triggeredBy && e.triggeredBy !== "—") names.add(e.triggeredBy);
+    });
+    return Array.from(names).sort();
+  }, [profiles, entries]);
 
   const actionTypes = useMemo(() => {
     const s = new Set<string>();
