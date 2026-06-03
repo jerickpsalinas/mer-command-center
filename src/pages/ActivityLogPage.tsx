@@ -54,6 +54,7 @@ export default function ActivityLogPage() {
   const [actionType, setActionType] = useState<string>("all");
   const [fromDate, setFromDate] = useState<string>("");
   const [toDate, setToDate] = useState<string>("");
+  const { isDeveloper } = useDeveloperFilter();
 
   useEffect(() => {
     let cancelled = false;
@@ -76,23 +77,6 @@ export default function ActivityLogPage() {
     };
   }, []);
 
-  // Identities (name + email, lowercased) of developer-role users — their
-  // activity is hidden from the Activity Log entirely.
-  const developerIds = useMemo(() => {
-    const set = new Set<string>();
-    for (const p of profiles) {
-      if ((p.role || "").toLowerCase() === "developer") {
-        if (p.name) set.add(p.name.trim().toLowerCase());
-        if (p.email) set.add(p.email.trim().toLowerCase());
-      }
-    }
-    return set;
-  }, [profiles]);
-
-  const isDeveloperActor = (actor: string | undefined | null) => {
-    if (!actor) return false;
-    return developerIds.has(actor.trim().toLowerCase());
-  };
 
 
   const entries: UnifiedEntry[] = useMemo(() => {
