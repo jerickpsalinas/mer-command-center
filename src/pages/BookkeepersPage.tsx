@@ -25,10 +25,53 @@ const tooltipStyle = {
 
 export default function BookkeepersPage() {
   const { data, isLoading, error } = useSheetData();
+  const { contacts: merWorkflowContacts } = useMerWorkflowContacts();
+  const { isAdmin } = useAuth();
   const [search, setSearch] = useState("");
   const [selected, setSelected] = useState<string | null>(null);
   const [monthFilter, setMonthFilter] = useState<string>("current");
+  const [savingSnap, setSavingSnap] = useState(false);
   const { open: openClient, modal: clientModal } = useClientDetails();
+
+  // Merge GHL mer-workflow contacts with sheet clients (only for current month).
+  const mergedClients: Client[] = useMemo(() => {
+    if (!data) return [];
+    if (monthFilter !== "current") return data.clients;
+    const norm = (s: string) => s.trim().toLowerCase();
+    const byGhlId = new Map<string, Client>();
+    const byName = new Map<string, Client>();
+    for (const c of data.clients) {
+      const gid = (c as any).ghlContactId as string | undefined;
+      if (gid) byGhlId.set(gid, c);
+      byName.set(norm(c.name), c);
+    }
+    return merWorkflowContacts.map<Client>((contact) => {
+      const matched = byGhlId.get(contact.id) || byName.get(norm(contactDisplayName(contact)));
+      if (matched) return matched;
+      return {
+        id: contact.id,
+        name: contactDisplayName(contact),
+        clientType: "For-Profit",
+        bookkeeper: "—",
+        status: "Pending MER",
+        bankTransactions: "",
+        uncategorizedTransactions: 0,
+        transactionsWithoutPayees: 0,
+        undepositedFunds: 0,
+        unappliedPayments: 0,
+        statementRequestStatus: "",
+        lastReconciledDate: "",
+        prevMonthNotesApproved: false,
+        financialsSentToClient: false,
+        booksClosedInQB: false,
+        completionPct: 0,
+        complianceStatus: "On Hold",
+        ghlContactId: contact.id,
+        categoryTags: (contact.tags || []).join(","),
+      } as Client;
+    });
+  }, [data, merWorkflowContacts, monthFilter]);
+
 
   // Available months (most recent first) derived from MER history
   const monthOptions = useMemo(() => {
