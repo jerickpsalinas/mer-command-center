@@ -11,7 +11,7 @@ import ViewAsBanner from "@/components/ViewAsBanner";
 import ViewAsRoleSwitcher from "@/components/ViewAsRoleSwitcher";
 import {
   LayoutDashboard, CalendarCheck, TrendingUp, Users, Download, Settings,
-  Menu, X, ChevronLeft, RefreshCw, Sun, Moon, Workflow, UserCheck, HeartPulse, BookOpen, FilePlus2, FileEdit, LogOut,
+  Menu, X, ChevronLeft, RefreshCw, Sun, Moon, Workflow, UserCheck, HeartPulse, BookOpen, FilePlus2, FileEdit, LogOut, ClipboardList,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useAuth } from "@/hooks/useAuth";
@@ -26,6 +26,7 @@ const navItems = [
   { title: "Bookkeepers", url: "/bookkeepers", icon: UserCheck },
   { title: "GHL Active Clients", url: "/ghl-active-clients", icon: UserCheck },
   { title: "Monthly Trends", url: "/monthly-trends", icon: TrendingUp },
+  { title: "Activity Log", url: "/activity-log", icon: ClipboardList },
   { title: "Export Center", url: "/reports", icon: Download },
   { title: "User Guide", url: "/user-guide", icon: BookOpen },
   { title: "Settings", url: "/settings", icon: Settings },

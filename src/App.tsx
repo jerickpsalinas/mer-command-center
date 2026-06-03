@@ -20,6 +20,7 @@ import HealthPillarsPage from "@/pages/HealthPillarsPage";
 import ReportsPage from "@/pages/ReportsPage";
 import UserGuidePage from "@/pages/UserGuidePage";
 import SettingsPage from "@/pages/SettingsPage";
+import ActivityLogPage from "@/pages/ActivityLogPage";
 import NotFound from "@/pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -53,6 +54,7 @@ const App = () => (
                   <Route path="/reports" element={<ReportsPage />} />
                   <Route path="/user-guide" element={<UserGuidePage />} />
                   <Route path="/settings" element={<SettingsPage />} />
+                  <Route path="/activity-log" element={<ActivityLogPage />} />
                 </Route>
                 <Route path="*" element={<NotFound />} />
               </Routes>
