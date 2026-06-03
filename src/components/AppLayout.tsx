@@ -182,7 +182,6 @@ export default function AppLayout() {
                   )}
                 </div>
               </div>
-              <ViewAsRoleSwitcher compact />
               <button
                 onClick={signOut}
                 className="w-full inline-flex items-center gap-2 px-2.5 py-1.5 rounded-md text-[12px] font-medium text-muted-foreground hover:bg-accent hover:text-destructive transition-colors"
