@@ -305,3 +305,16 @@ body:hover,
   background: transparent;
 }
 
+
+/* Native date input picker indicator — invert on dark theme so it stays visible */
+.activity-date-input::-webkit-calendar-picker-indicator {
+  filter: invert(0.7);
+  opacity: 0.85;
+  cursor: pointer;
+}
+.activity-date-input::-webkit-calendar-picker-indicator:hover {
+  opacity: 1;
+}
+.light .activity-date-input::-webkit-calendar-picker-indicator {
+  filter: none;
+}
