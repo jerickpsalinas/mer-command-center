@@ -129,9 +129,9 @@ export default function ActivityLogPage() {
     }
 
     return out
-      .filter((e) => !isDeveloperActor(e.triggeredBy))
+      .filter((e) => !isDeveloper(e.triggeredBy))
       .sort((a, b) => b.timestamp - a.timestamp);
-  }, [data?.actionLog, merHistory, statusHistory, developerIds]);
+  }, [data?.actionLog, merHistory, statusHistory, isDeveloper]);
 
   // Dropdown lists active non-developer users from user_profiles (so newly
   // added users show up immediately, even before they've taken any action).
