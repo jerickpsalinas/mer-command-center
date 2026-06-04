@@ -933,7 +933,7 @@ export default function ClientDetailsModal({ open, onClose, client, onViewHistor
       <Dialog open={categorizeOpen} onOpenChange={(o) => !catSubmitting && !catConfirmLoading && setCategorizeOpen(o)}>
         <DialogContent className="max-w-lg">
           <DialogHeader>
-            <DialogTitle>🤖 Categorize Transaction — {client.name}</DialogTitle>
+            <DialogTitle className="pr-8 truncate">🤖 Categorize Transaction — {client.name}</DialogTitle>
           </DialogHeader>
 
           {catStep === "form" && (
