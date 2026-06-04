@@ -93,9 +93,9 @@ export default function RecentActivityFeed({
       out.push({
         id: `mh-${r.name}-${ts}`,
         ts,
-        who: r.submitted_by || r.bookkeeper || "Bookkeeper",
+        who: r.submittedBy || r.bookkeeper || "Bookkeeper",
         client: r.name,
-        action: r.action || "MER submission",
+        action: "MER submission",
         source: "MER",
       });
     }
