@@ -316,7 +316,7 @@ function ReportsSummarySection({ clients, bookkeepers }: { clients: Client[]; bo
 }
 
 export default function DashboardPage() {
-  const { data, isLoading, error } = useSheetData();
+  const { data, isLoading, error, dataUpdatedAt, refetch, isFetching } = useSheetData();
   const { contacts: merWorkflowContacts } = useMerWorkflowContacts();
   const dashRef = useRef<HTMLDivElement>(null);
   const [capturing, setCapturing] = useLocalState(false);
