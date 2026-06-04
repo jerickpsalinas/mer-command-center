@@ -234,9 +234,9 @@ export default function ClientDetailsModal({ open, onClose, client, onViewHistor
     <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
       <DialogContent className="max-w-3xl w-[calc(100vw-1rem)] sm:w-auto max-h-[88vh] overflow-y-auto scrollbar-thin scrollbar-thumb-muted-foreground/20 hover:scrollbar-thumb-muted-foreground/40 scrollbar-track-transparent p-4 sm:p-6">
         <DialogHeader>
-          <DialogTitle className="flex items-center gap-2 pr-8">
+          <DialogTitle className="flex items-center gap-2 pr-8 min-w-0">
             <FileText className="h-4 w-4 text-primary shrink-0" />
-            <span className="truncate">{client.name} – MER Details</span>
+            <span className="truncate min-w-0">{client.name} – MER Details</span>
           </DialogTitle>
           <p className="text-[11px] text-muted-foreground">
             Live snapshot from the MER ledger ·{" "}
