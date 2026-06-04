@@ -460,14 +460,35 @@ export default function DashboardPage() {
             {isLatest ? <span className="text-success">live</span> : <span className="text-warning">historical view</span>}
           </div>
         </div>
-        <button
-          onClick={handleCapture}
-          disabled={capturing}
-          className="inline-flex items-center justify-center gap-2 rounded-lg border border-border bg-card px-4 py-2 text-xs font-semibold text-muted-foreground shadow-card hover:bg-accent hover:text-foreground transition-colors disabled:opacity-50 w-full sm:w-auto"
-        >
-          <Camera className={`h-3.5 w-3.5 ${capturing ? "animate-pulse" : ""}`} />
-          {capturing ? "Capturing…" : "Capture as PNG"}
-        </button>
+        <div className="flex items-center gap-2 w-full sm:w-auto">
+          {/* Live sync status pill */}
+          <div className="inline-flex items-center gap-2 rounded-lg border border-border bg-card pl-3 pr-1.5 py-1.5 text-[11px] shadow-card">
+            <span className="relative inline-flex h-2 w-2">
+              <span className={`absolute inline-flex h-full w-full rounded-full opacity-75 ${isFetching ? "animate-ping bg-primary" : "bg-success"}`} />
+              <span className={`relative inline-flex rounded-full h-2 w-2 ${isFetching ? "bg-primary" : "bg-success"}`} />
+            </span>
+            <span className="text-muted-foreground">
+              {isFetching ? "Syncing…" : <>Synced <span className="text-foreground font-medium tabular-nums">{syncedAgo}</span></>}
+            </span>
+            <button
+              type="button"
+              onClick={() => refetch()}
+              disabled={isFetching}
+              aria-label="Refresh data"
+              className="inline-flex items-center justify-center h-6 w-6 rounded-md text-muted-foreground hover:bg-accent hover:text-foreground transition-colors disabled:opacity-50"
+            >
+              <RefreshCw className={`h-3.5 w-3.5 ${isFetching ? "animate-spin" : ""}`} />
+            </button>
+          </div>
+          <button
+            onClick={handleCapture}
+            disabled={capturing}
+            className="inline-flex items-center justify-center gap-2 rounded-lg border border-border bg-card px-4 py-2 text-xs font-semibold text-muted-foreground shadow-card hover:bg-accent hover:text-foreground transition-colors disabled:opacity-50 flex-1 sm:flex-none"
+          >
+            <Camera className={`h-3.5 w-3.5 ${capturing ? "animate-pulse" : ""}`} />
+            {capturing ? "Capturing…" : "Capture as PNG"}
+          </button>
+        </div>
       </div>
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4">
