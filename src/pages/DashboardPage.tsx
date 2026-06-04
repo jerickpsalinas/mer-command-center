@@ -21,6 +21,8 @@ import type { Client } from "@/data/mockData";
 import type { MerHistoryRow } from "@/services/googleSheets";
 import { useMerWorkflowContacts, contactDisplayName } from "@/hooks/useMerWorkflowContacts";
 import { useDeveloperFilter } from "@/hooks/useDeveloperFilter";
+import RecentActivityFeed from "@/components/RecentActivityFeed";
+import { RefreshCw } from "lucide-react";
 
 const CHART_COLORS = {
   primary: "hsl(340, 45%, 55%)",
