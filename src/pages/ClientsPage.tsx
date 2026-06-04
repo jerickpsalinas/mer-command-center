@@ -639,9 +639,9 @@ export default function ClientsPage() {
       <Dialog open={!!historyClient} onOpenChange={(open) => !open && setHistoryClient(null)}>
         <DialogContent className="max-w-3xl w-[calc(100vw-1rem)] sm:w-auto max-h-[85vh] overflow-y-auto scrollbar-thin scrollbar-thumb-muted-foreground/20 hover:scrollbar-thumb-muted-foreground/40 scrollbar-track-transparent p-4 sm:p-6">
           <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <History className="h-4 w-4 text-primary" />
-              {historyClient} – Monthly History
+            <DialogTitle className="flex items-center gap-2 pr-8 min-w-0">
+              <History className="h-4 w-4 text-primary shrink-0" />
+              <span className="truncate min-w-0">{historyClient} – Monthly History</span>
             </DialogTitle>
           </DialogHeader>
           {historyClient && <MerHistoryList clientName={historyClient} />}
