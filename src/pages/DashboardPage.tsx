@@ -403,6 +403,33 @@ export default function DashboardPage() {
   const kpi = getKPIMetrics(clients);
   const breakdown = getComplianceBreakdown(clients);
 
+  // Period-over-period deltas from monthly trends (compare active month to previous).
+  const trendIdx = (() => {
+    if (!monthlyTrends?.length) return -1;
+    const i = monthlyTrends.findIndex((t) => t.month === activeMonth);
+    return i >= 0 ? i : monthlyTrends.length - 1;
+  })();
+  const currTrend = trendIdx >= 0 ? monthlyTrends[trendIdx] : null;
+  const prevTrend = trendIdx > 0 ? monthlyTrends[trendIdx - 1] : null;
+  const deltaCompliant = currTrend && prevTrend ? currTrend.compliant - prevTrend.compliant : undefined;
+  const deltaNonCompliant = currTrend && prevTrend ? currTrend.nonCompliant - prevTrend.nonCompliant : undefined;
+  const deltaCompletion = currTrend && prevTrend ? currTrend.completionPct - prevTrend.completionPct : undefined;
+  const deltaLabel = prevTrend ? `vs ${prevTrend.month}` : undefined;
+
+  // Live sync indicator state
+  const syncedMs = dataUpdatedAt || 0;
+  const syncedAgo = (() => {
+    if (!syncedMs) return "—";
+    const diff = Math.max(0, Date.now() - syncedMs);
+    const s = Math.floor(diff / 1000);
+    if (s < 60) return `${s}s ago`;
+    const m = Math.floor(s / 60);
+    if (m < 60) return `${m}m ago`;
+    const h = Math.floor(m / 60);
+    return `${h}h ago`;
+  })();
+
+
   return (
     <div ref={dashRef} className="space-y-6 sm:space-y-7">
       {/* Top bar: Month picker + Capture */}
