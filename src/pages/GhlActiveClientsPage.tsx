@@ -670,7 +670,7 @@ export default function GhlActiveClientsPage() {
       >
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>
+            <DialogTitle className="pr-8 truncate">
               Edit Category Tags — {editing ? contactName(editing) : ""}
             </DialogTitle>
           </DialogHeader>

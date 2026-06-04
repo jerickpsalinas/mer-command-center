@@ -503,9 +503,10 @@ export default function ReportsPage() {
       <Dialog open={!!preview} onOpenChange={(o) => { if (!o) closePreview(); }}>
         <DialogContent className="max-w-none w-screen h-screen sm:rounded-none p-0 gap-0 flex flex-col border-0 top-0 left-0 translate-x-0 translate-y-0 data-[state=open]:slide-in-from-bottom-2">
           <DialogHeader className="p-4 sm:p-5 border-b border-border shrink-0">
-            <DialogTitle className="text-base flex items-center gap-2">
-              <Eye className="h-4 w-4 text-primary" />
-              Preview · <span className="text-muted-foreground font-normal truncate">{preview?.title}</span>
+            <DialogTitle className="text-base flex items-center gap-2 pr-8 min-w-0">
+              <Eye className="h-4 w-4 text-primary shrink-0" />
+              <span className="shrink-0">Preview ·</span>
+              <span className="text-muted-foreground font-normal truncate min-w-0">{preview?.title}</span>
             </DialogTitle>
           </DialogHeader>
           <div className="flex-1 min-h-0 overflow-hidden bg-muted/20 p-3 sm:p-4">

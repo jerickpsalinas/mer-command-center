@@ -418,9 +418,9 @@ export default function MerFormModal({ open, mode, client, clients, onClose }: P
           className="max-w-3xl w-[calc(100vw-1rem)] sm:w-auto max-h-[92vh] overflow-y-auto scrollbar-thin scrollbar-thumb-muted-foreground/20 hover:scrollbar-thumb-muted-foreground/40 scrollbar-track-transparent p-4 sm:p-6 bg-card border-border"
         >
           <DialogHeader>
-            <DialogTitle className="flex items-center gap-2 pr-8">
+            <DialogTitle className="flex items-center gap-2 pr-8 min-w-0">
               <Icon className="h-4 w-4 text-primary shrink-0" />
-              <span className="truncate">
+              <span className="truncate min-w-0">
                 {title}
                 {headerName ? ` — ${headerName}` : ""}
               </span>
