@@ -134,7 +134,7 @@ function NeedsAttentionSection({ clients, merHistory, actionLog }: { clients: Cl
   );
 }
 
-function BookkeepersSection({ clients, bookkeepers }: { clients: Client[]; bookkeepers: string[] }) {
+function BookkeepersSection({ clients, bookkeepers, actionLog, merHistory }: { clients: Client[]; bookkeepers: string[]; actionLog: import("@/services/googleSheets").ActionLogEntry[]; merHistory: MerHistoryRow[] }) {
   const bkStats = getBookkeeperStats(clients, bookkeepers);
 
   // Build richer activity feed from client data
