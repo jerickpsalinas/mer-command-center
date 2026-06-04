@@ -137,53 +137,6 @@ function NeedsAttentionSection({ clients, merHistory, actionLog }: { clients: Cl
 function BookkeepersSection({ clients, bookkeepers, actionLog, merHistory }: { clients: Client[]; bookkeepers: string[]; actionLog: import("@/services/googleSheets").ActionLogEntry[]; merHistory: MerHistoryRow[] }) {
   const bkStats = getBookkeeperStats(clients, bookkeepers);
 
-  // Build richer activity feed from client data
-  const recentActivity: { id: string; message: React.ReactNode; time: string; type: string; category: string }[] = [];
-
-  // Compliant clients
-  clients.filter(c => c.complianceStatus === "Compliant").slice(0, 2).forEach((c, i) => {
-    recentActivity.push({
-      id: `compliant-${c.id}`, time: `${5 + i * 12}m ago`, type: "success", category: "Compliance",
-      message: <><span className="text-foreground font-medium">{c.name}</span> is <span className="text-success font-semibold">fully compliant</span> — books closed, financials sent, {c.completionPct}% complete</>
-    });
-  });
-
-  // Missing bank statements  
-  clients.filter(c => c.bankTransactions.includes("Missing")).slice(0, 2).forEach((c, i) => {
-    recentActivity.push({
-      id: `flagged-${c.id}`, time: `${18 + i * 15}m ago`, type: "destructive", category: "Missing Data",
-      message: <><span className="text-foreground font-medium">{c.name}</span> — <span className="text-destructive font-semibold">{c.bankTransactions}</span> bank statement · Last reconciled {c.lastReconciledDate || "never"}</>
-    });
-  });
-
-  // High uncategorized
-  clients.filter(c => c.uncategorizedTransactions > 0).sort((a, b) => b.uncategorizedTransactions - a.uncategorizedTransactions).slice(0, 2).forEach((c, i) => {
-    recentActivity.push({
-      id: `uncat-${c.id}`, time: `${35 + i * 20}m ago`, type: "warning", category: "Transactions",
-      message: <><span className="text-foreground font-medium">{c.name}</span> has <span className="text-warning font-semibold">{c.uncategorizedTransactions} uncategorized</span> and <span className="text-muted-foreground">{c.transactionsWithoutPayees} without payees</span></>
-    });
-  });
-
-  // Low completion
-  clients.filter(c => c.completionPct < 40 && !c.bankTransactions.includes("Missing")).sort((a, b) => a.completionPct - b.completionPct).slice(0, 1).forEach((c) => {
-    recentActivity.push({
-      id: `low-${c.id}`, time: "45m ago", type: "destructive", category: "At Risk",
-      message: <><span className="text-foreground font-medium">{c.name}</span> at <span className="text-destructive font-semibold">{c.completionPct}% completion</span> — requires immediate attention</>
-    });
-  });
-
-  const dotColor: Record<string, string> = {
-    success: "bg-success",
-    destructive: "bg-destructive",
-    warning: "bg-warning",
-  };
-
-  const catColor: Record<string, string> = {
-    Compliance: "text-success bg-success/10",
-    "Missing Data": "text-destructive bg-destructive/10",
-    Transactions: "text-warning bg-warning/10",
-    "At Risk": "text-destructive bg-destructive/10",
-  };
 
   return (
     <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4, delay: 0.9 }}
