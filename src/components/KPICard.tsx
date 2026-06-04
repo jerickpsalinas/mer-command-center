@@ -1,5 +1,5 @@
 import { motion } from "framer-motion";
-import { Info, LucideIcon } from "lucide-react";
+import { Info, LucideIcon, ArrowUp, ArrowDown, Minus } from "lucide-react";
 import { cn } from "@/lib/utils";
 import AnimatedNumber from "@/components/AnimatedNumber";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
@@ -16,6 +16,12 @@ interface KPICardProps {
   suffix?: string;
   /** Optional explanation rendered in a tooltip next to the title */
   tooltip?: ReactNode;
+  /** Numeric delta vs. previous period (in same units as value). */
+  delta?: number;
+  /** Short label for the delta (e.g. "vs Jun"). */
+  deltaLabel?: string;
+  /** If true, a negative delta is "good" (e.g. for non-compliant / risk counts). */
+  invertDeltaColor?: boolean;
 }
 
 const variantStyles = {
