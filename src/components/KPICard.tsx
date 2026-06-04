@@ -1,5 +1,5 @@
 import { motion } from "framer-motion";
-import { Info, LucideIcon } from "lucide-react";
+import { Info, LucideIcon, ArrowUp, ArrowDown, Minus } from "lucide-react";
 import { cn } from "@/lib/utils";
 import AnimatedNumber from "@/components/AnimatedNumber";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
@@ -16,6 +16,12 @@ interface KPICardProps {
   suffix?: string;
   /** Optional explanation rendered in a tooltip next to the title */
   tooltip?: ReactNode;
+  /** Numeric delta vs. previous period (in same units as value). */
+  delta?: number;
+  /** Short label for the delta (e.g. "vs Jun"). */
+  deltaLabel?: string;
+  /** If true, a negative delta is "good" (e.g. for non-compliant / risk counts). */
+  invertDeltaColor?: boolean;
 }
 
 const variantStyles = {
@@ -39,8 +45,23 @@ const valueStyles = {
   warning: "text-warning",
 };
 
-export default function KPICard({ title, value, icon: Icon, trend, variant = "default", index = 0, suffix, tooltip }: KPICardProps) {
+export default function KPICard({ title, value, icon: Icon, trend, variant = "default", index = 0, suffix, tooltip, delta, deltaLabel, invertDeltaColor }: KPICardProps) {
   const isNumeric = typeof value === "number";
+
+  const hasDelta = typeof delta === "number" && Number.isFinite(delta);
+  const isUp = hasDelta && delta! > 0;
+  const isDown = hasDelta && delta! < 0;
+  const isFlat = hasDelta && delta === 0;
+  const goodDirection = invertDeltaColor ? isDown : isUp;
+  const badDirection = invertDeltaColor ? isUp : isDown;
+  const deltaColor = isFlat
+    ? "text-muted-foreground bg-muted"
+    : goodDirection
+      ? "text-success bg-success/10"
+      : badDirection
+        ? "text-destructive bg-destructive/10"
+        : "text-muted-foreground bg-muted";
+  const DeltaIcon = isFlat ? Minus : isUp ? ArrowUp : ArrowDown;
 
   return (
     <motion.div
@@ -83,7 +104,19 @@ export default function KPICard({ title, value, icon: Icon, trend, variant = "de
       <p className={cn("text-[28px] font-bold font-mono-data leading-none", valueStyles[variant])}>
         {isNumeric ? <AnimatedNumber value={value} suffix={suffix ?? ""} /> : value}
       </p>
-      {trend && <p className="mt-2 text-xs text-muted-foreground">{trend}</p>}
+      {(hasDelta || trend) && (
+        <div className="mt-2 flex items-center gap-1.5 flex-wrap">
+          {hasDelta && (
+            <span className={cn("inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-md text-[10px] font-bold font-mono-data tabular-nums", deltaColor)}>
+              <DeltaIcon className="h-2.5 w-2.5" />
+              {isFlat ? "0" : `${Math.abs(delta!)}`}
+            </span>
+          )}
+          {(deltaLabel || trend) && (
+            <span className="text-[10px] text-muted-foreground">{deltaLabel || trend}</span>
+          )}
+        </div>
+      )}
     </motion.div>
   );
 }

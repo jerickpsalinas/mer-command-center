@@ -1,4 +1,4 @@
-import { useRef, useCallback, useState as useLocalState } from "react";
+import { useRef, useCallback, useState as useLocalState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import {
   Users, CheckCircle2, XCircle, Pause, TrendingUp, AlertTriangle,
@@ -21,6 +21,8 @@ import type { Client } from "@/data/mockData";
 import type { MerHistoryRow } from "@/services/googleSheets";
 import { useMerWorkflowContacts, contactDisplayName } from "@/hooks/useMerWorkflowContacts";
 import { useDeveloperFilter } from "@/hooks/useDeveloperFilter";
+import RecentActivityFeed from "@/components/RecentActivityFeed";
+import { RefreshCw } from "lucide-react";
 
 const CHART_COLORS = {
   primary: "hsl(340, 45%, 55%)",
@@ -132,56 +134,9 @@ function NeedsAttentionSection({ clients, merHistory, actionLog }: { clients: Cl
   );
 }
 
-function BookkeepersSection({ clients, bookkeepers }: { clients: Client[]; bookkeepers: string[] }) {
+function BookkeepersSection({ clients, bookkeepers, actionLog, merHistory }: { clients: Client[]; bookkeepers: string[]; actionLog: import("@/services/googleSheets").ActionLogEntry[]; merHistory: MerHistoryRow[] }) {
   const bkStats = getBookkeeperStats(clients, bookkeepers);
 
-  // Build richer activity feed from client data
-  const recentActivity: { id: string; message: React.ReactNode; time: string; type: string; category: string }[] = [];
-
-  // Compliant clients
-  clients.filter(c => c.complianceStatus === "Compliant").slice(0, 2).forEach((c, i) => {
-    recentActivity.push({
-      id: `compliant-${c.id}`, time: `${5 + i * 12}m ago`, type: "success", category: "Compliance",
-      message: <><span className="text-foreground font-medium">{c.name}</span> is <span className="text-success font-semibold">fully compliant</span> — books closed, financials sent, {c.completionPct}% complete</>
-    });
-  });
-
-  // Missing bank statements  
-  clients.filter(c => c.bankTransactions.includes("Missing")).slice(0, 2).forEach((c, i) => {
-    recentActivity.push({
-      id: `flagged-${c.id}`, time: `${18 + i * 15}m ago`, type: "destructive", category: "Missing Data",
-      message: <><span className="text-foreground font-medium">{c.name}</span> — <span className="text-destructive font-semibold">{c.bankTransactions}</span> bank statement · Last reconciled {c.lastReconciledDate || "never"}</>
-    });
-  });
-
-  // High uncategorized
-  clients.filter(c => c.uncategorizedTransactions > 0).sort((a, b) => b.uncategorizedTransactions - a.uncategorizedTransactions).slice(0, 2).forEach((c, i) => {
-    recentActivity.push({
-      id: `uncat-${c.id}`, time: `${35 + i * 20}m ago`, type: "warning", category: "Transactions",
-      message: <><span className="text-foreground font-medium">{c.name}</span> has <span className="text-warning font-semibold">{c.uncategorizedTransactions} uncategorized</span> and <span className="text-muted-foreground">{c.transactionsWithoutPayees} without payees</span></>
-    });
-  });
-
-  // Low completion
-  clients.filter(c => c.completionPct < 40 && !c.bankTransactions.includes("Missing")).sort((a, b) => a.completionPct - b.completionPct).slice(0, 1).forEach((c) => {
-    recentActivity.push({
-      id: `low-${c.id}`, time: "45m ago", type: "destructive", category: "At Risk",
-      message: <><span className="text-foreground font-medium">{c.name}</span> at <span className="text-destructive font-semibold">{c.completionPct}% completion</span> — requires immediate attention</>
-    });
-  });
-
-  const dotColor: Record<string, string> = {
-    success: "bg-success",
-    destructive: "bg-destructive",
-    warning: "bg-warning",
-  };
-
-  const catColor: Record<string, string> = {
-    Compliance: "text-success bg-success/10",
-    "Missing Data": "text-destructive bg-destructive/10",
-    Transactions: "text-warning bg-warning/10",
-    "At Risk": "text-destructive bg-destructive/10",
-  };
 
   return (
     <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4, delay: 0.9 }}
@@ -211,24 +166,7 @@ function BookkeepersSection({ clients, bookkeepers }: { clients: Client[]; bookk
           );
         })}
       </div>
-      <div className="border-t border-border px-4 sm:px-6 py-4">
-        <h3 className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider mb-3 flex items-center gap-1.5"><Clock className="h-3.5 w-3.5" /> Recent Activity</h3>
-        <div className="space-y-2.5">
-          {recentActivity.slice(0, 7).map(a => (
-            <div key={a.id} className="flex items-start gap-2.5 py-1.5 rounded-md hover:bg-accent/20 -mx-1 px-1 transition-colors">
-              <div className={`mt-1.5 h-1.5 w-1.5 rounded-full shrink-0 ${dotColor[a.type] || "bg-muted-foreground"}`} />
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2 mb-0.5 flex-wrap">
-                  <span className={`text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded ${catColor[a.category] || "text-muted-foreground bg-muted"}`}>{a.category}</span>
-                  <span className="text-[10px] text-muted-foreground">{a.time}</span>
-                </div>
-                <p className="text-[12px] text-muted-foreground leading-relaxed break-words">{a.message}</p>
-              </div>
-            </div>
-          ))}
-          {recentActivity.length === 0 && <p className="text-xs text-muted-foreground">No recent activity</p>}
-        </div>
-      </div>
+      <RecentActivityFeed actionLog={actionLog} merHistory={merHistory} limit={8} />
     </motion.div>
   );
 }
@@ -378,11 +316,16 @@ function ReportsSummarySection({ clients, bookkeepers }: { clients: Client[]; bo
 }
 
 export default function DashboardPage() {
-  const { data, isLoading, error } = useSheetData();
+  const { data, isLoading, error, dataUpdatedAt, refetch, isFetching } = useSheetData();
   const { contacts: merWorkflowContacts } = useMerWorkflowContacts();
   const dashRef = useRef<HTMLDivElement>(null);
   const [capturing, setCapturing] = useLocalState(false);
   const [monthFilter, setMonthFilter] = useLocalState<string>("current");
+  const [, setNowTick] = useLocalState(0);
+  useEffect(() => {
+    const t = setInterval(() => setNowTick((n) => n + 1), 30_000);
+    return () => clearInterval(t);
+  }, [setNowTick]);
 
   const handleCapture = useCallback(async () => {
     if (!dashRef.current || capturing) return;
@@ -465,6 +408,33 @@ export default function DashboardPage() {
   const kpi = getKPIMetrics(clients);
   const breakdown = getComplianceBreakdown(clients);
 
+  // Period-over-period deltas from monthly trends (compare active month to previous).
+  const trendIdx = (() => {
+    if (!monthlyTrends?.length) return -1;
+    const i = monthlyTrends.findIndex((t) => t.month === activeMonth);
+    return i >= 0 ? i : monthlyTrends.length - 1;
+  })();
+  const currTrend = trendIdx >= 0 ? monthlyTrends[trendIdx] : null;
+  const prevTrend = trendIdx > 0 ? monthlyTrends[trendIdx - 1] : null;
+  const deltaCompliant = currTrend && prevTrend ? currTrend.compliant - prevTrend.compliant : undefined;
+  const deltaNonCompliant = currTrend && prevTrend ? currTrend.nonCompliant - prevTrend.nonCompliant : undefined;
+  const deltaCompletion = currTrend && prevTrend ? currTrend.completionPct - prevTrend.completionPct : undefined;
+  const deltaLabel = prevTrend ? `vs ${prevTrend.month}` : undefined;
+
+  // Live sync indicator state
+  const syncedMs = dataUpdatedAt || 0;
+  const syncedAgo = (() => {
+    if (!syncedMs) return "—";
+    const diff = Math.max(0, Date.now() - syncedMs);
+    const s = Math.floor(diff / 1000);
+    if (s < 60) return `${s}s ago`;
+    const m = Math.floor(s / 60);
+    if (m < 60) return `${m}m ago`;
+    const h = Math.floor(m / 60);
+    return `${h}h ago`;
+  })();
+
+
   return (
     <div ref={dashRef} className="space-y-6 sm:space-y-7">
       {/* Top bar: Month picker + Capture */}
@@ -490,27 +460,51 @@ export default function DashboardPage() {
             {isLatest ? <span className="text-success">live</span> : <span className="text-warning">historical view</span>}
           </div>
         </div>
-        <button
-          onClick={handleCapture}
-          disabled={capturing}
-          className="inline-flex items-center justify-center gap-2 rounded-lg border border-border bg-card px-4 py-2 text-xs font-semibold text-muted-foreground shadow-card hover:bg-accent hover:text-foreground transition-colors disabled:opacity-50 w-full sm:w-auto"
-        >
-          <Camera className={`h-3.5 w-3.5 ${capturing ? "animate-pulse" : ""}`} />
-          {capturing ? "Capturing…" : "Capture as PNG"}
-        </button>
+        <div className="flex items-center gap-2 w-full sm:w-auto">
+          {/* Live sync status pill */}
+          <div className="inline-flex items-center gap-2 rounded-lg border border-border bg-card pl-3 pr-1.5 py-1.5 text-[11px] shadow-card">
+            <span className="relative inline-flex h-2 w-2">
+              <span className={`absolute inline-flex h-full w-full rounded-full opacity-75 ${isFetching ? "animate-ping bg-primary" : "bg-success"}`} />
+              <span className={`relative inline-flex rounded-full h-2 w-2 ${isFetching ? "bg-primary" : "bg-success"}`} />
+            </span>
+            <span className="text-muted-foreground">
+              {isFetching ? "Syncing…" : <>Synced <span className="text-foreground font-medium tabular-nums">{syncedAgo}</span></>}
+            </span>
+            <button
+              type="button"
+              onClick={() => refetch()}
+              disabled={isFetching}
+              aria-label="Refresh data"
+              className="inline-flex items-center justify-center h-6 w-6 rounded-md text-muted-foreground hover:bg-accent hover:text-foreground transition-colors disabled:opacity-50"
+            >
+              <RefreshCw className={`h-3.5 w-3.5 ${isFetching ? "animate-spin" : ""}`} />
+            </button>
+          </div>
+          <button
+            onClick={handleCapture}
+            disabled={capturing}
+            className="inline-flex items-center justify-center gap-2 rounded-lg border border-border bg-card px-4 py-2 text-xs font-semibold text-muted-foreground shadow-card hover:bg-accent hover:text-foreground transition-colors disabled:opacity-50 flex-1 sm:flex-none"
+          >
+            <Camera className={`h-3.5 w-3.5 ${capturing ? "animate-pulse" : ""}`} />
+            {capturing ? "Capturing…" : "Capture as PNG"}
+          </button>
+        </div>
       </div>
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4">
         <KPICard title="Total Clients" value={kpi.total} icon={Users} index={0} />
         <KPICard title="Compliant" value={kpi.compliant} icon={CheckCircle2} variant="success" index={1}
+          delta={deltaCompliant} deltaLabel={deltaLabel}
           tooltip={<><p className="font-semibold text-foreground mb-1">Compliant</p><p>A client counts as Compliant only when ALL 7 checks pass: Bank Transactions present (not missing), 0 Uncategorized Transactions, 0 Unapplied Payments, Statement Request = Received, Prev Month Notes Approved, Financials Sent To Client, and Books Closed In QB.</p></>} />
         <KPICard title="Non-Compliant" value={kpi.nonCompliant} icon={XCircle} variant="destructive" index={2}
+          delta={deltaNonCompliant} deltaLabel={deltaLabel} invertDeltaColor
           tooltip={<><p className="font-semibold text-foreground mb-1">Non-Compliant</p><p>Any client where one or more of the 7 compliance checks fail and the sheet Status is not "On Hold". Hover an individual badge to see which specific fields failed.</p></>} />
         <KPICard title="On Hold" value={kpi.onHold} icon={Pause} variant="warning" index={3}
           tooltip={<><p className="font-semibold text-foreground mb-1">On Hold</p><p>Triggered when the sheet's Status column contains the word "hold" (case-insensitive). On Hold takes precedence over the other 7 checks.</p></>} />
         <KPICard title="Pending MER" value={kpi.pendingMer} icon={Pause} variant="default" index={4}
           tooltip={<><p className="font-semibold text-foreground mb-1">Pending MER</p><p>Active GHL contacts (mer-workflow tag) that have not submitted any MER data yet. They are tracked separately from On Hold so the compliance KPIs aren't inflated.</p></>} />
-        <KPICard title="Completion %" value={`${kpi.avgCompletion}%`} icon={TrendingUp} index={4} />
+        <KPICard title="Completion %" value={`${kpi.avgCompletion}%`} icon={TrendingUp} index={4}
+          delta={deltaCompletion} deltaLabel={deltaLabel} />
         <KPICard title="Not Reconciled" value={kpi.notReconciled} icon={AlertTriangle} variant="destructive" index={5} />
         <KPICard title="Outstanding Stmts" value={kpi.outstandingStatements} icon={FileText} variant="warning" index={6} />
         <KPICard title="No Updated Notes" value={kpi.withoutNotes} icon={StickyNote} variant="destructive" index={7} />
@@ -568,7 +562,7 @@ export default function DashboardPage() {
       {/* Needs Attention + Bookkeepers */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-5">
         <NeedsAttentionSection clients={clients} merHistory={merHistory} actionLog={data.actionLog} />
-        <BookkeepersSection clients={clients} bookkeepers={bookkeepers} />
+        <BookkeepersSection clients={clients} bookkeepers={bookkeepers} actionLog={data.actionLog} merHistory={merHistory} />
       </div>
 
       {/* Reports Summary */}
