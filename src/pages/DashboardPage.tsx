@@ -166,24 +166,7 @@ function BookkeepersSection({ clients, bookkeepers, actionLog, merHistory }: { c
           );
         })}
       </div>
-      <div className="border-t border-border px-4 sm:px-6 py-4">
-        <h3 className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider mb-3 flex items-center gap-1.5"><Clock className="h-3.5 w-3.5" /> Recent Activity</h3>
-        <div className="space-y-2.5">
-          {recentActivity.slice(0, 7).map(a => (
-            <div key={a.id} className="flex items-start gap-2.5 py-1.5 rounded-md hover:bg-accent/20 -mx-1 px-1 transition-colors">
-              <div className={`mt-1.5 h-1.5 w-1.5 rounded-full shrink-0 ${dotColor[a.type] || "bg-muted-foreground"}`} />
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2 mb-0.5 flex-wrap">
-                  <span className={`text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded ${catColor[a.category] || "text-muted-foreground bg-muted"}`}>{a.category}</span>
-                  <span className="text-[10px] text-muted-foreground">{a.time}</span>
-                </div>
-                <p className="text-[12px] text-muted-foreground leading-relaxed break-words">{a.message}</p>
-              </div>
-            </div>
-          ))}
-          {recentActivity.length === 0 && <p className="text-xs text-muted-foreground">No recent activity</p>}
-        </div>
-      </div>
+      <RecentActivityFeed actionLog={actionLog} merHistory={merHistory} limit={8} />
     </motion.div>
   );
 }
