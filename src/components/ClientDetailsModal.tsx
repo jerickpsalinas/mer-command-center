@@ -831,9 +831,9 @@ export default function ClientDetailsModal({ open, onClose, client, onViewHistor
       <Dialog open={editCategoryOpen} onOpenChange={(o) => !editCategorySaving && setEditCategoryOpen(o)}>
         <DialogContent className="max-w-md w-[calc(100vw-1rem)] sm:w-auto p-5">
           <DialogHeader>
-            <DialogTitle className="flex items-center gap-2 pr-8">
+            <DialogTitle className="flex items-center gap-2 pr-8 min-w-0">
               <Tag className="h-4 w-4 text-primary shrink-0" />
-              <span className="truncate">Update Category Tags — {client.name}</span>
+              <span className="truncate min-w-0">Update Category Tags — {client.name}</span>
             </DialogTitle>
           </DialogHeader>
           <div className="space-y-2 mt-3">
