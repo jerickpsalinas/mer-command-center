@@ -494,14 +494,17 @@ export default function DashboardPage() {
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4">
         <KPICard title="Total Clients" value={kpi.total} icon={Users} index={0} />
         <KPICard title="Compliant" value={kpi.compliant} icon={CheckCircle2} variant="success" index={1}
+          delta={deltaCompliant} deltaLabel={deltaLabel}
           tooltip={<><p className="font-semibold text-foreground mb-1">Compliant</p><p>A client counts as Compliant only when ALL 7 checks pass: Bank Transactions present (not missing), 0 Uncategorized Transactions, 0 Unapplied Payments, Statement Request = Received, Prev Month Notes Approved, Financials Sent To Client, and Books Closed In QB.</p></>} />
         <KPICard title="Non-Compliant" value={kpi.nonCompliant} icon={XCircle} variant="destructive" index={2}
+          delta={deltaNonCompliant} deltaLabel={deltaLabel} invertDeltaColor
           tooltip={<><p className="font-semibold text-foreground mb-1">Non-Compliant</p><p>Any client where one or more of the 7 compliance checks fail and the sheet Status is not "On Hold". Hover an individual badge to see which specific fields failed.</p></>} />
         <KPICard title="On Hold" value={kpi.onHold} icon={Pause} variant="warning" index={3}
           tooltip={<><p className="font-semibold text-foreground mb-1">On Hold</p><p>Triggered when the sheet's Status column contains the word "hold" (case-insensitive). On Hold takes precedence over the other 7 checks.</p></>} />
         <KPICard title="Pending MER" value={kpi.pendingMer} icon={Pause} variant="default" index={4}
           tooltip={<><p className="font-semibold text-foreground mb-1">Pending MER</p><p>Active GHL contacts (mer-workflow tag) that have not submitted any MER data yet. They are tracked separately from On Hold so the compliance KPIs aren't inflated.</p></>} />
-        <KPICard title="Completion %" value={`${kpi.avgCompletion}%`} icon={TrendingUp} index={4} />
+        <KPICard title="Completion %" value={`${kpi.avgCompletion}%`} icon={TrendingUp} index={4}
+          delta={deltaCompletion} deltaLabel={deltaLabel} />
         <KPICard title="Not Reconciled" value={kpi.notReconciled} icon={AlertTriangle} variant="destructive" index={5} />
         <KPICard title="Outstanding Stmts" value={kpi.outstandingStatements} icon={FileText} variant="warning" index={6} />
         <KPICard title="No Updated Notes" value={kpi.withoutNotes} icon={StickyNote} variant="destructive" index={7} />
