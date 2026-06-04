@@ -321,6 +321,11 @@ export default function DashboardPage() {
   const dashRef = useRef<HTMLDivElement>(null);
   const [capturing, setCapturing] = useLocalState(false);
   const [monthFilter, setMonthFilter] = useLocalState<string>("current");
+  const [, setNowTick] = useLocalState(0);
+  useEffect(() => {
+    const t = setInterval(() => setNowTick((n) => n + 1), 30_000);
+    return () => clearInterval(t);
+  }, [setNowTick]);
 
   const handleCapture = useCallback(async () => {
     if (!dashRef.current || capturing) return;
