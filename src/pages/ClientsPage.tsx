@@ -654,8 +654,8 @@ export default function ClientsPage() {
       <Dialog open={showSaveDialog} onOpenChange={setShowSaveDialog}>
         <DialogContent className="max-w-md w-[calc(100vw-1rem)] sm:w-auto p-4 sm:p-6">
           <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <BookmarkPlus className="h-4 w-4 text-primary" />
+            <DialogTitle className="flex items-center gap-2 pr-8">
+              <BookmarkPlus className="h-4 w-4 text-primary shrink-0" />
               Save Filter View
             </DialogTitle>
             <p className="text-xs text-muted-foreground">Give your current filter combination a name.</p>
