@@ -109,6 +109,8 @@ export default function ClientsPage() {
   // For each contact, overlay matching MER snapshot data when present; otherwise
   // emit a "Pending" placeholder so the client still appears.
   const mergedClients: Client[] = (() => {
+    // Demo mode: GHL is disconnected, so fall back to month clients directly.
+    if (!merWorkflowContacts || merWorkflowContacts.length === 0) return monthClients;
     const norm = (s: string) => s.trim().toLowerCase();
     const byGhlId = new Map<string, Client>();
     const byName = new Map<string, Client>();
