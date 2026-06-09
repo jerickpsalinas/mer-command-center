@@ -284,9 +284,10 @@ export default function AppLayout() {
             <ViewAsRoleSwitcher />
           </div>
 
-          <div className="h-9 w-9 rounded-full bg-primary/15 flex items-center justify-center overflow-hidden ring-2 ring-primary/20">
-            <img src={logo} alt="BA" className="h-6 w-6 object-contain" />
+          <div className="h-9 w-9 rounded-full bg-primary/15 text-primary flex items-center justify-center ring-2 ring-primary/20 text-xs font-semibold tracking-tight">
+            JS
           </div>
+
         </header>
 
         <main className="flex-1 px-3 py-4 sm:px-5 sm:py-5 lg:p-8 w-full max-w-[1600px] mx-auto overflow-x-hidden pb-[72px] lg:pb-8">
