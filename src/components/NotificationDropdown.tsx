@@ -3,7 +3,7 @@ import { Activity as ActivityIcon, CheckCircle2, XCircle, AlertTriangle, FileTex
 import { motion, AnimatePresence } from "framer-motion";
 import type { Client, MonthlyTrend } from "@/data/mockData";
 import { useUserSettings } from "@/hooks/useUserSettings";
-import { supabase } from "@/integrations/supabase/client";
+
 import { relativeTime } from "@/lib/toastLog";
 
 interface ActivityRow {
