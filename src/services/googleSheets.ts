@@ -137,15 +137,11 @@ export async function fetchSheetData(): Promise<SheetData> {
   return {
     clients: GREENFIELD_CLIENTS as any[],
     monthlyTrends: GREENFIELD_MONTHLY_TRENDS,
-    merHistory: GREENFIELD_CLIENTS.map((c, i) => ({
-      ...c,
-      month: "Aug 2025",
-      monthRaw: "Aug 2025",
-      monthDate: "2025-08-01",
-      timestamp: new Date(Date.now() - i * 3600000).toISOString(),
-      timestampMs: Date.now() - i * 3600000,
-      submittedBy: c.bookkeeper,
-    })) as MerHistoryRow[],
+    merHistory: [
+      ...GREENFIELD_CLIENTS.map((c, i) => ({ ...c, month: "Aug 2025", monthRaw: "Aug 2025", monthDate: "2025-08-01", timestamp: new Date(Date.now() - i * 3600000).toISOString(), timestampMs: Date.now() - i * 3600000, submittedBy: c.bookkeeper })),
+      ...GREENFIELD_CLIENTS.map((c, i) => ({ ...c, id: String(100 + i), month: "Jul 2025", monthRaw: "Jul 2025", monthDate: "2025-07-01", completionPct: Math.max(0, c.completionPct - 20), complianceStatus: c.completionPct >= 80 ? "Compliant" : "Non-Compliant", timestamp: new Date(Date.now() - 2592000000 - i * 3600000).toISOString(), timestampMs: Date.now() - 2592000000 - i * 3600000, submittedBy: c.bookkeeper })),
+      ...GREENFIELD_CLIENTS.map((c, i) => ({ ...c, id: String(200 + i), month: "Jun 2025", monthRaw: "Jun 2025", monthDate: "2025-06-01", completionPct: Math.max(0, c.completionPct - 40), complianceStatus: c.completionPct >= 90 ? "Compliant" : "Non-Compliant", timestamp: new Date(Date.now() - 5184000000 - i * 3600000).toISOString(), timestampMs: Date.now() - 5184000000 - i * 3600000, submittedBy: c.bookkeeper })),
+    ] as MerHistoryRow[],
     clientMonths,
     submittedBy,
     latestMonth: "Aug 2025",
@@ -160,7 +156,18 @@ export async function fetchSheetData(): Promise<SheetData> {
       { timestamp: new Date(Date.now() - 10800000).toISOString(), actionType: "MER Submitted", clientName: "Magnolia Events & Catering", ghlContactId: "40", cycleMonth: "Aug 2025", triggeredBy: "Marcus", status: "success", notes: "" },
     ],
     bookkeepers: GREENFIELD_BOOKKEEPERS,
-    availableMonths: ["Mar 2025","Apr 2025","May 2025","Jun 2025","Jul 2025","Aug 2025"],
-    cycleEntries: [],
+    availableMonths: ["Jun 2025", "Jul 2025", "Aug 2025"],
+    cycleEntries: [
+      { id:"1", clientName:"Pinehurst Realty LLC", companyName:"Pinehurst Realty LLC", clientEmail:"contact@pinehurstllc.com", ghlContactId:"3", stageNumber:4, stageName:"Awaiting Client Response", month:"2025-08-01", timestamp:new Date(Date.now()-172800000).toISOString(), categoryTags:"mer-workflow", cycleStatus:"Active", daysInStage:7, escalated:true, notes:"7 days passed. No documents received. Escalated to Assistant.", cycleKey:"3_Aug2025" },
+      { id:"2", clientName:"Sunrise Wellness Spa", companyName:"Sunrise Wellness Spa", clientEmail:"contact@sunrisespa.com", ghlContactId:"5", stageNumber:4, stageName:"Awaiting Client Response", month:"2025-08-01", timestamp:new Date(Date.now()-259200000).toISOString(), categoryTags:"mer-workflow", cycleStatus:"Active", daysInStage:10, escalated:true, notes:"10 days passed. No documents received. Escalated to Assistant.", cycleKey:"5_Aug2025" },
+      { id:"3", clientName:"Maple Street Tax Co.", companyName:"Maple Street Tax Co.", clientEmail:"contact@maplestreettax.com", ghlContactId:"1", stageNumber:7, stageName:"Internal Review", month:"2025-08-01", timestamp:new Date(Date.now()-86400000).toISOString(), categoryTags:"mer-workflow", cycleStatus:"Active", daysInStage:1, escalated:false, notes:"All bookkeeping tasks complete. Awaiting internal review.", cycleKey:"1_Aug2025" },
+      { id:"4", clientName:"Riverside Dental Group", companyName:"Riverside Dental Group", clientEmail:"contact@riversidedental.com", ghlContactId:"2", stageNumber:8, stageName:"Complete", month:"2025-08-01", timestamp:new Date(Date.now()-43200000).toISOString(), categoryTags:"mer-workflow", cycleStatus:"Resolved", daysInStage:0, escalated:false, notes:"Cycle complete.", cycleKey:"2_Aug2025" },
+      { id:"5", clientName:"Green Valley Farms", companyName:"Green Valley Farms", clientEmail:"contact@greenvalleyfarms.com", ghlContactId:"4", stageNumber:8, stageName:"Complete", month:"2025-08-01", timestamp:new Date(Date.now()-50000000).toISOString(), categoryTags:"mer-workflow", cycleStatus:"Resolved", daysInStage:0, escalated:false, notes:"Cycle complete.", cycleKey:"4_Aug2025" },
+      { id:"6", clientName:"Harbor View Marina", companyName:"Harbor View Marina", clientEmail:"contact@harborviewmarina.com", ghlContactId:"6", stageNumber:8, stageName:"Complete", month:"2025-08-01", timestamp:new Date(Date.now()-54000000).toISOString(), categoryTags:"mer-workflow", cycleStatus:"Resolved", daysInStage:0, escalated:false, notes:"Cycle complete.", cycleKey:"6_Aug2025" },
+      { id:"7", clientName:"Ironwood CrossFit LLC", companyName:"Ironwood CrossFit LLC", clientEmail:"contact@ironwoodcrossfit.com", ghlContactId:"21", stageNumber:3, stageName:"Documents Requested", month:"2025-08-01", timestamp:new Date(Date.now()-345600000).toISOString(), categoryTags:"mer-workflow", cycleStatus:"Active", daysInStage:12, escalated:true, notes:"Documents not received after 12 days.", cycleKey:"21_Aug2025" },
+      { id:"8", clientName:"Harvest Moon Organic Farm", companyName:"Harvest Moon Organic Farm", clientEmail:"contact@harvestmoon.com", ghlContactId:"33", stageNumber:4, stageName:"Awaiting Client Response", month:"2025-08-01", timestamp:new Date(Date.now()-288000000).toISOString(), categoryTags:"mer-workflow", cycleStatus:"Active", daysInStage:8, escalated:true, notes:"8 days passed. No documents received.", cycleKey:"33_Aug2025" },
+      { id:"9", clientName:"Summit Legal Partners", companyName:"Summit Legal Partners", clientEmail:"contact@summitlegal.com", ghlContactId:"7", stageNumber:2, stageName:"On Hold", month:"2025-08-01", timestamp:new Date(Date.now()-432000000).toISOString(), categoryTags:"mer-workflow", cycleStatus:"Active", daysInStage:15, escalated:false, notes:"Client on hold pending management decision.", cycleKey:"7_Aug2025" },
+      { id:"10", clientName:"Willow Creek Day Care", companyName:"Willow Creek Day Care", clientEmail:"contact@willowcreek.com", ghlContactId:"39", stageNumber:4, stageName:"Awaiting Client Response", month:"2025-08-01", timestamp:new Date(Date.now()-518400000).toISOString(), categoryTags:"mer-workflow", cycleStatus:"Active", daysInStage:14, escalated:true, notes:"14 days passed. No documents received. Critical.", cycleKey:"39_Aug2025" },
+    ],
   };
 }

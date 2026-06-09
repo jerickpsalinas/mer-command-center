@@ -3,7 +3,7 @@ import { Activity as ActivityIcon, CheckCircle2, XCircle, AlertTriangle, FileTex
 import { motion, AnimatePresence } from "framer-motion";
 import type { Client, MonthlyTrend } from "@/data/mockData";
 import { useUserSettings } from "@/hooks/useUserSettings";
-import { supabase } from "@/integrations/supabase/client";
+
 import { relativeTime } from "@/lib/toastLog";
 
 interface ActivityRow {
@@ -176,30 +176,17 @@ export default function NotificationDropdown({ clients, trends }: { clients: Cli
   });
 
   useEffect(() => {
-    let mounted = true;
-    supabase
-      .from("activity_log")
-      .select("*")
-      .order("created_at", { ascending: false })
-      .limit(30)
-      .then(({ data }) => {
-        if (mounted && data) setActivity(data as ActivityRow[]);
-      });
-    const channel = supabase
-      .channel("activity_log_feed")
-      .on(
-        "postgres_changes",
-        { event: "INSERT", schema: "public", table: "activity_log" },
-        (payload) => {
-          setActivity((prev) => [payload.new as ActivityRow, ...prev].slice(0, 30));
-        },
-      )
-      .subscribe();
-    return () => {
-      mounted = false;
-      supabase.removeChannel(channel);
-    };
+    // Demo Mode — hardcoded team activity feed (no backend)
+    const DEMO_ACTIVITY: ActivityRow[] = [
+      { id: "n1", action: "missing-statement", client_name: "Sunrise Wellness Spa", bookkeeper: "Marcus", cycle_month: "Aug 2025", triggered_by: "System", success: false, message: "bank statement still not received", created_at: new Date(Date.now() - 120000).toISOString() },
+      { id: "n2", action: "mark-resolved", client_name: "Maple Street Tax Co.", bookkeeper: "Sarah", cycle_month: "Aug 2025", triggered_by: "Sarah", success: true, message: "books closed successfully", created_at: new Date(Date.now() - 900000).toISOString() },
+      { id: "n3", action: "missing-statement", client_name: "Willow Creek Day Care", bookkeeper: "Sarah", cycle_month: "Aug 2025", triggered_by: "System", success: false, message: "14 days without documents, critical", created_at: new Date(Date.now() - 3600000).toISOString() },
+      { id: "n4", action: "mark-resolved", client_name: "Green Valley Farms", bookkeeper: "Tyler", cycle_month: "Aug 2025", triggered_by: "Tyler", success: true, message: "financials sent to client", created_at: new Date(Date.now() - 7200000).toISOString() },
+      { id: "n5", action: "notes-approval", client_name: null, bookkeeper: null, cycle_month: "Aug 2025", triggered_by: "System", success: true, message: "August 2025 compliance report ready — 26 compliant, 10 non-compliant", created_at: new Date(Date.now() - 10800000).toISOString() },
+    ];
+    setActivity(DEMO_ACTIVITY);
   }, []);
+
 
   const unreadActivityCount = activity.filter((a) => new Date(a.created_at).getTime() > lastSeenAt).length;
 
