@@ -26,13 +26,14 @@ interface AuthContextValue {
 const AuthContext = createContext<AuthContextValue | undefined>(undefined);
 
 const DEMO_PROFILE: Profile = {
-  name: "Sarah Mitchell",
-  email: "demo@greenfieldbk.com",
+  name: "Jerick P. Salinas",
+  email: "jerick@greenfieldbk.com",
   role: "admin",
 };
 
-const DEMO_USER = { id: "demo", email: "demo@greenfieldbk.com" } as unknown as User;
+const DEMO_USER = { id: "demo", email: "jerick@greenfieldbk.com" } as unknown as User;
 const DEMO_SESSION = { user: DEMO_USER } as unknown as Session;
+
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [viewAsRole, setViewAsRole] = useState<AppRole | null>(null);
