@@ -51,8 +51,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     isBookkeeper: false,
     isDeveloper: false,
     signOut: async () => {
+      try {
+        const { supabase } = await import("@/integrations/supabase/client");
+        await supabase.auth.signOut();
+      } catch (e) {
+        // ignore — demo mode may not have an active session
+      }
       localStorage.removeItem("greenfield-demo-logged-in");
-      window.location.href = "/login";
+      window.location.href = "https://demo.hirejps.com";
     },
   };
 
