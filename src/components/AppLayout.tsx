@@ -170,9 +170,11 @@ export default function AppLayout() {
           {sidebarOpen ? (
             <>
               <div className="flex items-center gap-2 px-1">
-                <div className="h-8 w-8 rounded-full bg-primary/15 flex items-center justify-center text-[11px] font-semibold text-primary shrink-0">
-                  {(profile?.name || user?.email || "?").slice(0, 1).toUpperCase()}
-                </div>
+                <img
+                  src={jpsAvatar}
+                  alt={profile?.name || "User"}
+                  className="h-8 w-8 rounded-full object-cover ring-1 ring-primary/30 bg-card shrink-0"
+                />
                 <div className="min-w-0 flex-1">
                   <p className="text-[12px] font-semibold text-foreground truncate">
                     {profile?.name || user?.email}
