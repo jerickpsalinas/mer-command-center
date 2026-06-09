@@ -50,7 +50,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     isAdmin: true,
     isBookkeeper: false,
     isDeveloper: false,
-    signOut: async () => {},
+    signOut: async () => {
+      localStorage.removeItem("greenfield-demo-logged-in");
+      window.location.href = "/login";
+    },
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

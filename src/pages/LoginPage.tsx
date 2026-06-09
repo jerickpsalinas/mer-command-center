@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import BrandMark from "@/components/BrandMark";
 import { Loader2 } from "lucide-react";
@@ -13,6 +13,13 @@ export default function LoginPage() {
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
+  useEffect(() => {
+    if (localStorage.getItem("greenfield-demo-logged-in") === "true") {
+      navigate("/", { replace: true });
+    }
+  }, [navigate]);
+
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
@@ -20,6 +27,7 @@ export default function LoginPage() {
     await new Promise((r) => setTimeout(r, 400));
     setSubmitting(false);
     if (email.trim().toLowerCase() === DEMO_EMAIL && password === DEMO_PASSWORD) {
+      localStorage.setItem("greenfield-demo-logged-in", "true");
       navigate("/", { replace: true });
       return;
     }
