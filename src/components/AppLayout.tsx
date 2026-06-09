@@ -17,6 +17,7 @@ import {
 import { motion, AnimatePresence } from "framer-motion";
 import { useAuth } from "@/hooks/useAuth";
 import BrandMark from "@/components/BrandMark";
+import jpsAvatar from "@/assets/jps-avatar.jpg";
 
 const navItems = [
   { title: "Dashboard", url: "/", icon: LayoutDashboard },
@@ -284,9 +285,12 @@ export default function AppLayout() {
             <ViewAsRoleSwitcher />
           </div>
 
-          <div className="h-9 w-9 rounded-full bg-primary/15 text-primary flex items-center justify-center ring-2 ring-primary/20 text-xs font-semibold tracking-tight">
-            JS
-          </div>
+          <img
+            src={jpsAvatar}
+            alt="Jerick P. Salinas"
+            className="h-9 w-9 rounded-full object-cover ring-2 ring-primary/30 bg-card"
+          />
+
 
         </header>
 
