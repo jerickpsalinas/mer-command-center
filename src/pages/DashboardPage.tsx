@@ -368,6 +368,8 @@ export default function DashboardPage() {
   // truth for WHO appears. Overlay matching MER data; otherwise show a placeholder.
   const mergedClients: Client[] = (() => {
     if (!isLatest) return sheetClients;
+    // Demo mode: GHL is disconnected, so fall back to sheet clients directly.
+    if (!merWorkflowContacts || merWorkflowContacts.length === 0) return sheetClients;
     const norm = (s: string) => s.trim().toLowerCase();
     const byGhlId = new Map<string, Client>();
     const byName = new Map<string, Client>();
