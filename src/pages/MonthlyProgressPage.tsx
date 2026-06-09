@@ -165,7 +165,7 @@ export default function MonthlyProgressPage() {
                     </td>
                     <td className="px-4 py-3 text-muted-foreground whitespace-nowrap text-[13px]">{c.clientType}</td>
                     <td className="px-4 py-3 text-muted-foreground whitespace-nowrap text-[13px]">{c.bookkeeper}</td>
-                    <td className="px-4 py-3 whitespace-nowrap"><StatusBadge status={c.bankTransactions.includes("Missing") ? "Non-Compliant" : "Compliant"} className="text-[11px]" /></td>
+                    <td className="px-4 py-3 whitespace-nowrap"><StatusBadge status={c.bankTransactions.includes("Missing") || c.bankTransactions === "Not Received" ? "Not Received" : "Received"} /></td>
                     <td className="px-4 py-3"><span className={`font-mono-data text-[13px] font-semibold ${c.uncategorizedTransactions > 0 ? "text-destructive" : "text-success"}`}>{c.uncategorizedTransactions}</span></td>
                     <td className="px-4 py-3"><span className={`font-mono-data text-[13px] font-semibold ${c.transactionsWithoutPayees > 0 ? "text-warning" : "text-foreground"}`}>{c.transactionsWithoutPayees}</span></td>
                     <td className="px-4 py-3 font-mono-data text-[13px] text-foreground">{c.undepositedFunds}</td>
