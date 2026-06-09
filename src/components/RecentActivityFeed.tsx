@@ -1,6 +1,5 @@
-import { useEffect, useMemo, useState } from "react";
+import { useMemo } from "react";
 import { Clock } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
 import type { ActionLogEntry, MerHistoryRow } from "@/services/googleSheets";
 import { useDeveloperFilter } from "@/hooks/useDeveloperFilter";
 
@@ -43,33 +42,19 @@ export default function RecentActivityFeed({
   limit?: number;
 }) {
   const { isDeveloper } = useDeveloperFilter();
-  const [dashActions, setDashActions] = useState<ActivityRow[]>([]);
-
-  useEffect(() => {
-    let cancelled = false;
-    (async () => {
-      const { data } = await supabase
-        .from("activity_log")
-        .select("id,action,client_name,triggered_by,success,created_at")
-        .order("created_at", { ascending: false })
-        .limit(50);
-      if (cancelled || !data) return;
-      setDashActions(
-        data.map((r: any) => ({
-          id: `db-${r.id}`,
-          ts: r.created_at ? Date.parse(r.created_at) : 0,
-          who: r.triggered_by || "Dashboard",
-          client: r.client_name || "—",
-          action: r.action || "action",
-          source: "Dashboard" as const,
-          ok: r.success !== false,
-        }))
-      );
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, []);
+  const dashActions: ActivityRow[] = useMemo(
+    () =>
+      (actionLog ?? []).slice(0, 5).map((a, i) => ({
+        id: `db-${i}-${a.timestamp}`,
+        ts: a.timestamp ? Date.parse(a.timestamp) : 0,
+        who: a.triggeredBy || "Dashboard",
+        client: a.clientName || "—",
+        action: a.actionType || "action",
+        source: "Dashboard" as const,
+        ok: a.status !== "error",
+      })),
+    [actionLog]
+  );
 
   const rows = useMemo<ActivityRow[]>(() => {
     const out: ActivityRow[] = [...dashActions];

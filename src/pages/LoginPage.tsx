@@ -1,42 +1,38 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { supabase } from "@/integrations/supabase/client";
-import { useAuth } from "@/hooks/useAuth";
 import logo from "@/assets/logo.png";
 import { Loader2 } from "lucide-react";
 
+const DEMO_EMAIL = "demo@greenfieldbk.com";
+const DEMO_PASSWORD = "demo2025";
+
 export default function LoginPage() {
   const navigate = useNavigate();
-  const { session, loading } = useAuth();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
-  useEffect(() => {
-    if (!loading && session) navigate("/", { replace: true });
-  }, [session, loading, navigate]);
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
     setSubmitting(true);
-    const { error: err } = await supabase.auth.signInWithPassword({ email, password });
+    await new Promise((r) => setTimeout(r, 400));
     setSubmitting(false);
-    if (err) {
-      setError("Invalid email or password");
+    if (email.trim().toLowerCase() === DEMO_EMAIL && password === DEMO_PASSWORD) {
+      navigate("/", { replace: true });
       return;
     }
-    navigate("/", { replace: true });
+    setError("Invalid email or password");
   };
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-background vignette px-4">
       <div className="w-full max-w-md">
         <div className="flex flex-col items-center mb-8">
-          <img src={logo} alt="B&A" className="h-12 w-12 rounded-xl object-contain mb-4" />
-          <h1 className="font-serif text-2xl font-semibold text-foreground tracking-tight">Brant & Associates</h1>
-          <p className="text-sm text-muted-foreground mt-1">MER Dashboard</p>
+          <img src={logo} alt="Greenfield Bookkeeping" className="h-12 w-12 rounded-xl object-contain mb-4" />
+          <h1 className="font-serif text-2xl font-semibold text-foreground tracking-tight">Greenfield Bookkeeping</h1>
+          <p className="text-sm text-muted-foreground mt-1">Command Center Portal · Demo</p>
         </div>
 
         <form
@@ -84,9 +80,11 @@ export default function LoginPage() {
             Sign In
           </button>
 
-          <p className="text-[11px] text-muted-foreground text-center pt-2">
-            Accounts are created by admin. Contact your administrator for access.
-          </p>
+          <div className="text-[11px] text-muted-foreground text-center pt-2 space-y-1 border-t border-border/50 mt-2">
+            <p className="font-semibold uppercase tracking-wider text-[10px] mt-3">Demo Credentials</p>
+            <p>Email: <span className="font-mono text-foreground">{DEMO_EMAIL}</span></p>
+            <p>Password: <span className="font-mono text-foreground">{DEMO_PASSWORD}</span></p>
+          </div>
         </form>
       </div>
     </div>
