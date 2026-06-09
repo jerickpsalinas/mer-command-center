@@ -112,7 +112,7 @@ export default function AppLayout() {
         <div className="flex h-[56px] items-center justify-between px-4 border-b border-border">
           {sidebarOpen && (
             <div className="flex items-center gap-2.5">
-              <img src={logo} alt="Greenfield Bookkeeping Logo" className="h-7 w-7 rounded-lg object-contain" />
+              <BrandMark className="h-7 w-7" />
               <span className="text-sm font-semibold tracking-tight text-foreground">
                 Greenfield Bookkeeping
               </span>
