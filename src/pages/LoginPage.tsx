@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import logo from "@/assets/logo.png";
+import BrandMark from "@/components/BrandMark";
 import { Loader2 } from "lucide-react";
 
 const DEMO_EMAIL = "demo@greenfieldbk.com";
