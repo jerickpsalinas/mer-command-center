@@ -119,7 +119,7 @@ export default function AppLayout() {
             </div>
           )}
           {!sidebarOpen && (
-            <img src={logo} alt="Greenfield Bookkeeping" className="h-7 w-7 rounded-lg object-contain mx-auto" />
+            <BrandMark className="h-7 w-7 mx-auto" />
           )}
           <button
             onClick={() => setSidebarOpen(!sidebarOpen)}
