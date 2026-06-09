@@ -168,7 +168,7 @@ function pdfCover(doc: jsPDF, title: string, subtitle: string, rangeLabel: strin
   doc.setFont("helvetica", "bold");
   doc.setFontSize(20);
   doc.setTextColor(255, 255, 255);
-  doc.text("Brant & Associates", 40, 34);
+  doc.text("Greenfield Bookkeeping", 40, 34);
   doc.setFont("helvetica", "normal");
   doc.setFontSize(13);
   doc.text(title, 40, 58);
@@ -195,7 +195,7 @@ function pdfFooter(doc: jsPDF) {
     doc.setFont("helvetica", "normal");
     doc.setFontSize(8);
     doc.setTextColor(255, 255, 255);
-    doc.text("Brant & Associates – Export Center", 40, pageH - 7);
+    doc.text("Greenfield Bookkeeping – Export Center", 40, pageH - 7);
     doc.text(`Page ${i} of ${pageCount}`, pageW - 40, pageH - 7, { align: "right" });
   }
 }
@@ -880,7 +880,7 @@ export function exportFullBackupXLSX(history: MerHistoryRow[], cycleEntries: Cyc
   wb.Props = {
     Title: `Full Data Backup – ${rangeLabel}`,
     Subject: "Complete archive",
-    Author: "Brant & Associates",
+    Author: "Greenfield Bookkeeping",
     CreatedDate: new Date(),
   };
 

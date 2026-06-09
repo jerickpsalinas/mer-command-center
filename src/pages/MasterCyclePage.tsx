@@ -34,7 +34,7 @@ import { useAuth } from "@/hooks/useAuth";
 
 /* ────────────────────────────────────────────────────────────────────────────
  * Pipeline 1 — Master Bookkeeping Cycle (8 canonical stages)
- * Source of truth: Brant & Associates Automation Blueprint v2.
+ * Source of truth: Greenfield Bookkeeping Automation Blueprint v2.
  * The Bookkeeping Log sheet writes one row per stage transition; we use this
  * canonical list to render the rail, regardless of which stages exist in data.
  * ──────────────────────────────────────────────────────────────────────── */

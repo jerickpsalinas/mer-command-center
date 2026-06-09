@@ -299,7 +299,7 @@ export default function MonthlyTrendsPage() {
           <TrendingUp className="h-10 w-10 text-muted-foreground mx-auto mb-3" />
           <h3 className="text-sm font-semibold text-foreground mb-1">No Historical Data Yet</h3>
           <p className="text-xs text-muted-foreground max-w-md mx-auto">
-            Trends populate automatically as bookkeepers submit MER rows. Once submissions arrive in the <strong>MER Dashboard Data</strong> sheet, this view will fill in instantly.
+            Trends populate automatically as bookkeepers submit MER rows. Once submissions arrive in the <strong>Command Center Portal Data</strong> sheet, this view will fill in instantly.
           </p>
         </motion.div>
       )}
