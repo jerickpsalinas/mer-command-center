@@ -30,7 +30,7 @@ export default function LoginPage() {
     <div className="min-h-screen flex items-center justify-center bg-background vignette px-4">
       <div className="w-full max-w-md">
         <div className="flex flex-col items-center mb-8">
-          <img src={logo} alt="Greenfield Bookkeeping" className="h-12 w-12 rounded-xl object-contain mb-4" />
+          <BrandMark className="h-12 w-12 mb-4" />
           <h1 className="font-serif text-2xl font-semibold text-foreground tracking-tight">Greenfield Bookkeeping</h1>
           <p className="text-sm text-muted-foreground mt-1">Command Center Portal · Demo</p>
         </div>
