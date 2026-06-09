@@ -68,8 +68,17 @@ export interface SheetData {
 
 export function isUnreconciled(val: unknown): boolean {
   const v = String(val ?? "").trim().toLowerCase();
-  return v === "" || v === "n/a" || v === "-" || v === "none" || v === "null";
+  if (v === "" || v === "n/a" || v === "-" || v === "none" || v === "null") return true;
+  // Demo cycle anchor: anything reconciled before the latest month-end (Aug 31, 2025) is stale.
+  const m = v.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{2,4})$/);
+  if (!m) return false;
+  const month = parseInt(m[1], 10);
+  let year = parseInt(m[3], 10);
+  if (year < 100) year += 2000;
+  const anchor = 2025 * 12 + 8; // Aug 2025
+  return year * 12 + month < anchor;
 }
+
 
 // ============ DEMO MODE — hardcoded sample data ============
 
