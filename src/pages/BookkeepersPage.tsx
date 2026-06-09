@@ -38,6 +38,8 @@ export default function BookkeepersPage() {
   const mergedClients: Client[] = useMemo(() => {
     if (!data) return [];
     if (monthFilter !== "current") return data.clients;
+    // Demo mode: GHL is disconnected, so fall back to sheet clients directly.
+    if (!merWorkflowContacts || merWorkflowContacts.length === 0) return data.clients;
     const norm = (s: string) => s.trim().toLowerCase();
     const byGhlId = new Map<string, Client>();
     const byName = new Map<string, Client>();
