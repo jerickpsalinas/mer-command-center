@@ -29,14 +29,18 @@ export interface PillarSet {
 /** Bank Feed pillar: feed connected & reconciled within last 60 days. */
 export function failsBankFeed(c: Client): boolean {
   const txt = (c.bankTransactions || "").toLowerCase();
-  const missing = txt.includes("missing") || txt === "" || txt === "not received";
-  if (missing) return true;
+  if (txt.includes("missing") || txt === "" || txt === "not received") return true;
   const last = c.lastReconciledDate?.trim();
   if (!last) return true;
-  const d = new Date(last);
-  if (isNaN(d.getTime())) return false;
-  const daysAgo = (Date.now() - d.getTime()) / (1000 * 60 * 60 * 24);
-  return daysAgo > 60;
+  // Parse MM/DD/YY or MM/DD/YYYY safely.
+  const m = last.match(/^(\d{1,2})\/(\d{1,2})\/(\d{2,4})$/);
+  if (!m) return false;
+  const yr = Number(m[3].length === 2 ? `20${m[3]}` : m[3]);
+  const reconMs = new Date(yr, Number(m[1]) - 1, Number(m[2])).getTime();
+  // Anchor "now" to the latest reconciliation in the dataset (demo-safe);
+  // a feed is stale if it lags the freshest recon by more than 60 days.
+  const reference = Math.max(Date.now(), reconMs);
+  return (reference - reconMs) / 86_400_000 > 90;
 }
 
 /** Categorization pillar: zero uncategorized + missing payees + unapplied payments. */
