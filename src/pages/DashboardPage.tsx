@@ -66,13 +66,13 @@ function NeedsAttentionSection({ clients, merHistory, actionLog }: { clients: Cl
 
   const sections = [
     { title: "Missing Bank Statements", count: attention.missingStatements.length, icon: FileText, priority: "critical" as const,
-      items: attention.missingStatements.map(c => ({ id: c.id, name: c.name, label: c.name, badge: <StatusBadge status="Non-Compliant" client={c} /> })) },
+      items: attention.missingStatements.map(c => ({ id: c.id, name: c.name, label: c.name, badge: <span className="text-[10px] font-semibold text-destructive uppercase tracking-wider">Missing</span> })) },
     { title: "Unresolved Transactions", count: attention.unresolvedTransactions.length, icon: AlertCircle, priority: "high" as const,
-      items: attention.unresolvedTransactions.slice(0, 6).map(c => ({ id: c.id, name: c.name, label: c.name, badge: <span className="font-mono-data text-xs font-semibold text-destructive">{c.uncategorizedTransactions}</span> })) },
+      items: attention.unresolvedTransactions.map(c => ({ id: c.id, name: c.name, label: c.name, badge: <span className="font-mono-data text-xs font-semibold text-destructive">{c.uncategorizedTransactions}</span> })) },
     { title: "Not Reconciled", count: attention.notReconciled.length, icon: Clock, priority: "medium" as const,
-      items: attention.notReconciled.slice(0, 5).map(c => ({ id: c.id, name: c.name, label: c.name, badge: <span className="font-mono-data text-xs text-muted-foreground">{c.lastReconciledDate}</span> })) },
+      items: attention.notReconciled.map(c => ({ id: c.id, name: c.name, label: c.name, badge: <span className="font-mono-data text-xs text-muted-foreground">{c.lastReconciledDate}</span> })) },
     { title: "No Approved Notes", count: attention.noApprovedNotes.length, icon: StickyNote, priority: "medium" as const,
-      items: attention.noApprovedNotes.slice(0, 5).map(c => ({ id: c.id, name: c.name, label: c.name, badge: <span className="text-[10px] font-semibold text-destructive uppercase tracking-wider">Pending</span> })) },
+      items: attention.noApprovedNotes.map(c => ({ id: c.id, name: c.name, label: c.name, badge: <span className="text-[10px] font-semibold text-destructive uppercase tracking-wider">Pending</span> })) },
   ];
 
   const priorityStyles = {
