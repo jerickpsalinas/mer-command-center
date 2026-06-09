@@ -189,81 +189,49 @@ export default function MerFormModal({ open, mode, client, clients, onClose }: P
     }
   }, [form.status]);
 
-  // Deduped clients from sheet (one row per client) for Update picker
+  // Deduped clients from sheet (one row per client) for Update picker.
+  // We synthesize merKey from the client's id + current cycleMonth so the
+  // picker works against the demo data (no GHL fetch required).
   const sheetOptions = (() => {
     if (!clients?.length) return [] as MerHistoryRow[];
     const map = new Map<string, MerHistoryRow>();
     for (const row of clients) {
       if (!row.name) continue;
-      if (!map.has(row.name)) map.set(row.name, row);
+      if (!map.has(row.name)) {
+        const id = (row as any).ghlContactId || row.id || row.name;
+        const merKey = row.merKey || `${id}_${(row.month || "").replace(/\s+/g, "")}`;
+        map.set(row.name, { ...row, merKey, ghlContactId: id } as MerHistoryRow);
+      }
     }
     return Array.from(map.values()).sort((a, b) =>
       a.name.localeCompare(b.name),
     );
   })();
 
-  // Fetch GHL contacts when add picker is needed
+  // Demo mode: derive Add-picker options from the same client list rather than
+  // calling the live GHL API (which is unreachable in this preview).
   useEffect(() => {
     if (!open || !needsGhlPicker) return;
-    let cancelled = false;
-    setGhlLoading(true);
+    setGhlLoading(false);
     setGhlError(null);
-    (async () => {
-      try {
-        const collected: any[] = [];
-        let startAfter: string | number | undefined;
-        let startAfterId: string | undefined;
-        for (let i = 0; i < 50; i++) {
-          const params = new URLSearchParams({
-            locationId: GHL_LOCATION_ID,
-            limit: "100",
-          });
-          if (startAfter != null) params.set("startAfter", String(startAfter));
-          if (startAfterId) params.set("startAfterId", startAfterId);
-          const res = await fetch(`${GHL_BASE}/contacts/?${params.toString()}`, {
-            headers: ghlHeaders(),
-          });
-          if (!res.ok) throw new Error(`GHL request failed (${res.status})`);
-          const data = await res.json();
-          const page: any[] = Array.isArray(data?.contacts) ? data.contacts : [];
-          if (page.length === 0) break;
-          collected.push(...page);
-          const meta = data.meta || {};
-          const nextStartAfter = meta.startAfter ?? meta.nextStartAfter;
-          const nextStartAfterId = meta.startAfterId ?? meta.nextStartAfterId;
-          if (!nextStartAfter && !nextStartAfterId) break;
-          if (nextStartAfter === startAfter && nextStartAfterId === startAfterId) break;
-          startAfter = nextStartAfter;
-          startAfterId = nextStartAfterId;
-        }
-        const filtered = collected.filter(
-          (c) =>
-            Array.isArray(c?.tags) &&
-            c.tags.some((t: string) => String(t).toLowerCase() === "active-client"),
-        );
-        const opts: ClientOption[] = filtered.map((c) => {
-          const company = (c.companyName || "").trim();
-          const fullName =
-            `${c.firstName ?? ""} ${c.lastName ?? ""}`.trim() || c.contactName || "Unnamed";
-          return {
-            name: company || fullName,
-            ghlContactId: c.id,
-            merKey: "",
-          };
-        });
-        opts.sort((a, b) => a.name.localeCompare(b.name));
-        if (!cancelled) setGhlOptions(opts);
-      } catch (e) {
-        if (!cancelled)
-          setGhlError(e instanceof Error ? e.message : "Failed to load clients from GHL.");
-      } finally {
-        if (!cancelled) setGhlLoading(false);
-      }
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, [open, needsGhlPicker]);
+    const seen = new Set<string>();
+    const opts: ClientOption[] = [];
+    for (const row of clients ?? []) {
+      if (!row.name || seen.has(row.name)) continue;
+      seen.add(row.name);
+      const id = (row as any).ghlContactId || row.id || row.name;
+      opts.push({
+        name: row.name,
+        ghlContactId: String(id),
+        merKey: "",
+        bookkeeper: row.bookkeeper,
+        clientType: row.clientType,
+      });
+    }
+    opts.sort((a, b) => a.name.localeCompare(b.name));
+    setGhlOptions(opts);
+  }, [open, needsGhlPicker, clients]);
+
 
   useEffect(() => {
     if (open) {
