@@ -16,7 +16,7 @@ import {
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useAuth } from "@/hooks/useAuth";
-import logo from "@/assets/logo.png";
+import BrandMark from "@/components/BrandMark";
 
 const navItems = [
   { title: "Dashboard", url: "/", icon: LayoutDashboard },
