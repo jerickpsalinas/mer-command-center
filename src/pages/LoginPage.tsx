@@ -20,6 +20,7 @@ export default function LoginPage() {
     await new Promise((r) => setTimeout(r, 400));
     setSubmitting(false);
     if (email.trim().toLowerCase() === DEMO_EMAIL && password === DEMO_PASSWORD) {
+      localStorage.setItem("greenfield-demo-logged-in", "true");
       navigate("/", { replace: true });
       return;
     }
