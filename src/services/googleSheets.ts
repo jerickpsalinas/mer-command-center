@@ -117,13 +117,14 @@ const GREENFIELD_CLIENTS = [
 ];
 
 const GREENFIELD_MONTHLY_TRENDS = [
-  { month:"Mar 2025", compliant:18, nonCompliant:8, completionPct:63 },
-  { month:"Apr 2025", compliant:15, nonCompliant:10, completionPct:52 },
-  { month:"May 2025", compliant:8, nonCompliant:18, completionPct:28 },
-  { month:"Jun 2025", compliant:10, nonCompliant:16, completionPct:35 },
-  { month:"Jul 2025", compliant:20, nonCompliant:12, completionPct:58 },
-  { month:"Aug 2025", compliant:26, nonCompliant:10, completionPct:74 },
+  { month:"Mar 2025", compliant:9,  nonCompliant:20, completionPct:23 },
+  { month:"Apr 2025", compliant:12, nonCompliant:17, completionPct:30 },
+  { month:"May 2025", compliant:14, nonCompliant:18, completionPct:35 },
+  { month:"Jun 2025", compliant:17, nonCompliant:18, completionPct:43 },
+  { month:"Jul 2025", compliant:19, nonCompliant:17, completionPct:48 },
+  { month:"Aug 2025", compliant:25, nonCompliant:13, completionPct:63 },
 ];
+
 
 const GREENFIELD_BOOKKEEPERS = ["Sarah", "Marcus", "Tyler"];
 
