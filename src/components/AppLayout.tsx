@@ -16,7 +16,7 @@ import {
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useAuth } from "@/hooks/useAuth";
-import logo from "@/assets/logo.png";
+import BrandMark from "@/components/BrandMark";
 
 const navItems = [
   { title: "Dashboard", url: "/", icon: LayoutDashboard },
@@ -112,14 +112,14 @@ export default function AppLayout() {
         <div className="flex h-[56px] items-center justify-between px-4 border-b border-border">
           {sidebarOpen && (
             <div className="flex items-center gap-2.5">
-              <img src={logo} alt="Greenfield Bookkeeping Logo" className="h-7 w-7 rounded-lg object-contain" />
+              <BrandMark className="h-7 w-7" />
               <span className="text-sm font-semibold tracking-tight text-foreground">
                 Greenfield Bookkeeping
               </span>
             </div>
           )}
           {!sidebarOpen && (
-            <img src={logo} alt="Greenfield Bookkeeping" className="h-7 w-7 rounded-lg object-contain mx-auto" />
+            <BrandMark className="h-7 w-7 mx-auto" />
           )}
           <button
             onClick={() => setSidebarOpen(!sidebarOpen)}
@@ -284,9 +284,10 @@ export default function AppLayout() {
             <ViewAsRoleSwitcher />
           </div>
 
-          <div className="h-9 w-9 rounded-full bg-primary/15 flex items-center justify-center overflow-hidden ring-2 ring-primary/20">
-            <img src={logo} alt="BA" className="h-6 w-6 object-contain" />
+          <div className="h-9 w-9 rounded-full bg-primary/15 text-primary flex items-center justify-center ring-2 ring-primary/20 text-xs font-semibold tracking-tight">
+            JS
           </div>
+
         </header>
 
         <main className="flex-1 px-3 py-4 sm:px-5 sm:py-5 lg:p-8 w-full max-w-[1600px] mx-auto overflow-x-hidden pb-[72px] lg:pb-8">
