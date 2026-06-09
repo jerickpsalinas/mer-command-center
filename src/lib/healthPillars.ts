@@ -30,17 +30,10 @@ export interface PillarSet {
 export function failsBankFeed(c: Client): boolean {
   const txt = (c.bankTransactions || "").toLowerCase();
   if (txt.includes("missing") || txt === "" || txt === "not received") return true;
+  // A populated lastReconciledDate counts as reconciled; staleness is handled
+  // separately by per-month MER history rather than wall-clock time.
   const last = c.lastReconciledDate?.trim();
-  if (!last) return true;
-  // Parse MM/DD/YY or MM/DD/YYYY safely.
-  const m = last.match(/^(\d{1,2})\/(\d{1,2})\/(\d{2,4})$/);
-  if (!m) return false;
-  const yr = Number(m[3].length === 2 ? `20${m[3]}` : m[3]);
-  const reconMs = new Date(yr, Number(m[1]) - 1, Number(m[2])).getTime();
-  // Anchor "now" to the latest reconciliation in the dataset (demo-safe);
-  // a feed is stale if it lags the freshest recon by more than 60 days.
-  const reference = Math.max(Date.now(), reconMs);
-  return (reference - reconMs) / 86_400_000 > 90;
+  return !last;
 }
 
 /** Categorization pillar: zero uncategorized + missing payees + unapplied payments. */
