@@ -58,7 +58,7 @@ export default function SettingsPage() {
               <p className="text-sm font-medium text-foreground">Organization</p>
               <p className="text-xs text-muted-foreground">Account name</p>
             </div>
-            <span className="text-sm text-muted-foreground">Brant & Associates</span>
+            <span className="text-sm text-muted-foreground">Greenfield Bookkeeping</span>
           </div>
           <div className="flex items-center justify-between px-6 py-4">
             <div>
@@ -333,7 +333,7 @@ export default function SettingsPage() {
         <div className="divide-y divide-border">
           <div className="flex items-center justify-between px-6 py-4">
             <p className="text-sm font-medium text-foreground">Version</p>
-            <span className="font-mono-data text-xs text-muted-foreground">MER Dashboard v1.0</span>
+            <span className="font-mono-data text-xs text-muted-foreground">Command Center Portal v1.0</span>
           </div>
           <div className="flex items-center justify-between px-6 py-4">
             <p className="text-sm font-medium text-foreground">Built with</p>

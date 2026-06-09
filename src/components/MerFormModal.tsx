@@ -477,7 +477,7 @@ export default function MerFormModal({ open, mode, client, clients, onClose }: P
             )}
 
             {needsSheetPicker && (
-              <Field label="Client (from MER Dashboard)">
+              <Field label="Client (from Command Center Portal)">
                 <Select
                   value={(selectedClient as MerHistoryRow | null)?.merKey ?? ""}
                   onValueChange={handleSheetPick}

@@ -112,14 +112,14 @@ export default function AppLayout() {
         <div className="flex h-[56px] items-center justify-between px-4 border-b border-border">
           {sidebarOpen && (
             <div className="flex items-center gap-2.5">
-              <img src={logo} alt="B&A Logo" className="h-7 w-7 rounded-lg object-contain" />
+              <img src={logo} alt="Greenfield Bookkeeping Logo" className="h-7 w-7 rounded-lg object-contain" />
               <span className="text-sm font-semibold tracking-tight text-foreground">
-                Brant & Associates
+                Greenfield Bookkeeping
               </span>
             </div>
           )}
           {!sidebarOpen && (
-            <img src={logo} alt="B&A" className="h-7 w-7 rounded-lg object-contain mx-auto" />
+            <img src={logo} alt="Greenfield Bookkeeping" className="h-7 w-7 rounded-lg object-contain mx-auto" />
           )}
           <button
             onClick={() => setSidebarOpen(!sidebarOpen)}
@@ -191,7 +191,7 @@ export default function AppLayout() {
                 Sign Out
               </button>
               <p className="text-[10px] text-muted-foreground/70 font-medium pt-1">
-                MER Dashboard v2.0
+                Command Center Portal v2.0
               </p>
             </>
           ) : (
