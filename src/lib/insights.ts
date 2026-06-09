@@ -79,7 +79,7 @@ function computeBookkeeperPerformance(
     : 0;
   const totalUncategorized = own.reduce((s, c) => s + c.uncategorizedTransactions, 0);
   const totalUnapplied = own.reduce((s, c) => s + c.unappliedPayments, 0);
-  const missingStatements = own.filter((c) => c.bankTransactions.includes("Missing")).length;
+  const missingStatements = own.filter((c) => c.statementRequestStatus.trim().toLowerCase() !== "received").length;
   const notReconciled = own.filter((c) => !c.lastReconciledDate).length;
 
   // Velocity: avg days from month-end to first 100% completion submission

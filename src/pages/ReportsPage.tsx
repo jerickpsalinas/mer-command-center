@@ -257,7 +257,8 @@ export default function ReportsPage() {
       toast({ title: "No data in range", description: "Adjust the date range and try again.", variant: "destructive" });
       return null;
     }
-    const base = `BA_${def.id}_${fileSuffix}`;
+    const stamp = format(new Date(), "yyyyMMdd");
+    const base = `Greenfield_${def.id}_${fileSuffix}_${stamp}`;
     try {
       return def.run(fmt, filteredHistory, filteredCycle, rangeLabel, base);
     } catch (e) {
