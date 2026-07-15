@@ -6,6 +6,7 @@ import { useSheetData } from "@/hooks/useSheetData";
 import { useTheme } from "@/hooks/useTheme";
 import NotificationDropdown from "@/components/NotificationDropdown";
 import MobileTabBar from "@/components/MobileTabBar";
+import FloatingCollabStack from "@/components/FloatingCollabStack";
 import MerFormModal from "@/components/MerFormModal";
 import ViewAsBanner from "@/components/ViewAsBanner";
 import ViewAsRoleSwitcher from "@/components/ViewAsRoleSwitcher";
@@ -309,6 +310,9 @@ export default function AppLayout() {
 
       {/* Mobile bottom tab bar (#16) */}
       <MobileTabBar onMore={() => setMobileOpen(true)} />
+
+      {/* Floating notifications + team chat (demo) */}
+      <FloatingCollabStack />
 
       {merModalOpen && (
         <MerFormModal
