@@ -8,6 +8,7 @@ import ActionResponseModal from "@/components/ActionResponseModal";
 import SequenceStatusTable from "@/components/SequenceStatusTable";
 import StatusHistoryModal from "@/components/StatusHistoryModal";
 import MerFormModal from "@/components/MerFormModal";
+import InternalNotesSection from "@/components/InternalNotesSection";
 import {
   getSequenceEvents,
   getSequenceInfoForClient,
@@ -584,6 +585,8 @@ export default function ClientDetailsModal({ open, onClose, client, onViewHistor
             </button>
           </div>
         )}
+
+        <InternalNotesSection clientKey={client?.name ?? "unknown"} />
       </DialogContent>
 
       {(() => {
