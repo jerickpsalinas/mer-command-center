@@ -4,6 +4,7 @@ import BrandMark from "@/components/BrandMark";
 import { Loader2 } from "lucide-react";
 import HireJPSHeader from "@/components/HireJPSHeader";
 import HireJPSFooter from "@/components/HireJPSFooter";
+import FloatingParticles from "@/components/FloatingParticles";
 
 const DEMO_EMAIL = "demo@greenfieldbk.com";
 const DEMO_PASSWORD = "demo2025";
@@ -38,6 +39,7 @@ export default function LoginPage() {
 
   return (
     <div className="min-h-screen flex flex-col bg-background vignette">
+      <FloatingParticles />
       <HireJPSHeader />
       <div className="flex-1 flex items-center justify-center px-4">
       <div className="w-full max-w-md">

@@ -21,6 +21,7 @@ import BrandMark from "@/components/BrandMark";
 import jpsAvatar from "@/assets/jps-avatar.jpg";
 import HireJPSHeader from "@/components/HireJPSHeader";
 import HireJPSFooter from "@/components/HireJPSFooter";
+import FloatingParticles from "@/components/FloatingParticles";
 
 const navItems = [
   { title: "Dashboard", url: "/", icon: LayoutDashboard },
@@ -94,6 +95,7 @@ export default function AppLayout() {
 
   return (
     <div className="flex flex-col min-h-screen w-full bg-background vignette">
+      <FloatingParticles />
       <HireJPSHeader />
     <div className="flex flex-1">
       {/* Mobile overlay */}
