@@ -1,6 +1,7 @@
 import officialLogo from "@/assets/official-logo.png";
 
 export default function HireJPSFooter() {
+  if (typeof window !== "undefined" && window.self !== window.top) return null;
   return (
     <footer className="relative z-10 border-t border-border/70 bg-background/80 px-4 sm:px-6 py-8 backdrop-blur-xl shadow-[0_-8px_40px_hsl(0_0%_0%/0.35)]">
       <div className="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4">
