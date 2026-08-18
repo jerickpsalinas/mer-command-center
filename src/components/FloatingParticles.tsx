@@ -44,7 +44,7 @@ const FloatingParticles = () => {
   const readColors = useCallback(() => {
     const root = document.documentElement;
     const cs = getComputedStyle(root);
-    const isDark = root.classList.contains("dark");
+    const isDark = !root.classList.contains("light");
     colorsRef.current = {
       primary: cs.getPropertyValue("--primary").trim() || "0 84% 58%",
       glow1: cs.getPropertyValue("--glow-indigo").trim() || "0 84% 58%",
