@@ -2,6 +2,8 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import BrandMark from "@/components/BrandMark";
 import { Loader2 } from "lucide-react";
+import HireJPSHeader from "@/components/HireJPSHeader";
+import HireJPSFooter from "@/components/HireJPSFooter";
 
 const DEMO_EMAIL = "demo@greenfieldbk.com";
 const DEMO_PASSWORD = "demo2025";
@@ -35,7 +37,9 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-background vignette px-4">
+    <div className="min-h-screen flex flex-col bg-background vignette">
+      <HireJPSHeader />
+      <div className="flex-1 flex items-center justify-center px-4">
       <div className="w-full max-w-md">
         <div className="flex flex-col items-center mb-8">
           <BrandMark className="h-12 w-12 mb-4" />
@@ -95,6 +99,8 @@ export default function LoginPage() {
           </div>
         </form>
       </div>
+      </div>
+      <HireJPSFooter />
     </div>
   );
 }

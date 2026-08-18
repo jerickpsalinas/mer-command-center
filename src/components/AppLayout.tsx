@@ -19,6 +19,8 @@ import { motion, AnimatePresence } from "framer-motion";
 import { useAuth } from "@/hooks/useAuth";
 import BrandMark from "@/components/BrandMark";
 import jpsAvatar from "@/assets/jps-avatar.jpg";
+import HireJPSHeader from "@/components/HireJPSHeader";
+import HireJPSFooter from "@/components/HireJPSFooter";
 
 const navItems = [
   { title: "Dashboard", url: "/", icon: LayoutDashboard },
@@ -91,7 +93,9 @@ export default function AppLayout() {
   }, [lastSynced]);
 
   return (
-    <div className="flex min-h-screen w-full bg-background vignette">
+    <div className="flex flex-col min-h-screen w-full bg-background vignette">
+      <HireJPSHeader />
+    <div className="flex flex-1">
       {/* Mobile overlay */}
       <AnimatePresence>
         {mobileOpen && (
@@ -107,7 +111,7 @@ export default function AppLayout() {
 
       {/* Sidebar */}
       <aside
-        className={`fixed lg:sticky top-0 left-0 z-50 h-screen flex flex-col border-r border-border bg-sidebar transition-all duration-300 ${
+        className={`fixed lg:sticky top-[49px] left-0 z-50 h-[calc(100vh-49px)] flex flex-col border-r border-border bg-sidebar transition-all duration-300 ${
           sidebarOpen ? "w-[240px]" : "w-[60px]"
         } ${mobileOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"}`}
       >
@@ -322,6 +326,8 @@ export default function AppLayout() {
           onClose={() => setMerModalOpen(false)}
         />
       )}
+    </div>
+      <HireJPSFooter />
     </div>
   );
 }
