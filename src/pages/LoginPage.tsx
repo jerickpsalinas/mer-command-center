@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import BrandMark from "@/components/BrandMark";
-import { Loader2 } from "lucide-react";
+import { Loader2, KeyRound, Copy, Check } from "lucide-react";
 import HireJPSHeader from "@/components/HireJPSHeader";
 import HireJPSFooter from "@/components/HireJPSFooter";
 import FloatingParticles from "@/components/FloatingParticles";
@@ -15,6 +15,14 @@ export default function LoginPage() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const [copied, setCopied] = useState(false);
+
+  const handleAutofill = () => {
+    setEmail(DEMO_EMAIL);
+    setPassword(DEMO_PASSWORD);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 1500);
+  };
 
   useEffect(() => {
     if (localStorage.getItem("greenfield-demo-logged-in") === "true") {
@@ -94,10 +102,28 @@ export default function LoginPage() {
             Sign In
           </button>
 
-          <div className="text-[11px] text-muted-foreground text-center pt-2 space-y-1 border-t border-border/50 mt-2">
-            <p className="font-semibold uppercase tracking-wider text-[10px] mt-3">Demo Credentials</p>
-            <p>Email: <span className="font-mono text-foreground">{DEMO_EMAIL}</span></p>
-            <p>Password: <span className="font-mono text-foreground">{DEMO_PASSWORD}</span></p>
+          <div className="relative mt-3 rounded-xl border border-primary/25 bg-primary/[0.06] p-4 overflow-hidden">
+            <div className="absolute inset-0 bg-gradient-to-br from-primary/10 via-transparent to-primary/5 pointer-events-none" />
+            <div className="relative space-y-3">
+              <div className="flex items-center gap-2">
+                <KeyRound className="h-3.5 w-3.5 text-primary" />
+                <span className="text-[10px] font-bold uppercase tracking-[0.1em] text-primary">Demo Access</span>
+              </div>
+              <div className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1.5 text-[12px]">
+                <span className="text-muted-foreground font-medium">Email</span>
+                <span className="font-mono text-foreground/90 select-all">{DEMO_EMAIL}</span>
+                <span className="text-muted-foreground font-medium">Password</span>
+                <span className="font-mono text-foreground/90 select-all">{DEMO_PASSWORD}</span>
+              </div>
+              <button
+                type="button"
+                onClick={handleAutofill}
+                className="w-full h-8 rounded-lg border border-primary/30 bg-primary/10 text-primary text-[12px] font-semibold flex items-center justify-center gap-1.5 hover:bg-primary/20 hover:border-primary/50 transition-all"
+              >
+                {copied ? <Check className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />}
+                {copied ? "Filled!" : "Quick Fill Credentials"}
+              </button>
+            </div>
           </div>
         </form>
       </div>
