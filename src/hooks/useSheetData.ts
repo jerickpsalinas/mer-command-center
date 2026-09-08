@@ -1,24 +1,42 @@
 import { useQuery } from "@tanstack/react-query";
 import { useEffect } from "react";
-import { fetchSheetData, isUnreconciled, type SheetData, type MerHistoryRow } from "@/services/googleSheets";
+import { fetchSheetData, type SheetData, type MerHistoryRow } from "@/services/googleSheets";
+import {
+  isUnreconciled,
+  bankTransactionsOk,
+  statementReceived,
+} from "@/lib/complianceExplain";
 import type { Client, MonthlyTrend } from "@/data/mockData";
 import { recordStatusSnapshots } from "@/utils/statusHistory";
+import { useAuth } from "@/hooks/useAuth";
+import { useUserSettings } from "@/hooks/useUserSettings";
 
+/**
+ * `autoRefresh` here is a per-caller opt-out (some pages don't want polling).
+ * When true (default), the actual polling cadence comes from the user's
+ * settings-page toggle + interval; when the user disables auto-refresh,
+ * polling stops. Manual refresh (header button) still works.
+ */
 export function useSheetData(autoRefresh = true) {
+  const { profile, user } = useAuth();
+  const { syncPrefs } = useUserSettings();
+  const pollMs = autoRefresh && syncPrefs.autoRefresh
+    ? Math.max(15, syncPrefs.refreshInterval) * 1000
+    : false;
   const query = useQuery<SheetData>({
     queryKey: ["sheet-data"],
     queryFn: fetchSheetData,
-    staleTime: 0,
-    gcTime: 0,
+    staleTime: 30_000,
+    gcTime: 5 * 60_000,
     refetchOnWindowFocus: true,
-    refetchInterval: autoRefresh ? 60_000 : false,
+    refetchInterval: pollMs,
   });
 
   useEffect(() => {
     if (query.data?.merHistory?.length) {
-      void recordStatusSnapshots(query.data.merHistory);
+      void recordStatusSnapshots(query.data.merHistory, profile?.name || user?.email || "Dashboard");
     }
-  }, [query.data]);
+  }, [query.data, profile?.name, user?.email]);
 
   return query;
 }
@@ -94,29 +112,45 @@ export function getKPIMetrics(clients: Client[]) {
   const nonCompliant = clients.filter((c) => c.complianceStatus === "Non-Compliant").length;
   const onHold = clients.filter((c) => c.complianceStatus === "On Hold").length;
   const pendingMer = clients.filter((c) => c.complianceStatus === "Pending MER").length;
-  const avgCompletion = Math.round(clients.reduce((s, c) => s + c.completionPct, 0) / total);
-  const notReconciled = clients.filter((c) => isUnreconciled(c.lastReconciledDate)).length;
-  const outstandingStatements = clients.filter((c) => c.statementRequestStatus.trim().toLowerCase() !== "received").length;
-  const withoutNotes = clients.filter((c) => !c.prevMonthNotesApproved).length;
+
+  // Pending MER clients haven't submitted anything yet — including them in
+  // negative KPIs (Not Reconciled, Outstanding Statements, No Notes, avg %)
+  // inflates the "bad" numbers with placeholder rows and lies to the client.
+  const submitted = clients.filter((c) => c.complianceStatus !== "Pending MER");
+  const submittedCount = submitted.length || 1;
+  const avgCompletion = Math.round(
+    submitted.reduce((s, c) => s + c.completionPct, 0) / submittedCount,
+  );
+  const notReconciled = submitted.filter((c) => isUnreconciled(c.lastReconciledDate)).length;
+  const outstandingStatements = submitted.filter((c) => !statementReceived(c.statementRequestStatus)).length;
+  const withoutNotes = submitted.filter((c) => !c.prevMonthNotesApproved).length;
   return { total, compliant, nonCompliant, onHold, pendingMer, avgCompletion, notReconciled, outstandingStatements, withoutNotes };
 }
 
 export function getComplianceBreakdown(clients: Client[]) {
-  const total = clients.length || 1;
+  // Pending MER placeholders drag every bar to 0% — exclude them, same as KPIs.
+  const submitted = clients.filter((c) => c.complianceStatus !== "Pending MER");
+  const total = submitted.length || 1;
   return {
-    bankPct: Math.round((clients.filter((c) => c.bankTransactions === "Received").length / total) * 100),
-    uncatPct: Math.round((clients.filter((c) => c.uncategorizedTransactions === 0).length / total) * 100),
-    unappliedPct: Math.round((clients.filter((c) => c.unappliedPayments === 0).length / total) * 100),
-    stmtPct: Math.round((clients.filter((c) => c.statementRequestStatus === "Received").length / total) * 100),
+    bankPct: Math.round((submitted.filter((c) => bankTransactionsOk(c.bankTransactions)).length / total) * 100),
+    uncatPct: Math.round((submitted.filter((c) => (c.uncategorizedTransactions || 0) === 0).length / total) * 100),
+    unappliedPct: Math.round((submitted.filter((c) => (c.unappliedPayments || 0) === 0).length / total) * 100),
+    stmtPct: Math.round((submitted.filter((c) => statementReceived(c.statementRequestStatus)).length / total) * 100),
   };
 }
 
 export function getNeedsAttention(clients: Client[]) {
+  // Only surface clients that have actually submitted a MER — placeholder
+  // "Pending MER" rows have blank fields that would false-positive every list.
+  const submitted = clients.filter((c) => c.complianceStatus !== "Pending MER");
   return {
-    missingStatements: clients.filter((c) => c.statementRequestStatus.trim().toLowerCase() !== "received"),
-    notReconciled: clients.filter((c) => isUnreconciled(c.lastReconciledDate)),
-    unresolvedTransactions: clients.filter((c) => c.uncategorizedTransactions > 0),
-    noApprovedNotes: clients.filter((c) => !c.prevMonthNotesApproved),
+    // NOTE: "missingBankFeed" was previously (mis)labeled "missingStatements" and
+    // filtered the Bank Transactions column. Kept the same field name to avoid a
+    // rename cascade, but the dashboard now labels the panel correctly.
+    missingStatements: submitted.filter((c) => /missing/i.test(c.bankTransactions || "")),
+    notReconciled: submitted.filter((c) => isUnreconciled(c.lastReconciledDate)),
+    unresolvedTransactions: submitted.filter((c) => (c.uncategorizedTransactions || 0) > 0),
+    noApprovedNotes: submitted.filter((c) => !c.prevMonthNotesApproved),
   };
 }
 

@@ -155,7 +155,7 @@ function buildKpiSheet(clients: Client[], rangeLabel: string): XLSX.WorkSheet {
   const ws: XLSX.WorkSheet = { "!ref": "A1" };
 
   // Title block
-  placeRow(ws, 0, ["KPI Metrics Overview – Greenfield Bookkeeping", "", "", ""], [titleStyle, titleStyle, titleStyle, titleStyle]);
+  placeRow(ws, 0, ["KPI Metrics Overview – MER Command Center", "", "", ""], [titleStyle, titleStyle, titleStyle, titleStyle]);
   placeRow(ws, 1, [`Range: ${rangeLabel}    •    Generated: ${new Date().toLocaleString()}`, "", "", ""], [subtitleStyle, subtitleStyle, subtitleStyle, subtitleStyle]);
   ws["!merges"] = [
     { s: { r: 0, c: 0 }, e: { r: 0, c: 3 } },
@@ -334,14 +334,16 @@ export interface ExportOptions {
   history: MerHistoryRow[];
   rangeLabel: string;
   fileBaseName: string;
+  /** Optional override for KPI/Compliance summary client list (e.g. GHL-merged). */
+  clientsOverride?: Client[];
 }
 
-export function exportXLSX({ history, rangeLabel, fileBaseName }: ExportOptions): ExportPayload {
+export function exportXLSX({ history, rangeLabel, fileBaseName, clientsOverride }: ExportOptions): ExportPayload {
   const wb = XLSX.utils.book_new();
   wb.Props = {
     Title: `MER Report – ${rangeLabel}`,
     Subject: "Month-End Review",
-    Author: "Greenfield Bookkeeping",
+    Author: "MER Command Center",
     CreatedDate: new Date(),
   };
 
@@ -353,7 +355,7 @@ export function exportXLSX({ history, rangeLabel, fileBaseName }: ExportOptions)
   }
   const aggClients = Array.from(latestByClient.values()).map((r, i) => ({ ...r, id: String(i + 1) }));
 
-  const kpiSheet = buildKpiSheet(aggClients, rangeLabel);
+  const kpiSheet = buildKpiSheet(clientsOverride ?? aggClients, rangeLabel);
   autoSizeRowHeights(kpiSheet, { startRow: 6 });
   XLSX.utils.book_append_sheet(wb, kpiSheet, "KPI Overview");
 
@@ -582,7 +584,7 @@ function drawKpiCard(
   doc.text(value, x + 12, y + 40);
 }
 
-export function exportPDF({ history, rangeLabel, fileBaseName }: ExportOptions): ExportPayload {
+export function exportPDF({ history, rangeLabel, fileBaseName, clientsOverride }: ExportOptions): ExportPayload {
   const doc = new jsPDF({ orientation: "landscape", unit: "pt", format: "letter" });
   const pageW = doc.internal.pageSize.getWidth();
   const pageH = doc.internal.pageSize.getHeight();
@@ -595,8 +597,9 @@ export function exportPDF({ history, rangeLabel, fileBaseName }: ExportOptions):
     if (!ex || r.timestampMs >= ex.timestampMs) latestByClient.set(r.name, r);
   }
   const aggClients = Array.from(latestByClient.values()).map((r, i) => ({ ...r, id: String(i + 1) }));
-  const kpi = getKPIMetrics(aggClients);
-  const bd = getComplianceBreakdown(aggClients);
+  const summaryClients = clientsOverride ?? aggClients;
+  const kpi = getKPIMetrics(summaryClients);
+  const bd = getComplianceBreakdown(summaryClients);
 
   /* ----- Cover / Summary page ----- */
   // Header band
@@ -607,7 +610,7 @@ export function exportPDF({ history, rangeLabel, fileBaseName }: ExportOptions):
   doc.setFont("helvetica", "bold");
   doc.setFontSize(22);
   doc.setTextColor(255, 255, 255);
-  doc.text("Greenfield Bookkeeping", margin, 36);
+  doc.text("MER Command Center", margin, 36);
   doc.setFont("helvetica", "normal");
   doc.setFontSize(13);
   doc.text("Month-End Review Report", margin, 58);
@@ -835,7 +838,7 @@ export function exportPDF({ history, rangeLabel, fileBaseName }: ExportOptions):
     doc.setFont("helvetica", "normal");
     doc.setFontSize(8);
     doc.setTextColor(255, 255, 255);
-    doc.text("Greenfield Bookkeeping – MER Report", margin, pageH - 7);
+    doc.text("MER Command Center — MER Report", margin, pageH - 7);
     doc.text(`Page ${i} of ${pageCount}`, pageW - margin, pageH - 7, { align: "right" });
   }
 

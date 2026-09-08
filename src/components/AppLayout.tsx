@@ -4,21 +4,20 @@ import { useQueryClient, useIsFetching } from "@tanstack/react-query";
 import { NavLink } from "@/components/NavLink";
 import { useSheetData } from "@/hooks/useSheetData";
 import { useTheme } from "@/hooks/useTheme";
-import NotificationDropdown from "@/components/NotificationDropdown";
+import ReminderBanner from "@/components/ReminderBanner";
+import FloatingActionStack from "@/components/FloatingActionStack";
 import MobileTabBar from "@/components/MobileTabBar";
-import FloatingCollabStack from "@/components/FloatingCollabStack";
 import MerFormModal from "@/components/MerFormModal";
 import ViewAsBanner from "@/components/ViewAsBanner";
 import ViewAsRoleSwitcher from "@/components/ViewAsRoleSwitcher";
 import {
   LayoutDashboard, CalendarCheck, TrendingUp, Users, Download, Settings,
-  Menu, X, ChevronLeft, RefreshCw, Sun, Moon, Workflow, UserCheck, HeartPulse, BookOpen, FilePlus2, FileEdit, LogOut, ClipboardList, Tags,
-
+  Menu, X, ChevronLeft, RefreshCw, Sun, Moon, Workflow, UserCheck, HeartPulse, BookOpen, FilePlus2, FileEdit, LogOut, ClipboardList, Tags, Code2,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useAuth } from "@/hooks/useAuth";
-import BrandMark from "@/components/BrandMark";
-import jpsAvatar from "@/assets/jps-avatar.jpg";
+import logo from "@/assets/logo.png";
+import { FOCUS_RING } from "@/lib/utils";
 import HireJPSHeader from "@/components/HireJPSHeader";
 import HireJPSFooter from "@/components/HireJPSFooter";
 import FloatingParticles from "@/components/FloatingParticles";
@@ -36,6 +35,7 @@ const navItems = [
   { title: "Export Center", url: "/reports", icon: Download },
   { title: "User Guide", url: "/user-guide", icon: BookOpen },
   { title: "Settings", url: "/settings", icon: Settings },
+  { title: "Developer", url: "/developer", icon: Code2 },
 ];
 
 function ThemeToggleButton() {
@@ -43,8 +43,9 @@ function ThemeToggleButton() {
   return (
     <button
       onClick={toggle}
-      className="h-9 w-9 flex items-center justify-center rounded-lg text-muted-foreground hover:bg-accent hover:text-foreground transition-colors"
+      className={`h-10 w-10 flex items-center justify-center rounded-lg text-muted-foreground hover:bg-accent hover:text-foreground transition-colors duration-150 ${FOCUS_RING}`}
       title={theme === "dark" ? "Switch to light mode" : "Switch to dark mode"}
+      aria-label={theme === "dark" ? "Switch to light mode" : "Switch to dark mode"}
     >
       <AnimatePresence mode="wait" initial={false}>
         <motion.div
@@ -61,8 +62,17 @@ function ThemeToggleButton() {
   );
 }
 
+const SIDEBAR_STORAGE_KEY = "mer-sidebar-open";
+
 export default function AppLayout() {
-  const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [sidebarOpen, setSidebarOpen] = useState(() => {
+    if (typeof window === "undefined") return true;
+    const stored = window.localStorage.getItem(SIDEBAR_STORAGE_KEY);
+    return stored === null ? true : stored === "1";
+  });
+  useEffect(() => {
+    try { window.localStorage.setItem(SIDEBAR_STORAGE_KEY, sidebarOpen ? "1" : "0"); } catch { /* private mode / quota */ }
+  }, [sidebarOpen]);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [merModalOpen, setMerModalOpen] = useState(false);
   const [merModalMode, setMerModalMode] = useState<"add" | "update">("add");
@@ -71,12 +81,17 @@ export default function AppLayout() {
   const queryClient = useQueryClient();
   const isFetching = useIsFetching({ queryKey: ["sheet-data"] });
   const { data } = useSheetData();
-  const { profile, user, signOut } = useAuth();
+  const { profile, user, signOut, isDeveloper } = useAuth();
   const currentTitle = navItems.find(n => n.url === location.pathname)?.title || "Dashboard";
 
   useEffect(() => {
     if (isFetching === 0) setLastSynced(new Date());
   }, [isFetching]);
+
+  // Scroll to top on route change
+  useEffect(() => {
+    window.scrollTo({ top: 0, left: 0 });
+  }, [location.pathname]);
 
   const handleRefresh = () => {
     queryClient.invalidateQueries({ queryKey: ["sheet-data"] });
@@ -93,11 +108,14 @@ export default function AppLayout() {
     return () => clearInterval(interval);
   }, [lastSynced]);
 
+  const visibleNavItems = navItems.filter((n) => n.url !== "/developer" || isDeveloper);
+
   return (
-    <div className="flex flex-col min-h-screen w-full bg-background vignette">
+    <div className="flex flex-col min-h-screen w-full bg-background vignette overflow-x-clip">
       <FloatingParticles />
       <HireJPSHeader />
-    <div className="flex flex-1">
+      <div className="flex flex-1 w-full relative z-10">
+
       {/* Mobile overlay */}
       <AnimatePresence>
         {mobileOpen && (
@@ -113,50 +131,56 @@ export default function AppLayout() {
 
       {/* Sidebar */}
       <aside
-        className={`fixed lg:sticky top-[49px] left-0 z-50 h-[calc(100vh-49px)] flex flex-col border-r border-border bg-sidebar transition-all duration-300 ${
+        className={`fixed lg:sticky top-0 left-0 z-50 h-screen flex flex-col border-r border-border bg-sidebar transition-all duration-300 ${
           sidebarOpen ? "w-[240px]" : "w-[60px]"
         } ${mobileOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"}`}
       >
         <div className="flex h-[56px] items-center justify-between px-4 border-b border-border">
           {sidebarOpen && (
             <div className="flex items-center gap-2.5">
-              <BrandMark className="h-7 w-7" />
+              <img src={logo} alt="MER Command Center" className="h-7 w-7 rounded-lg object-contain" />
               <span className="text-sm font-semibold tracking-tight text-foreground">
-                Greenfield Bookkeeping
+                MER Command Center
               </span>
             </div>
           )}
           {!sidebarOpen && (
-            <BrandMark className="h-7 w-7 mx-auto" />
+            <img src={logo} alt="MER Command Center" className="h-7 w-7 rounded-lg object-contain mx-auto" />
           )}
           <button
             onClick={() => setSidebarOpen(!sidebarOpen)}
-            className="hidden lg:flex h-7 w-7 items-center justify-center rounded-md text-muted-foreground hover:bg-accent hover:text-foreground transition-colors"
+            aria-label={sidebarOpen ? "Collapse sidebar" : "Expand sidebar"}
+            title={sidebarOpen ? "Collapse sidebar" : "Expand sidebar"}
+            className={`hidden lg:flex h-9 w-9 items-center justify-center rounded-md text-muted-foreground hover:bg-accent hover:text-foreground transition-colors duration-150 ${FOCUS_RING}`}
           >
             <ChevronLeft className={`h-4 w-4 transition-transform duration-200 ${!sidebarOpen ? "rotate-180" : ""}`} />
           </button>
           <button
             onClick={() => setMobileOpen(false)}
-            className="lg:hidden h-7 w-7 flex items-center justify-center rounded-md text-muted-foreground hover:bg-accent"
+            aria-label="Close menu"
+            className={`lg:hidden h-11 w-11 flex items-center justify-center rounded-md text-muted-foreground hover:bg-accent hover:text-foreground transition-colors duration-150 ${FOCUS_RING}`}
           >
             <X className="h-4 w-4" />
           </button>
         </div>
 
-        <nav className="flex-1 py-4 px-2.5 space-y-0.5 overflow-y-auto scrollbar-thin scrollbar-thumb-muted-foreground/20 hover:scrollbar-thumb-muted-foreground/40 scrollbar-track-transparent">
-          {navItems.map((item) => {
+        <nav aria-label="Main" className="flex-1 py-4 px-2.5 space-y-0.5 overflow-y-auto scrollbar-thin scrollbar-thumb-muted-foreground/20 hover:scrollbar-thumb-muted-foreground/40 scrollbar-track-transparent">
+          {visibleNavItems.map((item) => {
             const isActive = location.pathname === item.url;
             return (
               <NavLink
                 key={item.url}
                 to={item.url}
                 end
-                className={`group flex items-center gap-3 rounded-lg px-3 py-2.5 text-[13px] font-medium transition-all duration-200 relative ${
+                className={`group flex items-center gap-3 rounded-lg px-3 py-2.5 min-h-[40px] text-[13px] font-medium transition-colors duration-150 relative ${FOCUS_RING} ${
                   isActive
                     ? "bg-primary/10 text-primary"
                     : "text-muted-foreground hover:bg-accent hover:text-foreground"
-                }`}
+                } ${!sidebarOpen ? "justify-center px-0" : ""}`}
                 activeClassName=""
+                aria-current={isActive ? "page" : undefined}
+                title={!sidebarOpen ? item.title : undefined}
+                aria-label={!sidebarOpen ? item.title : undefined}
                 onClick={() => setMobileOpen(false)}
               >
                 {isActive && (
@@ -166,7 +190,7 @@ export default function AppLayout() {
                     transition={{ type: "spring", stiffness: 500, damping: 30 }}
                   />
                 )}
-                <item.icon className="h-[18px] w-[18px] shrink-0" />
+                <item.icon className="h-[18px] w-[18px] shrink-0" aria-hidden="true" />
                 {sidebarOpen && <span>{item.title}</span>}
               </NavLink>
             );
@@ -177,13 +201,14 @@ export default function AppLayout() {
           {sidebarOpen ? (
             <>
               <div className="flex items-center gap-2 px-1">
-                <img
-                  src={jpsAvatar}
-                  alt={profile?.name || "User"}
-                  className="h-8 w-8 rounded-full object-cover ring-1 ring-primary/30 bg-card shrink-0"
-                />
+                <div
+                  className="h-8 w-8 rounded-full bg-primary/15 flex items-center justify-center text-[11px] font-semibold text-primary shrink-0"
+                  aria-hidden="true"
+                >
+                  {(profile?.name || user?.email || "?").slice(0, 1).toUpperCase()}
+                </div>
                 <div className="min-w-0 flex-1">
-                  <p className="text-[12px] font-semibold text-foreground truncate">
+                  <p className="text-[12px] font-semibold text-foreground truncate min-w-0">
                     {profile?.name || user?.email}
                   </p>
                   {profile?.role && (
@@ -195,22 +220,23 @@ export default function AppLayout() {
               </div>
               <button
                 onClick={signOut}
-                className="w-full inline-flex items-center gap-2 px-2.5 py-1.5 rounded-md text-[12px] font-medium text-muted-foreground hover:bg-accent hover:text-destructive transition-colors"
+                className={`w-full inline-flex items-center gap-2 px-2.5 min-h-[40px] rounded-md text-[12px] font-medium text-muted-foreground hover:bg-accent hover:text-destructive transition-colors duration-150 ${FOCUS_RING}`}
               >
-                <LogOut className="h-4 w-4" />
+                <LogOut className="h-4 w-4" aria-hidden="true" />
                 Sign Out
               </button>
               <p className="text-[10px] text-muted-foreground/70 font-medium pt-1">
-                Command Center Portal v2.0
+                MER Dashboard v2.0
               </p>
             </>
           ) : (
             <button
               onClick={signOut}
-              className="w-full h-9 flex items-center justify-center rounded-md text-muted-foreground hover:bg-accent hover:text-destructive transition-colors"
+              className={`w-full h-10 flex items-center justify-center rounded-md text-muted-foreground hover:bg-accent hover:text-destructive transition-colors duration-150 ${FOCUS_RING}`}
               title="Sign out"
+              aria-label="Sign out"
             >
-              <LogOut className="h-4 w-4" />
+              <LogOut className="h-4 w-4" aria-hidden="true" />
             </button>
           )}
         </div>
@@ -222,7 +248,8 @@ export default function AppLayout() {
         <header className="sticky top-0 z-40 flex h-[56px] items-center gap-2 sm:gap-4 border-b border-border glass-panel px-3 sm:px-5 lg:px-8">
           <button
             onClick={() => setMobileOpen(true)}
-            className="lg:hidden h-8 w-8 flex items-center justify-center rounded-md text-muted-foreground hover:bg-accent shrink-0"
+            aria-label="Open navigation menu"
+            className={`lg:hidden h-11 w-11 flex items-center justify-center rounded-md text-muted-foreground hover:bg-accent hover:text-foreground transition-colors duration-150 shrink-0 ${FOCUS_RING}`}
           >
             <Menu className="h-5 w-5" />
           </button>
@@ -236,8 +263,9 @@ export default function AppLayout() {
               setMerModalMode("add");
               setMerModalOpen(true);
             }}
-            className="hidden sm:inline-flex items-center gap-1.5 h-9 px-3 rounded-lg text-xs font-semibold bg-primary/10 text-primary border border-primary/20 hover:bg-primary/15 transition-colors"
+            className={`hidden sm:inline-flex items-center gap-1.5 h-9 px-3 rounded-lg text-xs font-semibold bg-primary/10 text-primary border border-primary/20 hover:bg-primary/15 transition-colors duration-150 ${FOCUS_RING}`}
             title="Add a new MER record"
+            aria-label="Add a new MER record"
           >
             <FilePlus2 className="h-4 w-4" />
             Add MER
@@ -247,8 +275,9 @@ export default function AppLayout() {
               setMerModalMode("update");
               setMerModalOpen(true);
             }}
-            className="hidden sm:inline-flex items-center gap-1.5 h-9 px-3 rounded-lg text-xs font-semibold bg-primary/15 text-primary border border-primary/30 hover:bg-primary/25 hover:border-primary/50 hover:shadow-[0_0_16px_-4px_hsl(var(--primary)/0.3)] transition-all"
+            className={`hidden sm:inline-flex items-center gap-1.5 h-9 px-3 rounded-lg text-xs font-semibold bg-primary/15 text-primary border border-primary/30 hover:bg-primary/25 hover:border-primary/50 hover:shadow-[0_0_16px_-4px_hsl(var(--primary)/0.3)] transition-all duration-150 ${FOCUS_RING}`}
             title="Update an existing MER record"
+            aria-label="Update an existing MER record"
           >
             <FileEdit className="h-4 w-4" />
             Update MER
@@ -258,8 +287,9 @@ export default function AppLayout() {
               setMerModalMode("add");
               setMerModalOpen(true);
             }}
-            className="sm:hidden h-9 w-9 flex items-center justify-center rounded-lg text-primary bg-primary/10 border border-primary/20 hover:bg-primary/15 transition-colors"
+            className={`sm:hidden h-10 w-10 flex items-center justify-center rounded-lg text-primary bg-primary/10 border border-primary/20 hover:bg-primary/15 transition-colors duration-150 ${FOCUS_RING}`}
             title="Add a new MER record"
+            aria-label="Add a new MER record"
           >
             <FilePlus2 className="h-[18px] w-[18px]" />
           </button>
@@ -268,8 +298,9 @@ export default function AppLayout() {
               setMerModalMode("update");
               setMerModalOpen(true);
             }}
-            className="sm:hidden h-9 w-9 flex items-center justify-center rounded-lg text-primary bg-primary/15 border border-primary/30 hover:bg-primary/25 transition-colors"
+            className={`sm:hidden h-10 w-10 flex items-center justify-center rounded-lg text-primary bg-primary/15 border border-primary/30 hover:bg-primary/25 transition-colors duration-150 ${FOCUS_RING}`}
             title="Update an existing MER record"
+            aria-label="Update an existing MER record"
           >
             <FileEdit className="h-[18px] w-[18px]" />
           </button>
@@ -279,29 +310,28 @@ export default function AppLayout() {
           <button
             onClick={handleRefresh}
             disabled={isFetching > 0}
-            className="h-9 w-9 flex items-center justify-center rounded-lg text-muted-foreground hover:bg-accent hover:text-primary transition-colors disabled:opacity-50"
+            className={`h-11 w-11 flex items-center justify-center rounded-lg text-muted-foreground hover:bg-accent hover:text-primary transition-colors duration-150 disabled:opacity-50 disabled:cursor-not-allowed ${FOCUS_RING}`}
             title="Refresh data"
+            aria-label="Refresh data"
           >
             <RefreshCw className={`h-[18px] w-[18px] ${isFetching > 0 ? "animate-spin" : ""}`} />
           </button>
-
-          <NotificationDropdown
-            clients={data?.clients ?? []}
-            trends={data?.monthlyTrends ?? []}
-          />
 
           <div className="hidden md:block">
             <ViewAsRoleSwitcher />
           </div>
 
-          <img
-            src={jpsAvatar}
-            alt="Jerick P. Salinas"
-            className="h-9 w-9 rounded-full object-cover ring-2 ring-primary/30 bg-card"
-          />
-
-
+          <div
+            className="hidden sm:flex h-9 w-9 rounded-full bg-primary/15 items-center justify-center text-[12px] font-semibold text-primary ring-2 ring-primary/20 shrink-0 select-none"
+            title={profile?.name || user?.email || undefined}
+            aria-label={profile?.name || user?.email ? `Signed in as ${profile?.name || user?.email}` : undefined}
+            role="img"
+          >
+            {(profile?.name || user?.email || "?").slice(0, 1).toUpperCase()}
+          </div>
         </header>
+
+        <ReminderBanner />
 
         <main className="flex-1 px-3 py-4 sm:px-5 sm:py-5 lg:p-8 w-full max-w-[1600px] mx-auto overflow-x-hidden pb-[72px] lg:pb-8">
           <Outlet />
@@ -309,7 +339,7 @@ export default function AppLayout() {
 
         <footer className="hidden sm:block border-t border-border px-4 sm:px-8 py-3 glass-panel">
           <p className="text-[10px] sm:text-[11px] text-muted-foreground font-medium leading-relaxed break-words">
-            Last synced: <span className="text-foreground">{timeSince}</span> · Auto-refresh: 60s · <span className="hidden sm:inline">System Status: </span><span className="text-success">● Operational</span>
+            Last synced <span className="text-foreground">{timeSince}</span>
           </p>
         </footer>
       </div>
@@ -317,8 +347,8 @@ export default function AppLayout() {
       {/* Mobile bottom tab bar (#16) */}
       <MobileTabBar onMore={() => setMobileOpen(true)} />
 
-      {/* Floating notifications + team chat (demo) */}
-      <FloatingCollabStack />
+      {/* Floating action stack — Bell (System Updates) + Message (Team Chat) */}
+      <FloatingActionStack />
 
       {merModalOpen && (
         <MerFormModal
@@ -328,7 +358,7 @@ export default function AppLayout() {
           onClose={() => setMerModalOpen(false)}
         />
       )}
-    </div>
+      </div>
       <HireJPSFooter />
     </div>
   );

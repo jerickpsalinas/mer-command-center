@@ -6,10 +6,6 @@ export default function ProtectedRoute({ children }: { children: React.ReactNode
   const { session, loading } = useAuth();
   const location = useLocation();
 
-  const demoLoggedIn =
-    typeof window !== "undefined" &&
-    localStorage.getItem("greenfield-demo-logged-in") === "true";
-
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
@@ -18,7 +14,7 @@ export default function ProtectedRoute({ children }: { children: React.ReactNode
     );
   }
 
-  if (!session || !demoLoggedIn) {
+  if (!session) {
     return <Navigate to="/login" replace state={{ from: location }} />;
   }
 

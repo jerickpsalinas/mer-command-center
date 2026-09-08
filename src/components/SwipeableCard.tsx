@@ -1,5 +1,6 @@
 import { useRef, useState, type ReactNode, type TouchEvent } from "react";
 import { motion } from "framer-motion";
+import { cn, FOCUS_RING, FOCUS_RING_INSET } from "@/lib/utils";
 
 interface Action {
   label: string;
@@ -78,19 +79,31 @@ export default function SwipeableCard({ children, leftAction, className, onTap }
     if (!isSwiping.current) onTap?.();
   };
 
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    // Only react to keys fired on the card itself, not on nested controls.
+    if (e.target !== e.currentTarget) return;
+    if (e.key === "Enter" || e.key === " ") {
+      e.preventDefault();
+      onTap?.();
+    }
+  };
+
   return (
-    <div className={`relative overflow-hidden rounded-xl ${className ?? ""}`}>
+    <div className={cn("relative overflow-hidden rounded-xl", className)}>
       {leftAction && (
         <button
+          type="button"
           onClick={() => {
             leftAction.onAction();
             setOpen(false);
             setOffset(0);
           }}
-          className={`absolute inset-y-0 right-0 w-[88px] flex flex-col items-center justify-center gap-1 text-[11px] font-semibold ${leftAction.color ?? "bg-primary text-primary-foreground"}`}
+          className={cn("absolute inset-y-0 right-0 w-[88px] flex flex-col items-center justify-center gap-1 text-[11px] font-semibold", FOCUS_RING_INSET, leftAction.color ?? "bg-primary text-primary-foreground")}
           aria-label={leftAction.label}
+          tabIndex={open ? 0 : -1}
+          aria-hidden={!open}
         >
-          <leftAction.icon className="h-4 w-4" />
+          <leftAction.icon className="h-4 w-4" aria-hidden="true" />
           {leftAction.label}
         </button>
       )}
@@ -101,7 +114,9 @@ export default function SwipeableCard({ children, leftAction, className, onTap }
         onTouchMove={handleTouchMove}
         onTouchEnd={handleTouchEnd}
         onClick={handleClick}
-        className="relative bg-card cursor-pointer touch-pan-y"
+        onKeyDown={onTap ? handleKeyDown : undefined}
+        tabIndex={onTap ? 0 : undefined}
+        className={cn("relative bg-card cursor-pointer touch-pan-y rounded-xl", FOCUS_RING)}
       >
         {children}
       </motion.div>

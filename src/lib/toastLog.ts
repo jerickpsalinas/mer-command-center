@@ -7,6 +7,8 @@
  * Usage:
  *   import { logToast, subscribeToastLog, getToastLog, clearToastLog } from "@/lib/toastLog";
  */
+import { timeAgo } from "@/lib/time";
+
 export type ToastVariant = "default" | "destructive" | "success" | "warning";
 
 export interface LoggedToast {
@@ -73,16 +75,7 @@ export function subscribeToastLog(fn: (l: LoggedToast[]) => void): () => void {
   return () => listeners.delete(fn);
 }
 
-/** Format relative time (e.g. "2m ago") */
+/** Format relative time (e.g. "2m ago") — delegates to the shared helper. */
 export function relativeTime(ms: number): string {
-  const diff = Math.max(0, Date.now() - ms);
-  const s = Math.floor(diff / 1000);
-  if (s < 30) return "just now";
-  if (s < 60) return `${s}s ago`;
-  const m = Math.floor(s / 60);
-  if (m < 60) return `${m}m ago`;
-  const h = Math.floor(m / 60);
-  if (h < 24) return `${h}h ago`;
-  const d = Math.floor(h / 24);
-  return `${d}d ago`;
+  return timeAgo(ms);
 }

@@ -1,7 +1,9 @@
-import { useMemo } from "react";
-import { Clock } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
+import { Clock, Inbox } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
 import type { ActionLogEntry, MerHistoryRow } from "@/services/googleSheets";
-import { useDeveloperFilter } from "@/hooks/useDeveloperFilter";
+import { timeAgo } from "@/lib/time";
+
 
 interface ActivityRow {
   id: string;
@@ -12,19 +14,6 @@ interface ActivityRow {
   source: "Dashboard" | "Action Log" | "MER";
   ok?: boolean;
 }
-
-const timeAgo = (ms: number): string => {
-  const diff = Date.now() - ms;
-  if (!Number.isFinite(diff) || diff < 0) return "just now";
-  const s = Math.floor(diff / 1000);
-  if (s < 60) return `${s}s ago`;
-  const m = Math.floor(s / 60);
-  if (m < 60) return `${m}m ago`;
-  const h = Math.floor(m / 60);
-  if (h < 24) return `${h}h ago`;
-  const d = Math.floor(h / 24);
-  return `${d}d ago`;
-};
 
 const sourceColor: Record<ActivityRow["source"], string> = {
   Dashboard: "text-primary bg-primary/10",
@@ -41,20 +30,34 @@ export default function RecentActivityFeed({
   merHistory: MerHistoryRow[];
   limit?: number;
 }) {
-  const { isDeveloper } = useDeveloperFilter();
-  const dashActions: ActivityRow[] = useMemo(
-    () =>
-      (actionLog ?? []).slice(0, 5).map((a, i) => ({
-        id: `db-${i}-${a.timestamp}`,
-        ts: a.timestamp ? Date.parse(a.timestamp) : 0,
-        who: a.triggeredBy || "Dashboard",
-        client: a.clientName || "—",
-        action: a.actionType || "action",
-        source: "Dashboard" as const,
-        ok: a.status !== "error",
-      })),
-    [actionLog]
-  );
+  
+  const [dashActions, setDashActions] = useState<ActivityRow[]>([]);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      const { data } = await supabase
+        .from("activity_log")
+        .select("id,action,client_name,triggered_by,success,created_at")
+        .order("created_at", { ascending: false })
+        .limit(50);
+      if (cancelled || !data) return;
+      setDashActions(
+        data.map((r) => ({
+          id: `db-${r.id}`,
+          ts: r.created_at ? Date.parse(r.created_at) : 0,
+          who: r.triggered_by || "Dashboard",
+          client: r.client_name || "—",
+          action: r.action || "action",
+          source: "Dashboard" as const,
+          ok: r.success !== false,
+        }))
+      );
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const rows = useMemo<ActivityRow[]>(() => {
     const out: ActivityRow[] = [...dashActions];
@@ -86,26 +89,28 @@ export default function RecentActivityFeed({
     }
 
     return out
-      .filter((r) => r.who && !isDeveloper(r.who))
+      .filter((r) => !!r.who)
       .sort((a, b) => b.ts - a.ts)
       .slice(0, limit);
-  }, [dashActions, actionLog, merHistory, isDeveloper, limit]);
+  }, [dashActions, actionLog, merHistory, limit]);
 
   return (
     <div className="border-t border-border px-4 sm:px-6 py-4">
-      <h3 className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider mb-3 flex items-center gap-1.5">
-        <Clock className="h-3.5 w-3.5" /> Recent Activity
-      </h3>
+      <h4 className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider mb-3 flex items-center gap-1.5">
+        <Clock className="h-3.5 w-3.5" aria-hidden /> Recent Activity
+      </h4>
       <div className="space-y-2.5">
         {rows.map((r) => (
           <div
             key={r.id}
-            className="flex items-start gap-2.5 py-1.5 rounded-md hover:bg-accent/20 -mx-1 px-1 transition-colors"
+            className="flex items-start gap-2.5 py-1.5 rounded-md hover:bg-accent/20 -mx-1 px-1 transition-colors duration-150"
           >
             <div
               className={`mt-1.5 h-1.5 w-1.5 rounded-full shrink-0 ${
                 r.ok === false ? "bg-destructive" : "bg-success"
               }`}
+              aria-label={r.ok === false ? "Failed" : "Succeeded"}
+              role="img"
             />
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-2 mb-0.5 flex-wrap">
@@ -114,7 +119,13 @@ export default function RecentActivityFeed({
                 >
                   {r.source}
                 </span>
-                <span className="text-[10px] text-muted-foreground tabular-nums">{timeAgo(r.ts)}</span>
+                <time
+                  className="text-[10px] text-muted-foreground font-mono-data tabular-nums"
+                  dateTime={new Date(r.ts).toISOString()}
+                  title={new Date(r.ts).toLocaleString()}
+                >
+                  {timeAgo(r.ts)}
+                </time>
               </div>
               <p className="text-[12px] text-muted-foreground leading-relaxed break-words">
                 <span className="text-foreground font-medium">{r.who}</span>{" "}
@@ -129,7 +140,13 @@ export default function RecentActivityFeed({
             </div>
           </div>
         ))}
-        {rows.length === 0 && <p className="text-xs text-muted-foreground">No recent activity</p>}
+        {rows.length === 0 && (
+          <div className="flex flex-col items-center justify-center text-center py-6">
+            <Inbox className="h-8 w-8 text-muted-foreground/50 mb-2" aria-hidden />
+            <p className="text-sm font-medium text-foreground">No recent activity</p>
+            <p className="text-xs text-muted-foreground mt-0.5">Submissions and actions will show up here</p>
+          </div>
+        )}
       </div>
     </div>
   );

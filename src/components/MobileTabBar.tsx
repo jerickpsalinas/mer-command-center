@@ -31,7 +31,7 @@ export default function MobileTabBar({ onMore }: Props) {
         {tabs.map((t) => {
           const active = t.to ? (t.to === "/" ? pathname === "/" : pathname.startsWith(t.to)) : false;
           const inner = (
-            <div className="relative flex flex-col items-center justify-center gap-0.5 py-2 text-[10px] font-medium">
+            <div className="relative flex flex-col items-center justify-center gap-0.5 min-h-12 py-2.5 text-[10px] font-medium">
               {active && (
                 <motion.span
                   layoutId="tab-bar-active"
@@ -40,7 +40,8 @@ export default function MobileTabBar({ onMore }: Props) {
                 />
               )}
               <t.icon
-                className={`h-[18px] w-[18px] transition-transform ${active ? "text-primary scale-105" : "text-muted-foreground"}`}
+                className={`h-[18px] w-[18px] transition-transform duration-150 ${active ? "text-primary scale-105" : "text-muted-foreground"}`}
+                aria-hidden="true"
               />
               <span className={active ? "text-primary" : "text-muted-foreground"}>{t.label}</span>
             </div>
@@ -48,11 +49,22 @@ export default function MobileTabBar({ onMore }: Props) {
           return (
             <li key={t.label}>
               {t.to ? (
-                <NavLink to={t.to} end={t.to === "/"} className="block">
+                <NavLink
+                  to={t.to}
+                  end={t.to === "/"}
+                  className="block rounded-md transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background focus-visible:ring-offset-0"
+                  aria-label={t.label}
+                  aria-current={active ? "page" : undefined}
+                >
                   {inner}
                 </NavLink>
               ) : (
-                <button onClick={t.onClick} className="w-full text-left">
+                <button
+                  type="button"
+                  onClick={t.onClick}
+                  className="w-full text-left rounded-md transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background focus-visible:ring-offset-0"
+                  aria-label={t.label}
+                >
                   {inner}
                 </button>
               )}

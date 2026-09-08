@@ -1,5 +1,8 @@
-import { Calendar } from "lucide-react";
+import { useId } from "react";
+import { Calendar, Check } from "lucide-react";
+import * as SelectPrimitive from "@radix-ui/react-select";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { OVERLINE, cn } from "@/lib/utils";
 
 interface MonthFilterProps {
   /** Current selected value: "current" or a month label like "May 2025" */
@@ -38,27 +41,52 @@ export default function MonthFilter({
   });
 
   const triggerWidth = compact ? "w-full sm:w-[180px]" : "w-full sm:w-[220px]";
+  const labelId = useId();
+  const showLabel = Boolean(label) && !compact;
 
   return (
-    <div className={className}>
-      {label && !compact && (
-        <label className="text-[11px] font-medium text-muted-foreground uppercase tracking-wider flex items-center gap-1.5 mb-1.5">
-          <Calendar className="h-3 w-3" /> {label}
-        </label>
+    <div className={`min-w-0 ${className ?? ""}`}>
+      {showLabel && (
+        <span id={labelId} className={cn(OVERLINE, "flex items-center gap-1.5 mb-1.5")}>
+          <Calendar className="h-3 w-3" aria-hidden /> {label}
+        </span>
       )}
       <Select value={value} onValueChange={onChange}>
-        <SelectTrigger className={`${triggerWidth} bg-card border-border ${compact ? "h-9 text-sm" : ""}`}>
-          {compact && <Calendar className="h-3.5 w-3.5 text-muted-foreground mr-1.5 shrink-0" />}
+        <SelectTrigger
+          aria-labelledby={showLabel ? labelId : undefined}
+          aria-label={showLabel ? undefined : label ?? "Reporting month"}
+          className={`${triggerWidth} min-h-[40px] bg-card border-border transition-colors duration-150 ${compact ? "text-sm" : ""}`}
+        >
+          {compact && <Calendar className="h-3.5 w-3.5 text-muted-foreground mr-1.5 shrink-0" aria-hidden />}
           <SelectValue placeholder="Select month" />
         </SelectTrigger>
         <SelectContent>
           <SelectItem value="current">Current (latest)</SelectItem>
-          {sorted.map((m) => (
-            <SelectItem key={m} value={m}>
-              {m}
-              {latestMonth && m === latestMonth ? "  · Latest" : ""}
-            </SelectItem>
-          ))}
+          {sorted.map((m) =>
+            latestMonth && m === latestMonth ? (
+              // Rendered with the primitive so the "Latest" badge sits outside
+              // ItemText and never leaks into the closed trigger's value text.
+              <SelectPrimitive.Item
+                key={m}
+                value={m}
+                className="relative flex w-full cursor-default select-none items-center gap-2 rounded-sm py-1.5 pl-8 pr-2 text-sm outline-none data-[disabled]:pointer-events-none data-[disabled]:opacity-50 focus:bg-accent focus:text-accent-foreground"
+              >
+                <span className="absolute left-2 flex h-3.5 w-3.5 items-center justify-center">
+                  <SelectPrimitive.ItemIndicator>
+                    <Check className="h-4 w-4" />
+                  </SelectPrimitive.ItemIndicator>
+                </span>
+                <SelectPrimitive.ItemText>{m}</SelectPrimitive.ItemText>
+                <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground" aria-hidden>
+                  Latest
+                </span>
+              </SelectPrimitive.Item>
+            ) : (
+              <SelectItem key={m} value={m}>
+                {m}
+              </SelectItem>
+            ),
+          )}
         </SelectContent>
       </Select>
     </div>

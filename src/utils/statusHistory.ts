@@ -1,5 +1,6 @@
 import { supabase } from "@/integrations/supabase/client";
 import type { MerHistoryRow } from "@/services/googleSheets";
+import { DEMO_MODE } from "@/lib/demoMode";
 
 export interface StatusHistoryEntry {
   id: string;
@@ -84,7 +85,8 @@ function getNyOffsetMinutes(d: Date): number {
  * - Inserts once per week (Mon 00:01 America/New_York anchor) even if unchanged (source: 'daily')
  */
 
-export async function recordStatusSnapshots(rows: MerHistoryRow[]) {
+export async function recordStatusSnapshots(rows: MerHistoryRow[], changedBy?: string) {
+  if (DEMO_MODE) return; // demo build never writes to a backend
   // Latest row per contact id
   const latest = new Map<string, MerHistoryRow>();
   for (const r of rows) {
@@ -127,6 +129,7 @@ export async function recordStatusSnapshots(rows: MerHistoryRow[]) {
           client_name: row.name,
           status,
           source,
+          changed_by: row.submittedBy || row.bookkeeper || changedBy || null,
         });
       }
     } catch {
@@ -140,6 +143,7 @@ export async function recordStatusSnapshots(rows: MerHistoryRow[]) {
 export async function fetchStatusHistory(
   ghlContactId: string,
 ): Promise<StatusHistoryEntry[]> {
+  if (DEMO_MODE) return [];
   const { data, error } = await supabase
     .from("client_status_history")
     .select("*")

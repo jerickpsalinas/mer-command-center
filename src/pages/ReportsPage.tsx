@@ -1,4 +1,5 @@
 import { useState, useMemo, useEffect, useRef } from "react";
+import DOMPurify from "dompurify";
 import { motion } from "framer-motion";
 import { format } from "date-fns";
 import {
@@ -9,9 +10,11 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
 import { Button } from "@/components/ui/button";
+import { Label } from "@/components/ui/label";
+import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
-import { toast } from "@/hooks/use-toast";
+import { toast } from "sonner";
 import { useSheetData, filterHistoryByDateRange } from "@/hooks/useSheetData";
 import { DataLoading, DataError } from "@/components/DataStatus";
 import { exportXLSX, exportPDF } from "@/lib/merExport";
@@ -27,6 +30,8 @@ import {
   type ExportPayload,
 } from "@/lib/reportExports";
 import type { MerHistoryRow, CycleEntry } from "@/services/googleSheets";
+import type { Client } from "@/data/mockData";
+import { useMerWorkflowContacts, contactDisplayName } from "@/hooks/useMerWorkflowContacts";
 
 type RangeMode = "single" | "range" | "custom" | "all";
 
@@ -37,8 +42,8 @@ interface ExportDef {
   icon: typeof Users;
   accent: "primary" | "success" | "warning" | "destructive";
   formats: ("xlsx" | "pdf")[];
-  countLabel: (h: MerHistoryRow[], c: CycleEntry[]) => string;
-  run: (fmt: "xlsx" | "pdf", h: MerHistoryRow[], c: CycleEntry[], rangeLabel: string, fileBase: string) => ExportPayload;
+  countLabel: (h: MerHistoryRow[], c: CycleEntry[], merged: Client[]) => string;
+  run: (fmt: "xlsx" | "pdf", h: MerHistoryRow[], c: CycleEntry[], rangeLabel: string, fileBase: string, merged: Client[]) => ExportPayload;
 }
 
 const EXPORTS: ExportDef[] = [
@@ -49,9 +54,9 @@ const EXPORTS: ExportDef[] = [
     icon: FileBarChart,
     accent: "primary",
     formats: ["xlsx", "pdf"],
-    countLabel: (h) => `${h.length} submissions · ${new Set(h.map((r) => r.month)).size} months`,
-    run: (fmt, h, _c, rangeLabel, base) => {
-      const opts = { history: h, rangeLabel, fileBaseName: base };
+    countLabel: (h, _c, merged) => `${h.length} submissions · ${merged.length} clients · ${new Set(h.map((r) => r.month)).size} months`,
+    run: (fmt, h, _c, rangeLabel, base, merged) => {
+      const opts = { history: h, rangeLabel, fileBaseName: base, clientsOverride: merged };
       return fmt === "xlsx" ? exportXLSX(opts) : exportPDF(opts);
     },
   },
@@ -125,8 +130,8 @@ const EXPORTS: ExportDef[] = [
     icon: Crown,
     accent: "primary",
     formats: ["pdf"],
-    countLabel: (h) => `1-page snapshot · ${new Set(h.map((r) => r.name)).size} clients`,
-    run: (_fmt, h, _c, rangeLabel, base) => exportExecSummaryPDF(h, rangeLabel, base),
+    countLabel: (_h, _c, merged) => `1-page snapshot · ${merged.length} clients`,
+    run: (_fmt, h, _c, rangeLabel, base, merged) => exportExecSummaryPDF(h, rangeLabel, base, merged),
   },
   {
     id: "backup",
@@ -149,6 +154,7 @@ const ACCENT_CLASS: Record<ExportDef["accent"], string> = {
 
 export default function ReportsPage() {
   const { data, isLoading, error } = useSheetData();
+  const { contacts: merWorkflowContacts } = useMerWorkflowContacts();
   const [mode, setMode] = useState<RangeMode>("all");
   const [singleMonth, setSingleMonth] = useState<string>("");
   const [fromMonth, setFromMonth] = useState<string>("");
@@ -239,6 +245,49 @@ export default function ReportsPage() {
     return { filteredHistory: history, filteredCycle: cycle, rangeLabel: label, fileSuffix: suffix };
   }, [data, mode, singleMonth, fromMonth, toMonth, fromDate, toDate, monthIsoMap]);
 
+  // Merge GHL mer-workflow contacts with latest matching MER row from filteredHistory.
+  // Clients with no submission in range become "Pending MER" placeholders so KPI counts
+  // reflect the full active client roster (matches DashboardPage behavior).
+  const mergedClientsForReport: Client[] = useMemo(() => {
+    const norm = (s: string) => s.trim().toLowerCase();
+    const latestByName = new Map<string, MerHistoryRow>();
+    const latestByGhl = new Map<string, MerHistoryRow>();
+    for (const r of filteredHistory) {
+      const exN = latestByName.get(norm(r.name));
+      if (!exN || r.timestampMs >= exN.timestampMs) latestByName.set(norm(r.name), r);
+      const gid = r.ghlContactId;
+      if (gid) {
+        const exG = latestByGhl.get(gid);
+        if (!exG || r.timestampMs >= exG.timestampMs) latestByGhl.set(gid, r);
+      }
+    }
+    return merWorkflowContacts.map<Client>((contact, i) => {
+      const matched = latestByGhl.get(contact.id) || latestByName.get(norm(contactDisplayName(contact)));
+      if (matched) return { ...matched, id: String(i + 1) };
+      return {
+        id: contact.id,
+        name: contactDisplayName(contact),
+        clientType: "For-Profit",
+        bookkeeper: "—",
+        status: "Pending MER",
+        bankTransactions: "",
+        uncategorizedTransactions: 0,
+        transactionsWithoutPayees: 0,
+        undepositedFunds: 0,
+        unappliedPayments: 0,
+        statementRequestStatus: "",
+        lastReconciledDate: "",
+        prevMonthNotesApproved: false,
+        financialsSentToClient: false,
+        booksClosedInQB: false,
+        completionPct: 0,
+        complianceStatus: "Pending MER",
+        ghlContactId: contact.id,
+        categoryTags: (contact.tags || []).join(","),
+      } as Client;
+    });
+  }, [merWorkflowContacts, filteredHistory]);
+
   if (isLoading) return <DataLoading />;
   if (error || !data) return <DataError message={error?.message} />;
 
@@ -254,15 +303,14 @@ export default function ReportsPage() {
   const buildPayload = (def: ExportDef, fmt: "xlsx" | "pdf"): ExportPayload | null => {
     const empty = def.id === "cycle" ? filteredCycle.length === 0 : filteredHistory.length === 0;
     if (empty) {
-      toast({ title: "No data in range", description: "Adjust the date range and try again.", variant: "destructive" });
+      toast.error("No data in range: Adjust the date range and try again.");
       return null;
     }
-    const stamp = format(new Date(), "yyyyMMdd");
-    const base = `Greenfield_${def.id}_${fileSuffix}_${stamp}`;
+    const base = `BA_${def.id}_${fileSuffix}`;
     try {
-      return def.run(fmt, filteredHistory, filteredCycle, rangeLabel, base);
+      return def.run(fmt, filteredHistory, filteredCycle, rangeLabel, base, mergedClientsForReport);
     } catch (e) {
-      toast({ title: "Export failed", description: String(e), variant: "destructive" });
+      toast.error(`Export failed: ${String(e)}`);
       return null;
     }
   };
@@ -279,9 +327,9 @@ export default function ReportsPage() {
     if (!payload) return;
     try {
       downloadPayload(payload);
-      toast({ title: "Export complete", description: payload.filename });
+      toast.success(payload.filename);
     } catch (e) {
-      toast({ title: "Download failed", description: String(e), variant: "destructive" });
+      toast.error(`Download failed: ${String(e)}`);
     }
   };
 
@@ -294,9 +342,9 @@ export default function ReportsPage() {
     if (!preview) return;
     try {
       downloadPayload(preview.payload);
-      toast({ title: "Export complete", description: preview.payload.filename });
+      toast.success(preview.payload.filename);
     } catch (e) {
-      toast({ title: "Download failed", description: String(e), variant: "destructive" });
+      toast.error(`Download failed: ${String(e)}`);
     }
     closePreview();
   };
@@ -308,7 +356,7 @@ export default function ReportsPage() {
         className="rounded-xl border border-border bg-card p-5 sm:p-6 shadow-card">
         <div className="flex items-start gap-3">
           <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
-            <Download className="h-5 w-5 text-primary" />
+            <Download className="h-5 w-5 text-primary" aria-hidden="true" />
           </div>
           <div className="min-w-0">
             <h2 className="text-base font-semibold text-foreground">Export Center</h2>
@@ -323,7 +371,7 @@ export default function ReportsPage() {
       <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.05 }}
         className="rounded-xl border border-border bg-card p-5 shadow-card">
         <div className="flex items-center gap-2 mb-3">
-          <CalendarIcon className="h-4 w-4 text-primary" />
+          <CalendarIcon className="h-4 w-4 text-primary" aria-hidden="true" />
           <h3 className="text-sm font-semibold text-foreground">Date Range</h3>
           <span className="ml-auto text-[11px] font-mono-data text-muted-foreground">
             <span className="text-foreground font-semibold">{filteredHistory.length}</span> submissions ·{" "}
@@ -332,7 +380,7 @@ export default function ReportsPage() {
           </span>
         </div>
 
-        <div className="flex flex-wrap gap-1.5 mb-4">
+        <div className="flex flex-wrap gap-1.5 mb-4" role="group" aria-label="Date range mode">
           {([
             { id: "all", label: "All Time" },
             { id: "single", label: "Single Month" },
@@ -341,11 +389,13 @@ export default function ReportsPage() {
           ] as { id: RangeMode; label: string }[]).map((opt) => (
             <button
               key={opt.id}
+              type="button"
               onClick={() => setMode(opt.id)}
-              className={`text-[11px] font-semibold px-3 py-1.5 rounded-md border transition-colors ${
+              aria-pressed={mode === opt.id}
+              className={`text-[11px] font-semibold h-8 px-3 rounded-md border transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background ${
                 mode === opt.id
                   ? "bg-primary/10 border-primary/30 text-primary"
-                  : "bg-card border-border text-muted-foreground hover:text-foreground"
+                  : "bg-card border-border text-muted-foreground hover:text-foreground hover:bg-accent"
               }`}
             >
               {opt.label}
@@ -354,9 +404,10 @@ export default function ReportsPage() {
         </div>
 
         {mode === "single" && (
-          <div className="max-w-sm">
+          <div className="max-w-sm space-y-1.5">
+            <Label htmlFor="reports-single-month" className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Month</Label>
             <Select value={singleMonth} onValueChange={setSingleMonth}>
-              <SelectTrigger className="bg-muted/30 border-border"><SelectValue placeholder="Select month" /></SelectTrigger>
+              <SelectTrigger id="reports-single-month" className="h-9 bg-muted/30 border-border"><SelectValue placeholder="Select month" /></SelectTrigger>
               <SelectContent>
                 {[...data.availableMonths].reverse().map((m) => <SelectItem key={m} value={m}>{m}</SelectItem>)}
               </SelectContent>
@@ -366,19 +417,19 @@ export default function ReportsPage() {
 
         {mode === "range" && (
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 max-w-2xl">
-            <div>
-              <label className="text-[11px] font-medium text-muted-foreground uppercase tracking-wider mb-1.5 block">From</label>
+            <div className="space-y-1.5">
+              <Label htmlFor="reports-from-month" className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">From</Label>
               <Select value={fromMonth} onValueChange={setFromMonth}>
-                <SelectTrigger className="bg-muted/30 border-border"><SelectValue /></SelectTrigger>
+                <SelectTrigger id="reports-from-month" className="h-9 bg-muted/30 border-border"><SelectValue /></SelectTrigger>
                 <SelectContent>
                   {data.availableMonths.map((m) => <SelectItem key={m} value={m}>{m}</SelectItem>)}
                 </SelectContent>
               </Select>
             </div>
-            <div>
-              <label className="text-[11px] font-medium text-muted-foreground uppercase tracking-wider mb-1.5 block">To</label>
+            <div className="space-y-1.5">
+              <Label htmlFor="reports-to-month" className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">To</Label>
               <Select value={toMonth} onValueChange={setToMonth}>
-                <SelectTrigger className="bg-muted/30 border-border"><SelectValue /></SelectTrigger>
+                <SelectTrigger id="reports-to-month" className="h-9 bg-muted/30 border-border"><SelectValue /></SelectTrigger>
                 <SelectContent>
                   {data.availableMonths.map((m) => <SelectItem key={m} value={m}>{m}</SelectItem>)}
                 </SelectContent>
@@ -389,7 +440,7 @@ export default function ReportsPage() {
 
         {mode === "custom" && (
           <div className="space-y-3">
-            <div className="flex flex-wrap gap-1.5">
+            <div className="flex flex-wrap gap-1.5" role="group" aria-label="Quick ranges">
               {[
                 { label: "Last 7 days", days: 7 },
                 { label: "Last 14 days", days: 14 },
@@ -398,20 +449,21 @@ export default function ReportsPage() {
               ].map((p) => (
                 <button
                   key={p.days}
+                  type="button"
                   onClick={() => setQuickRange(p.days)}
-                  className="text-[11px] font-medium px-2.5 py-1 rounded-md border border-border bg-muted/30 text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
+                  className="text-[11px] font-medium h-8 px-2.5 rounded-md border border-border bg-muted/30 text-muted-foreground hover:text-foreground hover:bg-accent transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                 >
                   {p.label}
                 </button>
               ))}
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 max-w-2xl">
-              <div>
-                <label className="text-[11px] font-medium text-muted-foreground uppercase tracking-wider mb-1.5 block">From date</label>
+              <div className="space-y-1.5">
+                <Label htmlFor="reports-from-date" className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">From date</Label>
                 <Popover>
                   <PopoverTrigger asChild>
-                    <Button variant="outline" className={cn("w-full justify-start text-left font-normal bg-muted/30 border-border", !fromDate && "text-muted-foreground")}>
-                      <CalendarIcon className="mr-2 h-4 w-4" />
+                    <Button id="reports-from-date" variant="outline" className={cn("w-full h-9 justify-start text-left font-normal bg-muted/30 border-border", !fromDate && "text-muted-foreground")}>
+                      <CalendarIcon className="mr-2 h-4 w-4" aria-hidden="true" />
                       {fromDate ? format(fromDate, "PPP") : <span>Pick a date</span>}
                     </Button>
                   </PopoverTrigger>
@@ -420,12 +472,12 @@ export default function ReportsPage() {
                   </PopoverContent>
                 </Popover>
               </div>
-              <div>
-                <label className="text-[11px] font-medium text-muted-foreground uppercase tracking-wider mb-1.5 block">To date</label>
+              <div className="space-y-1.5">
+                <Label htmlFor="reports-to-date" className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">To date</Label>
                 <Popover>
                   <PopoverTrigger asChild>
-                    <Button variant="outline" className={cn("w-full justify-start text-left font-normal bg-muted/30 border-border", !toDate && "text-muted-foreground")}>
-                      <CalendarIcon className="mr-2 h-4 w-4" />
+                    <Button id="reports-to-date" variant="outline" className={cn("w-full h-9 justify-start text-left font-normal bg-muted/30 border-border", !toDate && "text-muted-foreground")}>
+                      <CalendarIcon className="mr-2 h-4 w-4" aria-hidden="true" />
                       {toDate ? format(toDate, "PPP") : <span>Pick a date</span>}
                     </Button>
                   </PopoverTrigger>
@@ -438,7 +490,7 @@ export default function ReportsPage() {
           </div>
         )}
 
-        <div className="mt-3 text-[11px] text-muted-foreground">
+        <div className="mt-3 text-[11px] text-muted-foreground" aria-live="polite">
           Active range: <span className="text-foreground font-semibold">{rangeLabel}</span>
         </div>
       </motion.div>
@@ -459,38 +511,45 @@ export default function ReportsPage() {
             >
               <div className="flex items-start gap-3 mb-3">
                 <div className={`h-9 w-9 rounded-lg border flex items-center justify-center shrink-0 ${ACCENT_CLASS[def.accent]}`}>
-                  <Icon className="h-4 w-4" />
+                  <Icon className="h-4 w-4" aria-hidden="true" />
                 </div>
                 <div className="min-w-0 flex-1">
                   <h3 className="text-sm font-semibold text-foreground leading-tight text-balance">{def.title}</h3>
-                  <p className="text-[10px] font-mono-data text-muted-foreground mt-1">{def.countLabel(filteredHistory, filteredCycle)}</p>
+                  <p className="text-[10px] font-mono-data text-muted-foreground mt-1">{def.countLabel(filteredHistory, filteredCycle, mergedClientsForReport)}</p>
                 </div>
               </div>
               <p className="text-[12px] text-muted-foreground leading-relaxed mb-4 flex-1">{def.description}</p>
+              {empty && (
+                <p className="text-[11px] text-warning mb-3">No data in the selected range.</p>
+              )}
               <div className="space-y-2">
                 {def.formats.includes("xlsx") && (
                   <div className="flex gap-2">
-                    <button onClick={() => handleDirectDownload(def, "xlsx")} disabled={empty}
-                      className="flex-1 inline-flex items-center justify-center gap-1.5 rounded-lg border border-success/30 bg-success/5 hover:bg-success/10 text-success font-semibold px-3 py-2 text-xs transition-colors disabled:opacity-40 disabled:cursor-not-allowed">
-                      <FileSpreadsheet className="h-3.5 w-3.5" /> Download XLSX
+                    <button type="button" onClick={() => handleDirectDownload(def, "xlsx")} disabled={empty}
+                      className="flex-1 inline-flex items-center justify-center gap-1.5 rounded-lg border border-success/30 bg-success/5 hover:bg-success/10 text-success font-semibold h-9 px-3 text-xs transition-colors duration-150 disabled:opacity-40 disabled:cursor-not-allowed focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+                      <FileSpreadsheet className="h-3.5 w-3.5" aria-hidden="true" /> Download
+                      <Badge variant="outline" className="h-4 px-1 text-[9px] font-semibold border-success/30 text-success">XLSX</Badge>
                     </button>
-                    <button onClick={() => handlePreview(def, "xlsx")} disabled={empty}
+                    <button type="button" onClick={() => handlePreview(def, "xlsx")} disabled={empty}
                       title="Preview before download"
-                      className="inline-flex items-center justify-center rounded-lg border border-border bg-muted/30 hover:bg-accent text-foreground px-2.5 py-2 text-xs transition-colors disabled:opacity-40 disabled:cursor-not-allowed">
-                      <Eye className="h-3.5 w-3.5" />
+                      aria-label={`Preview ${def.title} as XLSX`}
+                      className="inline-flex items-center justify-center rounded-lg border border-border bg-muted/30 hover:bg-accent text-foreground h-9 w-9 text-xs transition-colors duration-150 disabled:opacity-40 disabled:cursor-not-allowed focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+                      <Eye className="h-3.5 w-3.5" aria-hidden="true" />
                     </button>
                   </div>
                 )}
                 {def.formats.includes("pdf") && (
                   <div className="flex gap-2">
-                    <button onClick={() => handleDirectDownload(def, "pdf")} disabled={empty}
-                      className="flex-1 inline-flex items-center justify-center gap-1.5 rounded-lg border border-destructive/30 bg-destructive/5 hover:bg-destructive/10 text-destructive font-semibold px-3 py-2 text-xs transition-colors disabled:opacity-40 disabled:cursor-not-allowed">
-                      <FileText className="h-3.5 w-3.5" /> Download PDF
+                    <button type="button" onClick={() => handleDirectDownload(def, "pdf")} disabled={empty}
+                      className="flex-1 inline-flex items-center justify-center gap-1.5 rounded-lg border border-destructive/30 bg-destructive/5 hover:bg-destructive/10 text-destructive font-semibold h-9 px-3 text-xs transition-colors duration-150 disabled:opacity-40 disabled:cursor-not-allowed focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+                      <FileText className="h-3.5 w-3.5" aria-hidden="true" /> Download
+                      <Badge variant="outline" className="h-4 px-1 text-[9px] font-semibold border-destructive/30 text-destructive">PDF</Badge>
                     </button>
-                    <button onClick={() => handlePreview(def, "pdf")} disabled={empty}
+                    <button type="button" onClick={() => handlePreview(def, "pdf")} disabled={empty}
                       title="Preview before download"
-                      className="inline-flex items-center justify-center rounded-lg border border-border bg-muted/30 hover:bg-accent text-foreground px-2.5 py-2 text-xs transition-colors disabled:opacity-40 disabled:cursor-not-allowed">
-                      <Eye className="h-3.5 w-3.5" />
+                      aria-label={`Preview ${def.title} as PDF`}
+                      className="inline-flex items-center justify-center rounded-lg border border-border bg-muted/30 hover:bg-accent text-foreground h-9 w-9 text-xs transition-colors duration-150 disabled:opacity-40 disabled:cursor-not-allowed focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+                      <Eye className="h-3.5 w-3.5" aria-hidden="true" />
                     </button>
                   </div>
                 )}
@@ -505,32 +564,32 @@ export default function ReportsPage() {
         <DialogContent className="max-w-none w-screen h-screen sm:rounded-none p-0 gap-0 flex flex-col border-0 top-0 left-0 translate-x-0 translate-y-0 data-[state=open]:slide-in-from-bottom-2">
           <DialogHeader className="p-4 sm:p-5 border-b border-border shrink-0">
             <DialogTitle className="text-base flex items-center gap-2 pr-8 min-w-0">
-              <Eye className="h-4 w-4 text-primary shrink-0" />
+              <Eye className="h-4 w-4 text-primary shrink-0" aria-hidden="true" />
               <span className="shrink-0">Preview ·</span>
               <span className="text-muted-foreground font-normal truncate min-w-0">{preview?.title}</span>
             </DialogTitle>
           </DialogHeader>
-          <div className="flex-1 min-h-0 overflow-hidden bg-muted/20 p-3 sm:p-4">
+          <div className="flex-1 min-h-0 overflow-hidden border-y border-border bg-muted/30 p-3 sm:p-4">
             {preview?.payload.kind === "pdf" && preview.previewUrl && (
               <iframe
                 title="PDF preview"
                 src={preview.previewUrl}
-                className="w-full h-full rounded-lg border border-border bg-white"
+                className="w-full h-full rounded-lg border border-border bg-background"
               />
             )}
             {preview?.payload.kind === "xlsx" && (
               <div
-                className="h-full w-full overflow-auto rounded-lg border border-border bg-white p-4 text-xs text-foreground scrollbar-thin scrollbar-thumb-muted-foreground/30 hover:scrollbar-thumb-muted-foreground/50 scrollbar-track-transparent [&_table]:border-collapse [&_table]:w-max [&_table]:min-w-full [&_th]:px-2 [&_th]:py-1.5 [&_td]:px-2 [&_td]:py-1.5 [&_th]:border [&_td]:border [&_th]:border-[#e5e5e5] [&_td]:border-[#e5e5e5] [&_th]:bg-[#f5f5f5] [&_th]:text-left [&_th]:whitespace-nowrap [&_td]:align-top"
-                style={{ color: "#1a1614" }}
-                dangerouslySetInnerHTML={{ __html: preview.payload.html }}
+                className="h-full w-full overflow-auto rounded-lg border border-border bg-card p-4 text-xs text-foreground scrollbar-thin scrollbar-thumb-muted-foreground/30 hover:scrollbar-thumb-muted-foreground/50 scrollbar-track-transparent [&_table]:border-collapse [&_table]:w-max [&_table]:min-w-full [&_th]:px-2 [&_th]:py-1.5 [&_td]:px-2 [&_td]:py-1.5 [&_th]:border [&_td]:border [&_th]:border-border [&_td]:border-border [&_th]:bg-muted/40 [&_th]:text-left [&_th]:whitespace-nowrap [&_td]:align-top"
+                dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(preview.payload.html) }}
               />
             )}
           </div>
           <DialogFooter className="p-3 sm:p-4 border-t border-border bg-card shrink-0">
             <Button variant="outline" onClick={closePreview}>Cancel</Button>
             <Button onClick={confirmDownload} className="gap-2">
-              <Download className="h-4 w-4" />
-              Download {preview?.payload.kind.toUpperCase()}
+              <Download className="h-4 w-4" aria-hidden="true" />
+              Download
+              <Badge variant="outline" className="h-4 px-1 text-[9px] font-semibold border-primary-foreground/40 text-primary-foreground">{preview?.payload.kind.toUpperCase()}</Badge>
             </Button>
           </DialogFooter>
         </DialogContent>

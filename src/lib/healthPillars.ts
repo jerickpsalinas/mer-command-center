@@ -29,11 +29,14 @@ export interface PillarSet {
 /** Bank Feed pillar: feed connected & reconciled within last 60 days. */
 export function failsBankFeed(c: Client): boolean {
   const txt = (c.bankTransactions || "").toLowerCase();
-  if (txt.includes("missing") || txt === "" || txt === "not received") return true;
-  // A populated lastReconciledDate counts as reconciled; staleness is handled
-  // separately by per-month MER history rather than wall-clock time.
+  const missing = txt.includes("missing") || txt === "" || txt === "not received";
+  if (missing) return true;
   const last = c.lastReconciledDate?.trim();
-  return !last;
+  if (!last) return true;
+  const d = new Date(last);
+  if (isNaN(d.getTime())) return false;
+  const daysAgo = (Date.now() - d.getTime()) / (1000 * 60 * 60 * 24);
+  return daysAgo > 60;
 }
 
 /** Categorization pillar: zero uncategorized + missing payees + unapplied payments. */

@@ -3,8 +3,11 @@ import * as React from "react";
 import type { ToastActionElement, ToastProps } from "@/components/ui/toast";
 import { logToast, type ToastVariant } from "@/lib/toastLog";
 
-const TOAST_LIMIT = 1;
-const TOAST_REMOVE_DELAY = 1000000;
+const TOAST_LIMIT = 4;
+// Auto-dismiss (5s) is handled by Radix's default duration on the ToastProvider.
+// TOAST_REMOVE_DELAY is only the animate-out grace period between DISMISS and
+// full removal from the DOM — keep it short so the array doesn't accumulate.
+const TOAST_REMOVE_DELAY = 500;
 
 type ToasterToast = ToastProps & {
   id: string;

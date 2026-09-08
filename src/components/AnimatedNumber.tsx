@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { animate } from "framer-motion";
+import { animate, useReducedMotion } from "framer-motion";
 
 interface Props {
   value: number;
@@ -25,10 +25,16 @@ export default function AnimatedNumber({
 }: Props) {
   const [display, setDisplay] = useState(value);
   const prev = useRef(value);
+  const reduceMotion = useReducedMotion();
 
   useEffect(() => {
     const from = prev.current;
     if (from === value) return;
+    if (reduceMotion) {
+      prev.current = value;
+      setDisplay(value);
+      return;
+    }
     const controls = animate(from, value, {
       duration,
       ease: [0.2, 0.8, 0.2, 1],
@@ -36,7 +42,7 @@ export default function AnimatedNumber({
     });
     prev.current = value;
     return () => controls.stop();
-  }, [value, duration]);
+  }, [value, duration, reduceMotion]);
 
   const formatted =
     decimals > 0
@@ -44,7 +50,7 @@ export default function AnimatedNumber({
       : Math.round(display).toLocaleString();
 
   return (
-    <span className={`tabular-nums ${className ?? ""}`}>
+    <span className={`font-mono-data tabular-nums ${className ?? ""}`}>
       {formatted}
       {suffix}
     </span>

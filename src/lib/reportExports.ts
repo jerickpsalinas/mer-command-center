@@ -168,7 +168,7 @@ function pdfCover(doc: jsPDF, title: string, subtitle: string, rangeLabel: strin
   doc.setFont("helvetica", "bold");
   doc.setFontSize(20);
   doc.setTextColor(255, 255, 255);
-  doc.text("Greenfield Bookkeeping", 40, 34);
+  doc.text("MER Command Center", 40, 34);
   doc.setFont("helvetica", "normal");
   doc.setFontSize(13);
   doc.text(title, 40, 58);
@@ -195,7 +195,7 @@ function pdfFooter(doc: jsPDF) {
     doc.setFont("helvetica", "normal");
     doc.setFontSize(8);
     doc.setTextColor(255, 255, 255);
-    doc.text("Greenfield Bookkeeping – Export Center", 40, pageH - 7);
+    doc.text("MER Command Center — Export Center", 40, pageH - 7);
     doc.text(`Page ${i} of ${pageCount}`, pageW - 40, pageH - 7, { align: "right" });
   }
 }
@@ -754,12 +754,12 @@ function drawKpiCard(doc: jsPDF, x: number, y: number, w: number, h: number, lab
   doc.setTextColor(...accent);
   doc.text(value, x + 12, y + 40);
 }
-export function exportExecSummaryPDF(history: MerHistoryRow[], rangeLabel: string, fileBase: string): ExportPayload {
+export function exportExecSummaryPDF(history: MerHistoryRow[], rangeLabel: string, fileBase: string, clientsOverride?: Client[]): ExportPayload {
   const doc = new jsPDF({ orientation: "portrait", unit: "pt", format: "letter" });
   const pageW = doc.internal.pageSize.getWidth();
   const pageH = doc.internal.pageSize.getHeight();
   const margin = 40;
-  const aggClients = latestPerClient(history) as Client[];
+  const aggClients = (clientsOverride ?? (latestPerClient(history) as Client[])) as Client[];
   const kpi = getKPIMetrics(aggClients);
   const bd = getComplianceBreakdown(aggClients);
   const att = getNeedsAttention(aggClients);
@@ -880,7 +880,7 @@ export function exportFullBackupXLSX(history: MerHistoryRow[], cycleEntries: Cyc
   wb.Props = {
     Title: `Full Data Backup – ${rangeLabel}`,
     Subject: "Complete archive",
-    Author: "Greenfield Bookkeeping",
+    Author: "MER Command Center",
     CreatedDate: new Date(),
   };
 

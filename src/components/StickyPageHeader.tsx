@@ -43,9 +43,11 @@ export default function StickyPageHeader({ children, className, topOffset = 56 }
             exit={{ opacity: 0, y: -8 }}
             transition={{ duration: 0.18 }}
             style={{ top: topOffset }}
-            className={`sticky z-20 -mx-3 sm:-mx-5 lg:-mx-8 px-3 sm:px-5 lg:px-8 py-2 border-b border-border glass-panel ${className ?? ""}`}
+            role="region"
+            aria-label="Active filters"
+            className={`sticky z-20 -mx-3 sm:-mx-5 lg:-mx-8 px-3 sm:px-5 lg:px-8 py-2 border-b border-border glass-panel shadow-card ${className ?? ""}`}
           >
-            <div className="flex items-center gap-2 overflow-x-auto scrollbar-thin scrollbar-thumb-muted-foreground/20 hover:scrollbar-thumb-muted-foreground/40 scrollbar-track-transparent">
+            <div className="flex items-center gap-2 min-w-0 overflow-x-auto scrollbar-thin scrollbar-thumb-muted-foreground/20 hover:scrollbar-thumb-muted-foreground/40 scrollbar-track-transparent">
               {children}
             </div>
           </motion.div>

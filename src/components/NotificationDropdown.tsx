@@ -1,9 +1,9 @@
 import { useState, useRef, useEffect } from "react";
-import { Activity as ActivityIcon, CheckCircle2, XCircle, AlertTriangle, FileText, TrendingUp, TrendingDown, Clock, Users, Filter as FilterIcon, X } from "lucide-react";
+import { Activity as ActivityIcon, CheckCircle2, XCircle, AlertTriangle, FileText, TrendingUp, TrendingDown, Clock, Users, Filter as FilterIcon, X, Inbox } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import type { Client, MonthlyTrend } from "@/data/mockData";
 import { useUserSettings } from "@/hooks/useUserSettings";
-
+import { supabase } from "@/integrations/supabase/client";
 import { relativeTime } from "@/lib/toastLog";
 
 interface ActivityRow {
@@ -33,7 +33,6 @@ interface Notification {
   icon: React.ElementType;
   message: string;
   variant: "success" | "destructive" | "warning" | "default";
-  time: string;
   detail?: string;
   bookkeeper?: string;     // optional — present when alert ties to a single bookkeeper's clients
 }
@@ -64,7 +63,6 @@ function generateNotifications(clients: Client[], trends: MonthlyTrend[]): Notif
     icon: CheckCircle2,
     message: `${compliant} clients compliant, ${nonCompliant} non-compliant, ${onHold} on hold`,
     variant: compliant > nonCompliant ? "success" : "destructive",
-    time: "2m ago",
     detail: `Total: ${clients.length} clients tracked`,
   });
 
@@ -74,7 +72,6 @@ function generateNotifications(clients: Client[], trends: MonthlyTrend[]): Notif
       icon: AlertTriangle,
       message: `${missing.length} client${missing.length > 1 ? "s" : ""} with missing bank statements`,
       variant: "destructive",
-      time: "5m ago",
       detail: missing.slice(0, 3).map(c => c.name).join(", ") + (missing.length > 3 ? ` +${missing.length - 3} more` : ""),
       bookkeeper: dominantBookkeeper(missing),
     });
@@ -87,7 +84,6 @@ function generateNotifications(clients: Client[], trends: MonthlyTrend[]): Notif
       icon: FileText,
       message: `${uncat.length} client${uncat.length > 1 ? "s" : ""} have ${totalUncat} uncategorized transactions`,
       variant: "warning",
-      time: "8m ago",
       detail: uncat.sort((a, b) => b.uncategorizedTransactions - a.uncategorizedTransactions).slice(0, 3).map(c => `${c.name} (${c.uncategorizedTransactions})`).join(", "),
       bookkeeper: dominantBookkeeper(uncat),
     });
@@ -102,7 +98,6 @@ function generateNotifications(clients: Client[], trends: MonthlyTrend[]): Notif
       icon: diff >= 0 ? TrendingUp : TrendingDown,
       message: `Completion ${diff >= 0 ? "up" : "down"} ${Math.abs(diff)}pp from ${prev.month} to ${latest.month}`,
       variant: diff >= 0 ? "success" : "destructive",
-      time: "12m ago",
       detail: `${prev.month}: ${prev.completionPct}% → ${latest.month}: ${latest.completionPct}%`,
     });
   }
@@ -113,7 +108,6 @@ function generateNotifications(clients: Client[], trends: MonthlyTrend[]): Notif
       icon: XCircle,
       message: `${noNotes} clients without approved notes`,
       variant: "warning",
-      time: "15m ago",
     });
   }
 
@@ -123,7 +117,6 @@ function generateNotifications(clients: Client[], trends: MonthlyTrend[]): Notif
       icon: AlertTriangle,
       message: `${lowCompletion.length} clients below 40% completion`,
       variant: "destructive",
-      time: "20m ago",
       detail: lowCompletion.sort((a, b) => a.completionPct - b.completionPct).slice(0, 3).map(c => `${c.name} (${c.completionPct}%)`).join(", "),
       bookkeeper: dominantBookkeeper(lowCompletion),
     });
@@ -136,7 +129,6 @@ function generateNotifications(clients: Client[], trends: MonthlyTrend[]): Notif
       icon: Clock,
       message: `${highUnapplied.length} clients with ${totalUnapplied} unapplied payments`,
       variant: "warning",
-      time: "25m ago",
       detail: highUnapplied.slice(0, 2).map(c => `${c.name} (${c.unappliedPayments})`).join(", "),
       bookkeeper: dominantBookkeeper(highUnapplied),
     });
@@ -152,7 +144,6 @@ function generateNotifications(clients: Client[], trends: MonthlyTrend[]): Notif
         icon: Users,
         message: `Compliant clients ${compDiff > 0 ? "increased" : "decreased"} by ${Math.abs(compDiff)} from ${prev.month}`,
         variant: compDiff > 0 ? "success" : "destructive",
-        time: "30m ago",
         detail: `${prev.month}: ${prev.compliant} → ${latest.month}: ${latest.compliant}`,
       });
     }
@@ -176,17 +167,30 @@ export default function NotificationDropdown({ clients, trends }: { clients: Cli
   });
 
   useEffect(() => {
-    // Demo Mode — hardcoded team activity feed (no backend)
-    const DEMO_ACTIVITY: ActivityRow[] = [
-      { id: "n1", action: "missing-statement", client_name: "Sunrise Wellness Spa", bookkeeper: "Marcus", cycle_month: "Aug 2025", triggered_by: "System", success: false, message: "bank statement still not received", created_at: new Date(Date.now() - 120000).toISOString() },
-      { id: "n2", action: "mark-resolved", client_name: "Maple Street Tax Co.", bookkeeper: "Sarah", cycle_month: "Aug 2025", triggered_by: "Sarah", success: true, message: "books closed successfully", created_at: new Date(Date.now() - 900000).toISOString() },
-      { id: "n3", action: "missing-statement", client_name: "Willow Creek Day Care", bookkeeper: "Sarah", cycle_month: "Aug 2025", triggered_by: "System", success: false, message: "14 days without documents, critical", created_at: new Date(Date.now() - 3600000).toISOString() },
-      { id: "n4", action: "mark-resolved", client_name: "Green Valley Farms", bookkeeper: "Tyler", cycle_month: "Aug 2025", triggered_by: "Tyler", success: true, message: "financials sent to client", created_at: new Date(Date.now() - 7200000).toISOString() },
-      { id: "n5", action: "notes-approval", client_name: null, bookkeeper: null, cycle_month: "Aug 2025", triggered_by: "System", success: true, message: "August 2025 compliance report ready — 26 compliant, 10 non-compliant", created_at: new Date(Date.now() - 10800000).toISOString() },
-    ];
-    setActivity(DEMO_ACTIVITY);
+    let mounted = true;
+    supabase
+      .from("activity_log")
+      .select("*")
+      .order("created_at", { ascending: false })
+      .limit(30)
+      .then(({ data }) => {
+        if (mounted && data) setActivity(data as ActivityRow[]);
+      });
+    const channel = supabase
+      .channel("activity_log_feed")
+      .on(
+        "postgres_changes",
+        { event: "INSERT", schema: "public", table: "activity_log" },
+        (payload) => {
+          setActivity((prev) => [payload.new as ActivityRow, ...prev].slice(0, 30));
+        },
+      )
+      .subscribe();
+    return () => {
+      mounted = false;
+      supabase.removeChannel(channel);
+    };
   }, []);
-
 
   const unreadActivityCount = activity.filter((a) => new Date(a.created_at).getTime() > lastSeenAt).length;
 
@@ -238,13 +242,19 @@ export default function NotificationDropdown({ clients, trends }: { clients: Cli
   return (
     <div className="relative" ref={ref}>
       <button
+        type="button"
         onClick={() => setOpen(!open)}
-        className="relative h-9 w-9 flex items-center justify-center rounded-lg text-muted-foreground hover:bg-accent hover:text-foreground transition-colors"
-        aria-label="Activity"
+        onKeyDown={(e) => {
+          if (e.key === "Escape") setOpen(false);
+        }}
+        className="relative h-9 w-9 flex items-center justify-center rounded-lg text-muted-foreground hover:bg-accent hover:text-foreground transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+        aria-label={totalBadge > 0 ? `Activity, ${totalBadge} updates` : "Activity"}
+        aria-haspopup="dialog"
+        aria-expanded={open}
       >
-        <ActivityIcon className="h-[18px] w-[18px]" />
+        <ActivityIcon className="h-[18px] w-[18px]" aria-hidden="true" />
         {totalBadge > 0 && (
-          <span className="absolute top-1 right-1 min-w-4 h-4 px-1 rounded-full bg-primary text-[9px] font-bold text-primary-foreground flex items-center justify-center ring-2 ring-card tabular-nums">
+          <span className="absolute top-1 right-1 min-w-4 h-4 px-1 rounded-full bg-primary text-[9px] font-bold text-primary-foreground flex items-center justify-center ring-2 ring-card font-mono-data tabular-nums" aria-hidden="true">
             {totalBadge > 99 ? "99+" : totalBadge}
           </span>
         )}
@@ -258,65 +268,76 @@ export default function NotificationDropdown({ clients, trends }: { clients: Cli
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: -4, scale: 0.97 }}
             transition={{ duration: 0.15 }}
-            className="absolute right-0 top-11 w-[380px] sm:w-[420px] rounded-xl border border-border bg-card shadow-elevated z-50"
+            className="absolute right-0 top-11 w-[calc(100vw-1.5rem)] max-w-[420px] sm:w-[420px] rounded-xl border border-border bg-card shadow-elevated z-50"
+            role="dialog"
+            aria-label="Activity and notifications"
           >
             <div className="px-4 py-3 border-b border-border">
-              <div className="flex items-center justify-between">
+              <div className="flex items-center justify-between gap-2">
                 <p className="text-xs font-semibold text-foreground">Activity</p>
-                <div className="flex items-center gap-1.5">
+                <div className="flex items-center gap-1.5 flex-wrap justify-end">
                   {criticalCount > 0 && (
-                    <button onClick={() => toggleFilter("destructive")}
-                      className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold transition-colors cursor-pointer ${filterVariant === "destructive" ? "bg-destructive text-destructive-foreground ring-1 ring-destructive" : "bg-destructive/10 text-destructive hover:bg-destructive/20"}`}>
+                    <button type="button" onClick={() => toggleFilter("destructive")}
+                      aria-pressed={filterVariant === "destructive"}
+                      className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold transition-colors duration-150 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${filterVariant === "destructive" ? "bg-destructive text-destructive-foreground ring-1 ring-destructive" : "bg-destructive/10 text-destructive hover:bg-destructive/20"}`}>
                       {criticalCount} critical
                     </button>
                   )}
                   {warningCount > 0 && (
-                    <button onClick={() => toggleFilter("warning")}
-                      className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold transition-colors cursor-pointer ${filterVariant === "warning" ? "bg-warning text-warning-foreground ring-1 ring-warning" : "bg-warning/10 text-warning hover:bg-warning/20"}`}>
+                    <button type="button" onClick={() => toggleFilter("warning")}
+                      aria-pressed={filterVariant === "warning"}
+                      className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold transition-colors duration-150 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${filterVariant === "warning" ? "bg-warning text-warning-foreground ring-1 ring-warning" : "bg-warning/10 text-warning hover:bg-warning/20"}`}>
                       {warningCount} warnings
                     </button>
                   )}
                   {successCount > 0 && (
-                    <button onClick={() => toggleFilter("success")}
-                      className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold transition-colors cursor-pointer ${filterVariant === "success" ? "bg-success text-success-foreground ring-1 ring-success" : "bg-success/10 text-success hover:bg-success/20"}`}>
+                    <button type="button" onClick={() => toggleFilter("success")}
+                      aria-pressed={filterVariant === "success"}
+                      className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold transition-colors duration-150 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${filterVariant === "success" ? "bg-success text-success-foreground ring-1 ring-success" : "bg-success/10 text-success hover:bg-success/20"}`}>
                       {successCount} good
                     </button>
                   )}
                 </div>
               </div>
               <p className="text-[11px] text-muted-foreground mt-0.5">
-                {filterVariant ? `${displayed.length} of ${notifications.length}` : notifications.length} updates from live data
-                {filterVariant && <button onClick={() => setFilterVariant(null)} className="ml-1.5 text-primary hover:underline cursor-pointer">clear</button>}
+                <span className="font-mono-data tabular-nums">{filterVariant ? `${displayed.length} of ${notifications.length}` : notifications.length}</span> updates from live data
+                {filterVariant && (
+                  <button type="button" onClick={() => setFilterVariant(null)} aria-label="Clear severity filter" className="ml-1.5 text-primary hover:underline cursor-pointer focus-visible:outline-none focus-visible:underline">
+                    clear
+                  </button>
+                )}
               </p>
 
               {/* Bookkeeper preference quick filter */}
               <div className="mt-2.5 flex items-center gap-2 rounded-md bg-muted/30 px-2 py-1.5">
-                <FilterIcon className="h-3 w-3 text-muted-foreground shrink-0" />
+                <FilterIcon className="h-3 w-3 text-muted-foreground shrink-0" aria-hidden="true" />
                 <select
                   value={notifPrefs.bookkeeperFilter}
                   onChange={(e) => setNotifPrefs({ ...notifPrefs, bookkeeperFilter: e.target.value })}
-                  className="bg-card text-[11px] text-foreground outline-none flex-1 cursor-pointer"
+                  aria-label="Filter alerts by bookkeeper"
+                  className="bg-transparent text-[11px] text-foreground outline-none flex-1 cursor-pointer rounded focus-visible:ring-2 focus-visible:ring-ring"
                 >
                   <option value="" className="bg-popover text-popover-foreground">All bookkeepers</option>
                   {allBookkeepers.map((b) => <option key={b} value={b} className="bg-popover text-popover-foreground">Only {b}</option>)}
                 </select>
                 {hasPrefFilter && (
-                  <button onClick={() => setNotifPrefs({ ...notifPrefs, bookkeeperFilter: "" })}
-                    className="h-4 w-4 rounded hover:bg-accent flex items-center justify-center text-muted-foreground hover:text-foreground">
-                    <X className="h-2.5 w-2.5" />
+                  <button type="button" onClick={() => setNotifPrefs({ ...notifPrefs, bookkeeperFilter: "" })}
+                    aria-label="Clear bookkeeper filter"
+                    className="h-5 w-5 rounded hover:bg-accent flex items-center justify-center text-muted-foreground hover:text-foreground transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+                    <X className="h-2.5 w-2.5" aria-hidden="true" />
                   </button>
                 )}
               </div>
             </div>
-            <div className="max-h-[420px] overflow-y-auto scrollbar-thin scrollbar-thumb-muted-foreground/20 hover:scrollbar-thumb-muted-foreground/40 scrollbar-track-transparent">
+            <div className="max-h-[420px] overflow-y-auto scrollbar-thin">
               {/* Shared activity feed (Supabase, all users) */}
               {activity.length > 0 && (
                 <div className="border-b border-border/50">
                   <div className="flex items-center justify-between px-4 pt-3 pb-1.5">
-                    <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground inline-flex items-center gap-1.5">
-                      <ActivityIcon className="h-3 w-3" /> Team activity
+                    <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground inline-flex items-center gap-1.5">
+                      <ActivityIcon className="h-3 w-3" aria-hidden="true" /> Team activity
                     </p>
-                    <span className="text-[10px] text-muted-foreground">{activity.length}</span>
+                    <span className="text-[10px] font-mono-data tabular-nums text-muted-foreground">{activity.length}</span>
                   </div>
                   {activity.slice(0, 8).map((a) => {
                     const isUnread = new Date(a.created_at).getTime() > lastSeenAt;
@@ -325,45 +346,54 @@ export default function NotificationDropdown({ clients, trends }: { clients: Cli
                     return (
                       <div
                         key={a.id}
-                        className={`flex items-start gap-3 px-4 py-2 hover:bg-accent/30 transition-colors ${isUnread ? "bg-primary/[0.04]" : ""}`}
+                        className={`relative flex items-start gap-3 px-4 py-2 hover:bg-muted/40 transition-colors duration-150 ${isUnread ? "bg-primary/[0.04]" : ""}`}
                       >
+                        {isUnread && (
+                          <span className="absolute left-1.5 top-1/2 -translate-y-1/2 h-1.5 w-1.5 rounded-full bg-primary" aria-label="Unread" />
+                        )}
                         <div className={`mt-0.5 h-6 w-6 rounded-lg flex items-center justify-center shrink-0 ${
                           variant === "destructive" ? "bg-destructive/10" : "bg-success/10"
                         }`}>
                           <ActivityIcon className={`h-3 w-3 ${
                             variant === "destructive" ? "text-destructive" : "text-success"
-                          }`} />
+                          }`} aria-hidden="true" />
                         </div>
                         <div className="flex-1 min-w-0">
-                          <p className="text-[12px] text-foreground leading-tight font-medium truncate">
+                          <p className="text-[12px] text-foreground leading-tight font-medium truncate" title={`${label}${a.client_name ? ` · ${a.client_name}` : ""}`}>
                             {label}{a.client_name ? ` · ${a.client_name}` : ""}
                           </p>
-                          <p className="text-[11px] text-muted-foreground mt-0.5 leading-snug truncate">
+                          <p className="text-[11px] text-muted-foreground mt-0.5 leading-snug truncate" title={`${a.bookkeeper || "—"}${a.cycle_month ? ` · ${a.cycle_month}` : ""}${a.message ? ` · ${a.message}` : ""}`}>
                             {a.bookkeeper || "—"}{a.cycle_month ? ` · ${a.cycle_month}` : ""}{a.message ? ` · ${a.message}` : ""}
                           </p>
                         </div>
-                        <span className="text-[10px] text-muted-foreground whitespace-nowrap shrink-0 mt-0.5">
+                        <time dateTime={a.created_at} className="text-[10px] font-mono-data tabular-nums text-muted-foreground whitespace-nowrap shrink-0 mt-0.5">
                           {relativeTime(new Date(a.created_at).getTime())}
-                        </span>
+                        </time>
                       </div>
                     );
                   })}
                   <div className="px-4 pb-1.5 pt-2">
-                    <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Live data alerts</p>
+                    <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Live data alerts</p>
                   </div>
                 </div>
               )}
 
               {displayed.length === 0 ? (
-                <p className="text-xs text-muted-foreground text-center py-8">
-                  No notifications match your filters.
-                </p>
+                <div className="flex flex-col items-center justify-center gap-2 px-4 py-10 text-center">
+                  <div className="h-10 w-10 rounded-full bg-muted flex items-center justify-center">
+                    <Inbox className="h-5 w-5 text-muted-foreground" aria-hidden="true" />
+                  </div>
+                  <p className="text-sm font-medium text-foreground">No notifications</p>
+                  <p className="text-xs text-muted-foreground">
+                    {filterVariant || hasPrefFilter ? "Nothing matches your current filters." : "You're all caught up."}
+                  </p>
+                </div>
               ) : displayed.map((n, i) => (
                 <motion.div key={n.id}
                   initial={{ opacity: 0, x: -8 }}
                   animate={{ opacity: 1, x: 0 }}
                   transition={{ delay: i * 0.03 }}
-                  className="flex items-start gap-3 px-4 py-3 border-b border-border/50 last:border-0 hover:bg-accent/30 transition-colors"
+                  className="flex items-start gap-3 px-4 py-3 border-b border-border/50 last:border-0 hover:bg-muted/40 transition-colors duration-150"
                 >
                   <div className={`mt-0.5 h-6 w-6 rounded-lg flex items-center justify-center shrink-0 ${
                     n.variant === "destructive" ? "bg-destructive/10" :
@@ -374,7 +404,7 @@ export default function NotificationDropdown({ clients, trends }: { clients: Cli
                       n.variant === "destructive" ? "text-destructive" :
                       n.variant === "warning" ? "text-warning" :
                       n.variant === "success" ? "text-success" : "text-muted-foreground"
-                    }`} />
+                    }`} aria-hidden="true" />
                   </div>
                   <div className="flex-1 min-w-0">
                     <p className="text-[12px] text-foreground leading-relaxed">{n.message}</p>
@@ -385,7 +415,7 @@ export default function NotificationDropdown({ clients, trends }: { clients: Cli
                       </span>
                     )}
                   </div>
-                  <span className="text-[10px] text-muted-foreground whitespace-nowrap shrink-0 mt-0.5">{n.time}</span>
+                  <span className="text-[10px] font-semibold uppercase tracking-wider text-primary/70 whitespace-nowrap shrink-0 mt-0.5">Live</span>
                 </motion.div>
               ))}
             </div>

@@ -70,10 +70,12 @@ export default function ClientSparkline({
 
   return (
     <span
-      className={`inline-flex items-center gap-1.5 ${className ?? ""}`}
+      className={`inline-flex items-center gap-1.5 min-w-0 ${className ?? ""}`}
       title={`${points.values.length}-month trend · ${points.delta >= 0 ? "+" : ""}${points.delta.toFixed(0)}pp`}
+      role="img"
+      aria-label={`${points.values.length}-month completion trend, ${points.delta > 0 ? "up" : points.delta < 0 ? "down" : "flat"} ${Math.abs(points.delta).toFixed(0)} points`}
     >
-      <svg width={width} height={height} className="overflow-visible shrink-0">
+      <svg width={width} height={height} className="overflow-visible shrink-0" aria-hidden focusable="false">
         <path d={area} fill={stroke} fillOpacity={0.1} />
         <path d={path} fill="none" stroke={stroke} strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" />
         <circle cx={last[0]} cy={last[1]} r={2} fill={stroke} />

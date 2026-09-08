@@ -1,4 +1,8 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { GHL_BASE, GHL_LOCATION_ID, ghlHeaders } from "@/lib/ghlConfig";
+import { DEMO_MODE } from "@/lib/demoMode";
+import { DEMO_GHL_CONTACTS } from "@/data/demoSheet";
+
 
 export type MerWorkflowContact = {
   id: string;
@@ -26,7 +30,47 @@ export function contactDisplayName(c: MerWorkflowContact): string {
 }
 
 async function fetchAllContacts(): Promise<MerWorkflowContact[]> {
-  return [];
+  const collected: MerWorkflowContact[] = [];
+  let startAfter: string | number | undefined;
+  let startAfterId: string | undefined;
+
+  for (let i = 0; i < 50; i++) {
+    const params = new URLSearchParams({
+      locationId: GHL_LOCATION_ID,
+      limit: "100",
+    });
+    if (startAfter != null) params.set("startAfter", String(startAfter));
+    if (startAfterId) params.set("startAfterId", startAfterId);
+
+    const res = await fetch(`${GHL_BASE}/contacts/?${params.toString()}`, {
+      headers: ghlHeaders(),
+    });
+    if (!res.ok) throw new Error(`GHL fetch failed (${res.status})`);
+
+    const json = await res.json();
+    const page: MerWorkflowContact[] = json.contacts || [];
+    if (page.length === 0) break;
+
+    collected.push(...page);
+    const meta = json.meta || {};
+    const nextStartAfter = meta.startAfter ?? meta.nextStartAfter;
+    const nextStartAfterId = meta.startAfterId ?? meta.nextStartAfterId;
+    if (!nextStartAfter && !nextStartAfterId) break;
+    if (nextStartAfter === startAfter && nextStartAfterId === startAfterId)
+      break;
+
+    startAfter = nextStartAfter;
+    startAfterId = nextStartAfterId;
+  }
+
+  return collected.filter((c) => {
+    const tags = c.tags || [];
+    const normalized = tags.map((t) => (t || "").toLowerCase());
+    return (
+      normalized.includes("mer-workflow") &&
+      !normalized.includes("ready-for-cleanup")
+    );
+  });
 }
 
 export function useMerWorkflowContacts() {
@@ -34,7 +78,9 @@ export function useMerWorkflowContacts() {
 
   const { data, isLoading, error } = useQuery({
     queryKey: ["mer-workflow-contacts"],
-    queryFn: fetchAllContacts,
+    queryFn: DEMO_MODE
+      ? async () => DEMO_GHL_CONTACTS as MerWorkflowContact[]
+      : fetchAllContacts,
     staleTime: 300_000,
     refetchOnWindowFocus: false,
   });

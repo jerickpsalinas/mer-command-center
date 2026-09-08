@@ -1,6 +1,6 @@
 import { motion } from "framer-motion";
 import { Info, LucideIcon, ArrowUp, ArrowDown, Minus } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { cn, FOCUS_RING } from "@/lib/utils";
 import AnimatedNumber from "@/components/AnimatedNumber";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import type { ReactNode } from "react";
@@ -62,6 +62,11 @@ export default function KPICard({ title, value, icon: Icon, trend, variant = "de
         ? "text-destructive bg-destructive/10"
         : "text-muted-foreground bg-muted";
   const DeltaIcon = isFlat ? Minus : isUp ? ArrowUp : ArrowDown;
+  const deltaAria = hasDelta
+    ? isFlat
+      ? `No change ${deltaLabel ?? "vs previous period"}`
+      : `${isUp ? "Up" : "Down"} ${Math.abs(delta!)} ${deltaLabel ?? "vs previous period"}${goodDirection ? " (improving)" : badDirection ? " (worsening)" : ""}`
+    : undefined;
 
   return (
     <motion.div
@@ -75,17 +80,17 @@ export default function KPICard({ title, value, icon: Icon, trend, variant = "de
     >
       <div className="flex items-center justify-between mb-3">
         <div className="flex items-center gap-1.5 min-w-0">
-          <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider truncate">{title}</p>
+          <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider truncate" title={title}>{title}</p>
           {tooltip && (
             <Tooltip>
               <TooltipTrigger asChild>
                 <button
                   type="button"
                   aria-label={`About ${title}`}
-                  className="text-muted-foreground/70 hover:text-foreground transition-colors shrink-0"
+                  className={cn("inline-flex items-center justify-center h-8 w-8 -m-2 rounded-md text-muted-foreground/70 hover:text-foreground transition-colors duration-150 shrink-0", FOCUS_RING)}
                   onClick={(e) => e.preventDefault()}
                 >
-                  <Info className="h-3 w-3" />
+                  <Info className="h-3 w-3" aria-hidden />
                 </button>
               </TooltipTrigger>
               <TooltipContent side="bottom" align="start" className="max-w-xs text-xs leading-relaxed">
@@ -98,17 +103,21 @@ export default function KPICard({ title, value, icon: Icon, trend, variant = "de
           "h-8 w-8 rounded-lg flex items-center justify-center transition-transform duration-300 group-hover:scale-105",
           iconStyles[variant]
         )}>
-          <Icon className="h-4 w-4" />
+          <Icon className="h-4 w-4" aria-hidden />
         </div>
       </div>
-      <p className={cn("text-[28px] font-bold font-mono-data leading-none", valueStyles[variant])}>
+      <p className={cn("text-[28px] font-bold font-mono-data tabular-nums leading-none truncate", valueStyles[variant])}>
         {isNumeric ? <AnimatedNumber value={value} suffix={suffix ?? ""} /> : value}
       </p>
       {(hasDelta || trend) && (
         <div className="mt-2 flex items-center gap-1.5 flex-wrap">
           {hasDelta && (
-            <span className={cn("inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-md text-[10px] font-bold font-mono-data tabular-nums", deltaColor)}>
-              <DeltaIcon className="h-2.5 w-2.5" />
+            <span
+              role="img"
+              aria-label={deltaAria}
+              className={cn("inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-md text-[10px] font-bold font-mono-data tabular-nums", deltaColor)}
+            >
+              <DeltaIcon className="h-2.5 w-2.5" aria-hidden />
               {isFlat ? "0" : `${Math.abs(delta!)}`}
             </span>
           )}

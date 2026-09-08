@@ -7,27 +7,68 @@ import { TrendingUp, TrendingDown, CheckCircle2, XCircle, ArrowRight, Calendar, 
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { motion, AnimatePresence } from "framer-motion";
 import { useSheetData, getKPIMetrics } from "@/hooks/useSheetData";
-import { DataLoading, DataError } from "@/components/DataStatus";
+import { DataError } from "@/components/DataStatus";
+import { Skeleton } from "@/components/ui/skeleton";
+import { EmptyState } from "@/components/EmptyState";
 
-const tooltipStyle = {
-  background: "hsl(20, 10%, 13%)", border: "1px solid hsl(20, 8%, 20%)",
-  borderRadius: "10px", fontSize: "12px", color: "hsl(30, 25%, 88%)",
-  boxShadow: "0 8px 24px -6px hsl(20 12% 3% / 0.6)",
+/* Chart palette — all theme tokens so light mode and dark mode both work. */
+const CHART = {
+  grid: "hsl(var(--border))",
+  tick: "hsl(var(--muted-foreground))",
+  cursor: "hsl(var(--muted))",
+  success: "hsl(var(--success))",
+  destructive: "hsl(var(--destructive))",
+  primary: "hsl(var(--primary))",
+  foreground: "hsl(var(--foreground))",
 };
+const AXIS_TICK = { fontSize: 11, fill: CHART.tick };
 
-const CustomTooltip = ({ active, payload, label }: any) => {
+interface TooltipPayloadEntry {
+  name: string;
+  value: number | string;
+  color?: string;
+  stroke?: string;
+}
+
+const CustomTooltip = ({ active, payload, label }: { active?: boolean; payload?: TooltipPayloadEntry[]; label?: string }) => {
   if (!active || !payload?.length) return null;
   return (
-    <div style={tooltipStyle} className="px-3 py-2">
-      <p className="text-xs font-semibold text-foreground mb-1">{label}</p>
-      {payload.map((p: any, i: number) => (
+    <div className="rounded-lg border border-border bg-popover px-3 py-2 text-popover-foreground shadow-elevated">
+      <p className="text-xs font-semibold mb-1">{label}</p>
+      {payload.map((p, i: number) => (
         <p key={i} className="text-[11px]" style={{ color: p.color || p.stroke }}>
-          {p.name}: <span className="font-mono-data font-semibold">{p.value}</span>
+          {p.name}: <span className="font-mono-data font-semibold tabular-nums">{p.value}</span>
         </p>
       ))}
     </div>
   );
 };
+
+const CHART_HEIGHT = 240;
+
+/** Skeleton shaped like the final layout: banner, KPI row, selectors, two chart cards, table. */
+function TrendsSkeleton() {
+  return (
+    <div className="space-y-6" aria-busy="true" aria-live="polite">
+      <span className="sr-only">Loading monthly trends…</span>
+      <Skeleton className="h-[88px] rounded-xl" />
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+        {Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} className="h-[96px] rounded-xl" />)}
+      </div>
+      <Skeleton className="h-[84px] rounded-xl" />
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        <Skeleton className="h-[300px] rounded-xl" />
+        <Skeleton className="h-[300px] rounded-xl" />
+      </div>
+      <div className="rounded-xl border border-border bg-card shadow-card p-4 space-y-2">
+        <Skeleton className="h-8 rounded-md" />
+        {Array.from({ length: 5 }).map((_, i) => <Skeleton key={i} className="h-10 rounded-md" />)}
+      </div>
+    </div>
+  );
+}
+
+const TH = "text-xs font-medium uppercase tracking-wider text-muted-foreground px-3 sm:px-4 py-2.5 whitespace-nowrap";
 
 function getCurrentMonthLabel() {
   const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
@@ -36,12 +77,12 @@ function getCurrentMonthLabel() {
 }
 
 export default function MonthlyTrendsPage() {
-  const { data, isLoading, error } = useSheetData();
+  const { data, isLoading, error, refetch, isFetching } = useSheetData();
   const [selectedHistoryIdx, setSelectedHistoryIdx] = useState<number | null>(null);
   const [compareIdx, setCompareIdx] = useState<string>("-");
 
-  if (isLoading) return <DataLoading />;
-  if (error || !data) return <DataError message={error?.message} />;
+  if (isLoading) return <TrendsSkeleton />;
+  if (error || !data) return <DataError message={error?.message} onRetry={() => refetch()} isRetrying={isFetching} />;
 
   const { clients, monthlyTrends } = data;
 
@@ -78,8 +119,8 @@ export default function MonthlyTrendsPage() {
           <div className="flex items-start gap-3">
             <Calendar className="h-5 w-5 text-primary shrink-0 mt-0.5" />
             <div>
-              <h2 className="text-sm font-semibold text-foreground">Current Month: {currentMonthLabel}</h2>
-              <p className="text-[11px] text-muted-foreground">Live data from your dashboard</p>
+              <h2 className="text-xl sm:text-2xl font-semibold tracking-tight text-foreground">Current Month: {currentMonthLabel}</h2>
+              <p className="text-sm text-muted-foreground">Live data from your dashboard</p>
             </div>
           </div>
           <div className="flex items-start gap-2 rounded-lg border border-primary/20 bg-primary/5 px-3 py-2 max-w-md">
@@ -195,7 +236,7 @@ export default function MonthlyTrendsPage() {
             <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}
               className="rounded-xl border border-border bg-card p-4 sm:p-5 shadow-card">
               <h2 className="text-sm font-semibold text-foreground mb-3 sm:mb-4">
-                {histPrevious.month} → {histCurrent.month}
+                <span className="font-mono-data">{histPrevious.month}</span> → <span className="font-mono-data">{histCurrent.month}</span>
               </h2>
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                 {histMetrics.map(({ label, curr, prev, suffix, inverse }) => {
@@ -207,11 +248,11 @@ export default function MonthlyTrendsPage() {
                       className="rounded-lg border border-border bg-muted/20 p-4 text-center">
                       <p className="text-[11px] text-muted-foreground uppercase tracking-wider mb-2">{label}</p>
                       <div className="flex items-center justify-center gap-3">
-                        <span className="font-mono-data text-lg text-muted-foreground">{prev}{suffix}</span>
-                        <ArrowRight className="h-3.5 w-3.5 text-muted-foreground" />
-                        <span className="font-mono-data text-lg font-bold text-foreground">{curr}{suffix}</span>
+                        <span className="font-mono-data tabular-nums text-lg text-muted-foreground">{prev}{suffix}</span>
+                        <ArrowRight className="h-3.5 w-3.5 text-muted-foreground" aria-hidden />
+                        <span className="font-mono-data tabular-nums text-lg font-bold text-foreground">{curr}{suffix}</span>
                       </div>
-                      <p className={`text-xs font-semibold mt-1.5 ${isPositive ? "text-success" : isNegative ? "text-destructive" : "text-muted-foreground"}`}>
+                      <p className={`text-xs font-semibold font-mono-data tabular-nums mt-1.5 ${isPositive ? "text-success" : isNegative ? "text-destructive" : "text-muted-foreground"}`}>
                         {diff > 0 ? "+" : ""}{diff}{suffix === "%" ? "%" : ""}
                       </p>
                     </motion.div>
@@ -224,83 +265,99 @@ export default function MonthlyTrendsPage() {
           {/* Charts */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
             <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }}
-              whileHover={{ scale: 1.005 }}
-              className="rounded-xl border border-border bg-card p-4 sm:p-5 shadow-card hover:shadow-card-hover transition-[box-shadow] duration-300">
-              <h2 className="text-sm font-semibold text-foreground mb-3 sm:mb-4">Compliance Over Time</h2>
-              <ResponsiveContainer width="100%" height={240}>
-                <LineChart data={autoTrends}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="hsl(20, 8%, 16%)" />
-                  <XAxis dataKey="month" tick={{ fontSize: 11, fill: "hsl(25, 10%, 50%)" }} />
-                  <YAxis tick={{ fontSize: 11, fill: "hsl(25, 10%, 50%)" }} />
-                  <Tooltip content={<CustomTooltip />} />
-                  <Legend wrapperStyle={{ fontSize: "11px", color: "hsl(30, 25%, 88%)" }} />
-                  <Line type="monotone" dataKey="compliant" stroke="hsl(160, 55%, 42%)" strokeWidth={2} dot={{ r: 3 }} name="Compliant" />
-                  <Line type="monotone" dataKey="nonCompliant" stroke="hsl(0, 65%, 50%)" strokeWidth={2} dot={{ r: 3 }} name="Non-Compliant" />
-                </LineChart>
-              </ResponsiveContainer>
+              className="min-w-0 rounded-xl border border-border bg-card p-4 sm:p-5 shadow-card hover:shadow-card-hover transition-[box-shadow] duration-300">
+              <h3 className="text-sm font-semibold text-foreground mb-3 sm:mb-4">Compliance Over Time</h3>
+              <div className="min-w-0" style={{ height: CHART_HEIGHT }}>
+                <ResponsiveContainer width="100%" height="100%">
+                  <LineChart data={autoTrends}>
+                    <CartesianGrid strokeDasharray="3 3" stroke={CHART.grid} />
+                    <XAxis dataKey="month" tick={AXIS_TICK} axisLine={{ stroke: CHART.grid }} tickLine={false} />
+                    <YAxis tick={AXIS_TICK} axisLine={false} tickLine={false} allowDecimals={false} />
+                    <Tooltip content={<CustomTooltip />} cursor={{ stroke: CHART.tick, strokeDasharray: "3 3" }} />
+                    <Legend wrapperStyle={{ fontSize: "11px", color: CHART.foreground }} iconSize={10} />
+                    <Line type="monotone" dataKey="compliant" stroke={CHART.success} strokeWidth={2} dot={{ r: 3, strokeWidth: 0, fill: CHART.success }} activeDot={{ r: 5 }} name="Compliant" />
+                    <Line type="monotone" dataKey="nonCompliant" stroke={CHART.destructive} strokeWidth={2} dot={{ r: 3, strokeWidth: 0, fill: CHART.destructive }} activeDot={{ r: 5 }} name="Non-Compliant" />
+                  </LineChart>
+                </ResponsiveContainer>
+              </div>
             </motion.div>
 
             <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.4 }}
-              whileHover={{ scale: 1.005 }}
-              className="rounded-xl border border-border bg-card p-4 sm:p-5 shadow-card hover:shadow-card-hover transition-[box-shadow] duration-300">
-              <h2 className="text-sm font-semibold text-foreground mb-3 sm:mb-4">Completion % by Month</h2>
-              <ResponsiveContainer width="100%" height={240}>
-                <BarChart data={autoTrends}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="hsl(20, 8%, 16%)" />
-                  <XAxis dataKey="month" tick={{ fontSize: 11, fill: "hsl(25, 10%, 50%)" }} />
-                  <YAxis tick={{ fontSize: 11, fill: "hsl(25, 10%, 50%)" }} domain={[0, 100]} />
-                  <Tooltip content={<CustomTooltip />} cursor={{ fill: "hsl(20, 8%, 14%)" }} />
-                  <Bar dataKey="completionPct" fill="hsl(340, 45%, 55%)" radius={[4, 4, 0, 0]} name="Completion %" />
-                </BarChart>
-              </ResponsiveContainer>
+              className="min-w-0 rounded-xl border border-border bg-card p-4 sm:p-5 shadow-card hover:shadow-card-hover transition-[box-shadow] duration-300">
+              <h3 className="text-sm font-semibold text-foreground mb-3 sm:mb-4">Completion % by Month</h3>
+              <div className="min-w-0" style={{ height: CHART_HEIGHT }}>
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={autoTrends}>
+                    <CartesianGrid strokeDasharray="3 3" stroke={CHART.grid} vertical={false} />
+                    <XAxis dataKey="month" tick={AXIS_TICK} axisLine={{ stroke: CHART.grid }} tickLine={false} />
+                    <YAxis tick={AXIS_TICK} domain={[0, 100]} unit="%" axisLine={false} tickLine={false} />
+                    <Tooltip content={<CustomTooltip />} cursor={{ fill: CHART.cursor, opacity: 0.6 }} />
+                    <Bar dataKey="completionPct" fill={CHART.primary} radius={[4, 4, 0, 0]} name="Completion %" maxBarSize={48} />
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
             </motion.div>
           </div>
 
           {/* Data table */}
           <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.5 }}
-            className="rounded-xl border border-border bg-card shadow-card overflow-x-auto scrollbar-thin scrollbar-thumb-muted-foreground/20 hover:scrollbar-thumb-muted-foreground/40 scrollbar-track-transparent -mx-5 sm:mx-0">
-            <table className="w-full text-sm min-w-[540px]">
-              <thead>
-                <tr className="border-b border-border bg-muted/30">
-                  <th className="text-left text-xs font-medium text-muted-foreground uppercase tracking-wide px-3 sm:px-4 py-2.5">Month</th>
-                  <th className="text-left text-xs font-medium text-muted-foreground uppercase tracking-wide px-3 sm:px-4 py-2.5">Compliant</th>
-                  <th className="text-left text-xs font-medium text-muted-foreground uppercase tracking-wide px-3 sm:px-4 py-2.5">Non-Comp.</th>
-                  <th className="text-left text-xs font-medium text-muted-foreground uppercase tracking-wide px-3 sm:px-4 py-2.5">Completion</th>
-                  <th className="text-left text-xs font-medium text-muted-foreground uppercase tracking-wide px-3 sm:px-4 py-2.5">Trend</th>
-                </tr>
-              </thead>
-              <tbody>
-                {validTrends.map((t, i) => (
-                  <tr key={`${t.month}-${i}`} className={`border-b border-border hover:bg-accent/50 transition-colors cursor-pointer ${i === histIdx ? "bg-primary/5 border-l-2 border-l-primary" : ""} ${compIdxNum !== null && i === compIdxNum ? "bg-accent/30" : ""}`}
-                    onClick={() => setSelectedHistoryIdx(i)}>
-                    <td className="px-3 sm:px-4 py-2.5 font-medium text-foreground whitespace-nowrap">{t.month}</td>
-                    <td className="px-3 sm:px-4 py-2.5 font-mono-data text-success">{t.compliant}</td>
-                    <td className="px-3 sm:px-4 py-2.5 font-mono-data text-destructive">{t.nonCompliant}</td>
-                    <td className="px-3 sm:px-4 py-2.5 font-mono-data text-foreground">{t.completionPct}%</td>
-                    <td className="px-3 sm:px-4 py-2.5">
-                      <span className={`text-xs font-medium ${
-                        t.trend === "Improving" ? "text-success" : t.trend === "Declining" ? "text-destructive" : "text-muted-foreground"
-                      }`}>
-                        {t.trend === "Improving" && <TrendingUp className="inline h-3 w-3 mr-1" />}
-                        {t.trend === "Declining" && <TrendingDown className="inline h-3 w-3 mr-1" />}
-                        {t.trend === "Stable" && <Minus className="inline h-3 w-3 mr-1" />}
-                        {t.trend || "-"}
-                      </span>
-                    </td>
+            className="rounded-xl border border-border bg-card shadow-card overflow-hidden">
+            <div className="overflow-x-auto scrollbar-thin">
+              <table className="w-full text-sm min-w-[540px]">
+                <thead>
+                  <tr className="border-b border-border bg-muted/30">
+                    <th scope="col" className={`text-left ${TH}`}>Month</th>
+                    <th scope="col" className={`text-right ${TH}`}>Compliant</th>
+                    <th scope="col" className={`text-right ${TH}`}>Non-Comp.</th>
+                    <th scope="col" className={`text-right ${TH}`}>Completion</th>
+                    <th scope="col" className={`text-left ${TH}`}>Trend</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody>
+                  {validTrends.map((t, i) => {
+                    const isSelected = i === histIdx;
+                    const isCompare = compIdxNum !== null && i === compIdxNum;
+                    return (
+                      <tr
+                        key={`${t.month}-${i}`}
+                        tabIndex={0}
+                        onClick={() => setSelectedHistoryIdx(i)}
+                        onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); setSelectedHistoryIdx(i); } }}
+                        className={`border-b border-border last:border-0 hover:bg-muted/40 transition-colors duration-150 cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring ${
+                          isSelected ? "bg-primary/5 shadow-[inset_2px_0_0_hsl(var(--primary))]" : isCompare ? "bg-accent/30" : ""
+                        }`}
+                      >
+                        <td className="px-3 sm:px-4 py-2.5 font-medium text-foreground whitespace-nowrap">{t.month}</td>
+                        <td className="px-3 sm:px-4 py-2.5 text-right font-mono-data tabular-nums text-success">{t.compliant}</td>
+                        <td className="px-3 sm:px-4 py-2.5 text-right font-mono-data tabular-nums text-destructive">{t.nonCompliant}</td>
+                        <td className="px-3 sm:px-4 py-2.5 text-right font-mono-data tabular-nums text-foreground">{t.completionPct}%</td>
+                        <td className="px-3 sm:px-4 py-2.5 whitespace-nowrap">
+                          <span className={`inline-flex items-center gap-1 text-xs font-medium ${
+                            t.trend === "Improving" ? "text-success" : t.trend === "Declining" ? "text-destructive" : "text-muted-foreground"
+                          }`}>
+                            {t.trend === "Improving" && <TrendingUp className="h-3 w-3" aria-hidden />}
+                            {t.trend === "Declining" && <TrendingDown className="h-3 w-3" aria-hidden />}
+                            {t.trend === "Stable" && <Minus className="h-3 w-3" aria-hidden />}
+                            {t.trend || "—"}
+                          </span>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
           </motion.div>
         </>
       ) : (
         <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}
-          className="rounded-xl border border-border bg-card p-8 shadow-card text-center">
-          <TrendingUp className="h-10 w-10 text-muted-foreground mx-auto mb-3" />
-          <h3 className="text-sm font-semibold text-foreground mb-1">No Historical Data Yet</h3>
-          <p className="text-xs text-muted-foreground max-w-md mx-auto">
-            Trends populate automatically as bookkeepers submit MER rows. Once submissions arrive in the <strong>Command Center Portal Data</strong> sheet, this view will fill in instantly.
-          </p>
+          className="rounded-xl border border-border bg-card p-10 shadow-card">
+          <EmptyState
+            icon={TrendingUp}
+            title="No historical data yet"
+            hint={<>Trends populate automatically as bookkeepers submit MER rows. Once submissions arrive in the <strong>MER Dashboard Data</strong> sheet, this view will fill in instantly.</>}
+            variant="plain"
+          />
         </motion.div>
       )}
 
@@ -308,17 +365,17 @@ export default function MonthlyTrendsPage() {
       {data.merHistory.length > 0 && <ComplianceHeatmap history={data.merHistory} />}
 
       {/* Link to Export Center */}
-      <Link to="/reports" className="group block rounded-xl border border-border bg-card hover:bg-accent/30 p-5 shadow-card hover:shadow-card-hover transition-[box-shadow,background-color] duration-300">
-        <div className="flex items-center gap-4">
+      <Link to="/reports" className="group block rounded-xl border border-border bg-card hover:bg-accent/30 p-4 sm:p-5 shadow-card hover:shadow-card-hover transition-[box-shadow,background-color] duration-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+        <div className="flex flex-wrap items-center gap-3 sm:gap-4">
           <div className="h-11 w-11 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
-            <Download className="h-5 w-5 text-primary" />
+            <Download className="h-5 w-5 text-primary" aria-hidden />
           </div>
           <div className="flex-1 min-w-0">
             <h3 className="text-sm font-semibold text-foreground">Need to download trends?</h3>
             <p className="text-[12px] text-muted-foreground mt-0.5">All exports — including the Monthly Trends Summary — live in the Export Center.</p>
           </div>
-          <div className="flex items-center gap-1 text-primary text-xs font-semibold shrink-0">
-            Open Export Center <ArrowRight className="h-3.5 w-3.5 transition-transform group-hover:translate-x-0.5" />
+          <div className="flex items-center gap-1 text-primary text-xs font-semibold shrink-0 ml-auto">
+            Open Export Center <ArrowRight className="h-3.5 w-3.5 transition-transform duration-150 group-hover:translate-x-0.5" aria-hidden />
           </div>
         </div>
       </Link>

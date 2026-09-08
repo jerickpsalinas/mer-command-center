@@ -1,3 +1,4 @@
+/* eslint-disable react-refresh/only-export-components */
 import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
 
 /* ------------------------------------------------------------------ */
@@ -54,16 +55,32 @@ export interface SavedFilter {
 /* ------------------------------------------------------------------ */
 export type Density = "comfortable" | "compact";
 
+/* ------------------------------------------------------------------ */
+/*  Sync preferences — actually wired to useSheetData's refetchInterval */
+/* ------------------------------------------------------------------ */
+export interface SyncPrefs {
+  autoRefresh: boolean;
+  /** Interval in seconds. */
+  refreshInterval: number;
+}
+
+export const DEFAULT_SYNC_PREFS: SyncPrefs = {
+  autoRefresh: true,
+  refreshInterval: 60,
+};
+
 interface UserSettings {
   thresholds: AtRiskThresholds;
   notifPrefs: NotificationPrefs;
   savedFilters: SavedFilter[];
   density: Density;
+  syncPrefs: SyncPrefs;
   setThresholds: (t: AtRiskThresholds) => void;
   setNotifPrefs: (p: NotificationPrefs) => void;
   saveFilter: (f: Omit<SavedFilter, "id">) => void;
   deleteFilter: (id: string) => void;
   setDensity: (d: Density) => void;
+  setSyncPrefs: (p: SyncPrefs) => void;
 }
 
 const KEY = "mer-user-settings-v1";
@@ -74,6 +91,7 @@ interface Persisted {
   notifPrefs?: Partial<NotificationPrefs>;
   savedFilters?: SavedFilter[];
   density?: Density;
+  syncPrefs?: Partial<SyncPrefs>;
 }
 
 function load(): Persisted {
@@ -95,10 +113,11 @@ export function UserSettingsProvider({ children }: { children: ReactNode }) {
   const [notifPrefs, setNotifPrefsState] = useState<NotificationPrefs>({ ...DEFAULT_NOTIF_PREFS, ...initial.notifPrefs });
   const [savedFilters, setSavedFilters] = useState<SavedFilter[]>(initial.savedFilters ?? []);
   const [density, setDensityState] = useState<Density>(initial.density ?? "comfortable");
+  const [syncPrefs, setSyncPrefsState] = useState<SyncPrefs>({ ...DEFAULT_SYNC_PREFS, ...initial.syncPrefs });
 
   useEffect(() => {
-    save({ thresholds, notifPrefs, savedFilters, density });
-  }, [thresholds, notifPrefs, savedFilters, density]);
+    save({ thresholds, notifPrefs, savedFilters, density, syncPrefs });
+  }, [thresholds, notifPrefs, savedFilters, density, syncPrefs]);
 
   // Apply density to <html> for global CSS hooks
   useEffect(() => {
@@ -110,12 +129,14 @@ export function UserSettingsProvider({ children }: { children: ReactNode }) {
     notifPrefs,
     savedFilters,
     density,
+    syncPrefs,
     setThresholds: setThresholdsState,
     setNotifPrefs: setNotifPrefsState,
     saveFilter: (f) => setSavedFilters((curr) => [...curr, { ...f, id: crypto.randomUUID() }]),
     deleteFilter: (id) => setSavedFilters((curr) => curr.filter((x) => x.id !== id)),
     setDensity: setDensityState,
-  }), [thresholds, notifPrefs, savedFilters, density]);
+    setSyncPrefs: setSyncPrefsState,
+  }), [thresholds, notifPrefs, savedFilters, density, syncPrefs]);
 
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
 }

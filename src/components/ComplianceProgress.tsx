@@ -12,11 +12,18 @@ export default function ComplianceProgress({ label, value, index = 0 }: Complian
 
   return (
     <div className="space-y-2">
-      <div className="flex items-center justify-between">
-        <span className="text-sm font-medium text-foreground">{label}</span>
-        <span className={`text-sm font-mono-data font-semibold ${textColor}`}>{value}%</span>
+      <div className="flex items-center justify-between gap-3">
+        <span className="text-sm font-medium text-foreground truncate min-w-0" title={label}>{label}</span>
+        <span className={`text-sm font-mono-data tabular-nums font-semibold shrink-0 ${textColor}`}>{value}%</span>
       </div>
-      <div className="h-2.5 w-full rounded-full bg-muted overflow-hidden">
+      <div
+        className="h-2.5 w-full rounded-full bg-muted overflow-hidden"
+        role="progressbar"
+        aria-label={label}
+        aria-valuemin={0}
+        aria-valuemax={100}
+        aria-valuenow={value}
+      >
         <motion.div
           initial={{ width: 0 }}
           animate={{ width: `${value}%` }}
