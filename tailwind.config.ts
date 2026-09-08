@@ -1,4 +1,5 @@
 import type { Config } from "tailwindcss";
+import tailwindcssAnimate from "tailwindcss-animate";
 
 export default {
   darkMode: ["class"],
@@ -85,6 +86,10 @@ export default {
       fontFamily: {
         sans: ['Inter', 'system-ui', 'sans-serif'],
         mono: ['JetBrains Mono', 'monospace'],
+        // Match .font-display (already defined in index.css). Ensures every
+        // font-serif class renders Playfair, not the Tailwind Georgia default.
+        serif: ['Playfair Display', 'ui-serif', 'Georgia', 'serif'],
+        display: ['Playfair Display', 'ui-serif', 'Georgia', 'serif'],
       },
       keyframes: {
         "accordion-down": {
@@ -102,5 +107,5 @@ export default {
       },
     },
   },
-  plugins: [require("tailwindcss-animate")],
+  plugins: [tailwindcssAnimate],
 } satisfies Config;

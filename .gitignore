@@ -22,3 +22,9 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Environment variables (local overrides only — .env is committed
+# because Lovable needs VITE_* vars at build time; they are public
+# client-side keys by design)
+.env.local
+.env.*.local
