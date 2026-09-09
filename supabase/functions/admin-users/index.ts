@@ -1,5 +1,5 @@
-// Admin-only user management. Verifies caller has role=admin in user_profiles
-// before performing any privileged auth/profile operation.
+// Admin-only user management. Verifies caller has role=admin or developer in
+// user_profiles before performing any privileged auth/profile operation.
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 
 const CORS = {
@@ -33,7 +33,7 @@ async function requireAdmin(req: Request) {
     .select("role")
     .eq("id", user.id)
     .maybeSingle();
-  if (profile?.role !== "admin") return null;
+  if (profile?.role !== "admin" && profile?.role !== "developer") return null;
   return { user, admin };
 }
 
@@ -66,15 +66,14 @@ Deno.serve(async (req) => {
       if (inviteErr || !invited.user) {
         return json({ error: inviteErr?.message ?? "Invite failed" }, 400);
       }
-      const newUserId = invited.user.id;
       const { error: upsertErr } = await admin
         .from("user_profiles")
         .upsert(
-          { id: newUserId, name, email, role },
+          { id: invited.user.id, name, email, role },
           { onConflict: "id" },
         );
       if (upsertErr) return json({ error: upsertErr.message }, 400);
-      return json({ ok: true, id: newUserId });
+      return json({ ok: true, id: invited.user.id });
     }
 
     if (action === "update-role") {

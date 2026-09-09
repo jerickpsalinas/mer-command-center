@@ -1,0 +1,1 @@
+ALTER TABLE public.mer_history ADD COLUMN IF NOT EXISTS notes text;
