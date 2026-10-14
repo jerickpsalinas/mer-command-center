@@ -22,6 +22,8 @@ interface KPICardProps {
   deltaLabel?: string;
   /** If true, a negative delta is "good" (e.g. for non-compliant / risk counts). */
   invertDeltaColor?: boolean;
+  /** Optional subtitle shown below the value (e.g. "3 rolled over"). */
+  subtitle?: string;
 }
 
 const variantStyles = {
@@ -45,7 +47,7 @@ const valueStyles = {
   warning: "text-warning",
 };
 
-export default function KPICard({ title, value, icon: Icon, trend, variant = "default", index = 0, suffix, tooltip, delta, deltaLabel, invertDeltaColor }: KPICardProps) {
+export default function KPICard({ title, value, icon: Icon, trend, variant = "default", index = 0, suffix, tooltip, delta, deltaLabel, invertDeltaColor, subtitle }: KPICardProps) {
   const isNumeric = typeof value === "number";
 
   const hasDelta = typeof delta === "number" && Number.isFinite(delta);
@@ -109,6 +111,9 @@ export default function KPICard({ title, value, icon: Icon, trend, variant = "de
       <p className={cn("text-[28px] font-bold font-mono-data tabular-nums leading-none truncate", valueStyles[variant])}>
         {isNumeric ? <AnimatedNumber value={value} suffix={suffix ?? ""} /> : value}
       </p>
+      {subtitle && (
+        <p className="mt-1 text-[10px] font-semibold text-warning uppercase tracking-wider">{subtitle}</p>
+      )}
       {(hasDelta || trend) && (
         <div className="mt-2 flex items-center gap-1.5 flex-wrap">
           {hasDelta && (

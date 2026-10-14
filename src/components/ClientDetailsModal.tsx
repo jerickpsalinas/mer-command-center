@@ -12,6 +12,8 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import StatusBadge from "@/components/StatusBadge";
+import { isUnreconciled, evaluateCompliance } from "@/lib/complianceExplain";
+import { getClientHistory } from "@/hooks/useSheetData";
 import type { ActionLogEntry, MerHistoryRow } from "@/services/googleSheets";
 import ActionConfirmModal from "@/components/ActionConfirmModal";
 import ActionResponseModal from "@/components/ActionResponseModal";
@@ -82,12 +84,15 @@ interface Props {
   client: MerHistoryRow | null;
   onViewHistory?: () => void;
   actionLog?: ActionLogEntry[];
+  /** Full merHistory for compliance trend sparkline. */
+  merHistory?: MerHistoryRow[];
 }
 
 type Field = {
   label: string;
   value: React.ReactNode;
   mono?: boolean;
+  className?: string;
 };
 
 function Section({
@@ -114,9 +119,9 @@ function Section({
               {f.label}
             </dt>
             <dd
-              className={`text-xs text-foreground break-words ${
+              className={`text-xs break-words ${
                 f.mono ? "font-mono-data tabular-nums" : ""
-              }`}
+              } ${f.className ?? "text-foreground"}`}
               title={typeof f.value === "string" ? f.value : undefined}
             >
               {f.value === "" || f.value === null || f.value === undefined ? (
@@ -132,13 +137,61 @@ function Section({
   );
 }
 
+/** Inline compliance score trend for the last few months — no external chart lib needed. */
+function ComplianceTrend({ clientName, merHistory }: { clientName: string; merHistory: MerHistoryRow[] }) {
+  if (!merHistory.length) return null;
+  const history = getClientHistory(merHistory, clientName);
+  if (history.length < 2) return null;
+  // Last 6 months max
+  const recent = history.slice(-6);
+  const scores = recent.map((r) => ({
+    month: r.month,
+    pct: evaluateCompliance(r).completionPct,
+    status: evaluateCompliance(r).status,
+  }));
+  const max = 100;
+  const barH = 24;
+  return (
+    <section className="rounded-lg border border-border bg-muted/20 p-4 transition-colors">
+      <div className="flex items-center gap-2 mb-3">
+        <History className="h-3.5 w-3.5 text-primary" aria-hidden="true" />
+        <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+          Compliance Trend
+        </h3>
+      </div>
+      <div className="space-y-1.5">
+        {scores.map((s) => (
+          <div key={s.month} className="flex items-center gap-2">
+            <span className="text-[10px] text-muted-foreground w-16 shrink-0 text-right tabular-nums">{s.month}</span>
+            <div className="flex-1 h-5 rounded-md bg-muted/40 overflow-hidden relative" style={{ height: barH }}>
+              <div
+                className={`h-full rounded-md transition-all duration-500 ${
+                  s.status === "Compliant"
+                    ? "bg-success/70"
+                    : s.status === "On Hold"
+                      ? "bg-warning/70"
+                      : "bg-destructive/70"
+                }`}
+                style={{ width: `${Math.min(s.pct, max)}%` }}
+              />
+              <span className="absolute inset-0 flex items-center justify-end pr-2 text-[10px] font-semibold tabular-nums text-foreground/80">
+                {s.pct}%
+              </span>
+            </div>
+          </div>
+        ))}
+      </div>
+    </section>
+  );
+}
+
 const yn = (b: boolean) => (
   <span className={b ? "text-success font-semibold" : "text-destructive font-semibold"}>
     {b ? "Yes" : "No"}
   </span>
 );
 
-export default function ClientDetailsModal({ open, onClose, client, onViewHistory, actionLog = [] }: Props) {
+export default function ClientDetailsModal({ open, onClose, client, onViewHistory, actionLog = [], merHistory = [] }: Props) {
   const [pendingAction, setPendingAction] = useState<ActionType | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [showSequenceHistory, setShowSequenceHistory] = useState(false);
@@ -343,7 +396,7 @@ export default function ClientDetailsModal({ open, onClose, client, onViewHistor
     { label: "Transactions Without Payees", value: client.transactionsWithoutPayees, mono: true },
     { label: "Undeposited Funds", value: client.undepositedFunds, mono: true },
     { label: "Unapplied Payments", value: client.unappliedPayments, mono: true },
-    { label: "Last Reconciled Date", value: client.lastReconciledDate, mono: true },
+    { label: "Last Reconciled Date", value: client.lastReconciledDate, mono: true, className: isUnreconciled(client.lastReconciledDate) ? "text-destructive font-semibold" : undefined },
     { label: "Books Closed In QB", value: yn(client.booksClosedInQB) },
   ];
 
@@ -375,6 +428,7 @@ export default function ClientDetailsModal({ open, onClose, client, onViewHistor
         <div className="space-y-3.5">
           <Section icon={Building2} title="Client Info" fields={clientInfo} />
           <Section icon={ShieldCheck} title="Compliance" fields={compliance} />
+          <ComplianceTrend clientName={client.name} merHistory={merHistory} />
           <Section icon={Banknote} title="Bank & Books" fields={bankBooks} />
           <Section icon={Workflow} title="Workflow" fields={workflow} />
 
@@ -1596,18 +1650,19 @@ export default function ClientDetailsModal({ open, onClose, client, onViewHistor
           )}
 
           {catStep === "suggestion" && catAiResponse && (() => {
-            const aiCategory =
+            const aiCategory = String(
               catAiResponse.suggestedCategory ||
               catAiResponse.category ||
               catAiResponse.aiSuggestedCategory ||
-              "—";
+              "—",
+            );
             const confidenceRaw = (catAiResponse.confidence || "").toString().toLowerCase();
             const confLabel =
               confidenceRaw.includes("high") ? "🟢 High" :
               confidenceRaw.includes("med") ? "🟡 Medium" :
               confidenceRaw.includes("low") ? "🔴 Low" :
               confidenceRaw ? `⚪ ${catAiResponse.confidence}` : "—";
-            const reasoning = catAiResponse.reasoning || catAiResponse.explanation || "";
+            const reasoning = String(catAiResponse.reasoning || catAiResponse.explanation || "");
 
             const sendConfirm = async (action: "confirm" | "override", finalCategory: string) => {
               setCatConfirmLoading(true);

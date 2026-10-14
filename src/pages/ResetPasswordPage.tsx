@@ -3,8 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import logo from "@/assets/logo.png";
 import { Loader2, CheckCircle2, Eye, EyeOff } from "lucide-react";
-import { cn, FOCUS_RING } from "@/lib/utils";
-import { AUTH_INPUT_CLASS } from "@/pages/LoginPage";
+import { cn, FOCUS_RING, AUTH_INPUT_CLASS } from "@/lib/utils";
 
 export default function ResetPasswordPage() {
   const navigate = useNavigate();
@@ -55,11 +54,11 @@ export default function ResetPasswordPage() {
     <div className="min-h-screen flex items-center justify-center bg-background vignette px-4">
       <div className="w-full max-w-md relative z-10">
         <div className="flex flex-col items-center mb-8">
-          <img src={logo} alt="MER Command Center" className="h-12 w-12 rounded-xl object-contain mb-4" />
+          <img src={logo} alt="Brant & Associates" className="h-12 w-12 rounded-xl object-contain mb-4" />
           <h1 className="font-display text-2xl font-semibold text-foreground tracking-tight">
             Set a new password
           </h1>
-          <p className="text-sm text-muted-foreground mt-1">MER Command Center MER Dashboard</p>
+          <p className="text-sm text-muted-foreground mt-1">Brant &amp; Associates MER Dashboard</p>
         </div>
 
         <form

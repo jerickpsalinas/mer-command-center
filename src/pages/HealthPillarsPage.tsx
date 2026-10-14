@@ -1,9 +1,12 @@
-import { useMemo, useState } from "react";
-import { Link } from "react-router-dom";
+import { useEffect, useMemo, useState } from "react";
+import { Link, useNavigate } from "react-router-dom";
+import { useAuth } from "@/hooks/useAuth";
 import { motion } from "framer-motion";
+import SopPanel from "@/components/SopPanel";
+import { healthPillarsSop } from "@/data/sopConfigs";
 import { useClientDetails } from "@/hooks/useClientDetails";
 import { useIsFetching } from "@tanstack/react-query";
-import { useSheetData } from "@/hooks/useSheetData";
+import { useFilteredSheetData } from "@/hooks/useSheetData";
 import { isCleanupTagString } from "@/lib/cleanupCycle";
 import {
   computePillars,
@@ -284,7 +287,10 @@ function Watchlist({
 /* ---------------- Page ---------------- */
 
 export default function HealthPillarsPage() {
-  const { data, isLoading, error, refetch, isFetching } = useSheetData();
+  const { isBookkeeper } = useAuth();
+  const navigate = useNavigate();
+  useEffect(() => { if (isBookkeeper) navigate("/", { replace: true }); }, [isBookkeeper, navigate]);
+  const { data, isLoading, error, refetch, isFetching } = useFilteredSheetData();
   const { open: openClient, modal: clientModal } = useClientDetails();
 
   const view = useMemo(() => {
@@ -411,6 +417,7 @@ export default function HealthPillarsPage() {
           </p>
         </div>
         <div className="flex flex-col items-start sm:items-end gap-1 shrink-0">
+          <SopPanel config={healthPillarsSop} className="mb-1" />
           <span className="text-[10px] uppercase tracking-[0.25em] text-muted-foreground">Composite</span>
           <span className="font-mono-data text-4xl text-foreground tabular-nums leading-none" aria-label={`Composite score ${pillars.composite} percent`}>
             {pillars.composite}%

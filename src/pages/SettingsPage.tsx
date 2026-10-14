@@ -1,8 +1,9 @@
 import { Settings as SettingsIcon, RefreshCw, Bell, Moon, Sun, Shield, ShieldAlert, RotateCcw } from "lucide-react";
 import { motion } from "framer-motion";
-import { useSheetData } from "@/hooks/useSheetData";
+import { useFilteredSheetData } from "@/hooks/useSheetData";
 import { useTheme } from "@/hooks/useTheme";
-import { useUserSettings, DEFAULT_THRESHOLDS, DEFAULT_NOTIF_PREFS } from "@/hooks/useUserSettings";
+import { useAuth } from "@/hooks/useAuth";
+import { useUserSettings, DEFAULT_THRESHOLDS, DEFAULT_NOTIF_PREFS, ACTION_TYPE_LABELS } from "@/hooks/useUserSettings";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
@@ -19,7 +20,8 @@ const SELECT_CLASS =
   "h-9 rounded-md border border-border bg-muted px-3 text-sm text-foreground transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background";
 
 export default function SettingsPage() {
-  const { data } = useSheetData();
+  const { isBookkeeper } = useAuth();
+  const { data } = useFilteredSheetData();
   const { theme, toggle } = useTheme();
   const { thresholds, setThresholds, notifPrefs, setNotifPrefs, density, setDensity, syncPrefs, setSyncPrefs } = useUserSettings();
   const autoRefresh = syncPrefs.autoRefresh;
@@ -58,7 +60,7 @@ export default function SettingsPage() {
   return (
     <div className="max-w-2xl mx-auto space-y-5">
       <div className="space-y-1">
-        <h1 className="text-xl font-display font-semibold text-foreground">Settings</h1>
+        <h2 className="text-xl font-display font-semibold text-foreground">Settings</h2>
         <p className="text-xs text-muted-foreground">Workspace info, sync, alert thresholds, notifications, and display preferences.</p>
       </div>
 
@@ -80,7 +82,7 @@ export default function SettingsPage() {
                 <p className="text-sm font-medium text-foreground">Organization</p>
                 <p className="text-xs text-muted-foreground">Account name</p>
               </div>
-              <span className="text-sm text-muted-foreground">MER Command Center</span>
+              <span className="text-sm text-muted-foreground">Brant & Associates</span>
             </div>
             <div className={ROW_CLASS}>
               <div>
@@ -186,8 +188,8 @@ export default function SettingsPage() {
         </Card>
       </motion.div>
 
-      {/* At-Risk Thresholds (#3) */}
-      <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.16 }}>
+      {/* At-Risk Thresholds (#3) — admin only */}
+      {!isBookkeeper && <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.16 }}>
         <Card className={CARD_CLASS}>
           <CardHeader className={HEADER_CLASS}>
             <div className="h-7 w-7 rounded-lg bg-destructive/10 flex items-center justify-center shrink-0">
@@ -236,10 +238,10 @@ export default function SettingsPage() {
             })}
           </CardContent>
         </Card>
-      </motion.div>
+      </motion.div>}
 
-      {/* Notification Preferences (#13) */}
-      <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}>
+      {/* Notification Preferences (#13) — admin only */}
+      {!isBookkeeper && <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}>
         <Card className={CARD_CLASS}>
           <CardHeader className={`${HEADER_CLASS} flex-wrap`}>
             <div className="h-7 w-7 rounded-lg bg-warning/10 flex items-center justify-center shrink-0">
@@ -321,9 +323,38 @@ export default function SettingsPage() {
                 </div>
               </div>
             </div>
+            {/* Per-action-type notification toggles */}
+            <div className="px-4 sm:px-6 py-4 border-t border-border">
+              <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-3">Action-Level Controls</p>
+              <p className="text-[11px] text-muted-foreground mb-3">Mute specific action types — critical actions stay loud, routine ones can be silenced.</p>
+              <div className="space-y-0.5">
+                {Object.entries(ACTION_TYPE_LABELS).map(([key, { label, urgency }]) => {
+                  const enabled = notifPrefs.actionTypes?.[key] ?? true;
+                  return (
+                    <div key={key} className={ROW_CLASS}>
+                      <div className="min-w-0 flex-1">
+                        <Label htmlFor={`action-${key}`} className="text-sm font-medium cursor-pointer text-foreground">{label}</Label>
+                        <p className="text-[10px] text-muted-foreground">{urgency === "critical" ? "⚡ Critical" : "📋 Routine"}</p>
+                      </div>
+                      <Switch
+                        id={`action-${key}`}
+                        checked={enabled}
+                        onCheckedChange={() =>
+                          setNotifPrefs({
+                            ...notifPrefs,
+                            actionTypes: { ...notifPrefs.actionTypes, [key]: !enabled },
+                          })
+                        }
+                        aria-label={label}
+                      />
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
           </CardContent>
         </Card>
-      </motion.div>
+      </motion.div>}
 
       {/* Display */}
       <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.24 }}>
@@ -413,7 +444,7 @@ export default function SettingsPage() {
         </Card>
       </motion.div>
 
-      <UserManagementSection />
+      {!isBookkeeper && <UserManagementSection />}
     </div>
   );
 }

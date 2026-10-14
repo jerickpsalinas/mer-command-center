@@ -1,6 +1,10 @@
 import { useEffect, useMemo, useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { useAuth } from "@/hooks/useAuth";
 import { isCleanupTagString } from "@/lib/cleanupCycle";
 import { motion } from "framer-motion";
+import SopPanel from "@/components/SopPanel";
+import { masterCycleSop } from "@/data/sopConfigs";
 import {
   Search,
   Filter,
@@ -30,7 +34,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
-import { useSheetData } from "@/hooks/useSheetData";
+import { useFilteredSheetData } from "@/hooks/useSheetData";
 import { DataError } from "@/components/DataStatus";
 import { Skeleton } from "@/components/ui/skeleton";
 import { EmptyState } from "@/components/EmptyState";
@@ -38,12 +42,11 @@ import type { CycleEntry } from "@/services/googleSheets";
 import { useClientDetails } from "@/hooks/useClientDetails";
 import { useGhlTags, getNextCycleTag } from "@/hooks/useGhlTags";
 import { hasPendingVerifyTag } from "@/services/googleSheets";
-import { useAuth } from "@/hooks/useAuth";
 import { logActivity } from "@/lib/activityLogger";
 
 /* ────────────────────────────────────────────────────────────────────────────
  * Pipeline 1 — Master Bookkeeping Cycle (8 canonical stages)
- * Source of truth: MER Command Center Automation Blueprint v2.
+ * Source of truth: Brant & Associates Automation Blueprint v2.
  * The Bookkeeping Log sheet writes one row per stage transition; we use this
  * canonical list to render the rail, regardless of which stages exist in data.
  * ──────────────────────────────────────────────────────────────────────── */
@@ -191,7 +194,10 @@ function CategoryChips({ tags }: { tags: string }) {
 }
 
 export default function MasterCyclePage() {
-  const { data, isLoading, error, refetch, isFetching } = useSheetData();
+  const { isBookkeeper } = useAuth();
+  const navigate = useNavigate();
+  useEffect(() => { if (isBookkeeper) navigate("/", { replace: true }); }, [isBookkeeper, navigate]);
+  const { data, isLoading, error, refetch, isFetching } = useFilteredSheetData();
   const [search, setSearch] = useState("");
   const [filterMonth, setFilterMonth] = useState("");
   const [filterStatus, setFilterStatus] = useState("");
@@ -267,6 +273,7 @@ export default function MasterCyclePage() {
                 clientName: displayName,
                 bookkeeper,
                 cycleMonth,
+                triggeredBy: "master-cycle",
               }),
             },
           );
@@ -447,7 +454,6 @@ export default function MasterCyclePage() {
     );
   }, [scopedCycles]);
 
-
   if (isLoading) return <MasterCycleSkeleton />;
   if (error || !data) return <DataError message={error?.message} onRetry={() => refetch()} isRetrying={isFetching} />;
 
@@ -470,6 +476,7 @@ export default function MasterCyclePage() {
 
   return (
     <div className="space-y-6">
+      <div className="flex justify-end"><SopPanel config={masterCycleSop} /></div>
       {/* KPI strip */}
       <motion.div
         initial={{ opacity: 0, y: 10 }}
@@ -673,7 +680,6 @@ export default function MasterCyclePage() {
           );
         })()}
       </motion.section>
-
 
       {/* Filters */}
       <motion.div

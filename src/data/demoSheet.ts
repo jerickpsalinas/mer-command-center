@@ -2857,6 +2857,16 @@ export const DEMO_SHEET_RAW: Record<string, Record<string, string>[]> = {
       "GHL Contact ID": "C1015",
       "Client Name": "Cedar Point Hospitality"
     }
+  ],
+  "Billing": [
+    { "Client Name": "Maple Street Tax Co.", "Email": "billing@maplestreettax.com", "Service Type": "MER", "Last Paid Date": "09/15/2026", "Balance Due": "$1,200.00", "Due Date": "10/15/2026", "Notification Stage": "", "Notes": "" },
+    { "Client Name": "Ironwood Financial Group", "Email": "ap@ironwoodfinancial.com", "Service Type": "MER", "Last Paid Date": "08/28/2026", "Balance Due": "$0.00", "Due Date": "", "Notification Stage": "", "Notes": "Paid in full" },
+    { "Client Name": "Pinehurst Capital LLC", "Email": "invoices@pinehurstcapital.com", "Service Type": "Cleanup", "Last Paid Date": "07/20/2026", "Balance Due": "$3,450.00", "Due Date": "10/01/2026", "Notification Stage": "reminder", "Notes": "Cleanup project phase 2" },
+    { "Client Name": "Blue Ridge Ventures", "Email": "finance@blueridgeventures.com", "Service Type": "MER", "Last Paid Date": "09/01/2026", "Balance Due": "$800.00", "Due Date": "10/01/2026", "Notification Stage": "", "Notes": "" },
+    { "Client Name": "Summit Peak Industries", "Email": "billing@summitpeak.com", "Service Type": "Software", "Last Paid Date": "09/10/2026", "Balance Due": "$2,100.00", "Due Date": "10/10/2026", "Notification Stage": "overdue", "Notes": "Software migration pending" },
+    { "Client Name": "Redwood Holdings Inc.", "Email": "accounts@redwoodholdings.com", "Service Type": "MER", "Last Paid Date": "08/15/2026", "Balance Due": "$0.00", "Due Date": "", "Notification Stage": "", "Notes": "" },
+    { "Client Name": "Granite Bay Consulting", "Email": "billing@granitebay.com", "Service Type": "Cleanup", "Last Paid Date": "06/30/2026", "Balance Due": "$5,200.00", "Due Date": "09/30/2026", "Notification Stage": "final", "Notes": "Final notice sent 09/25" },
+    { "Client Name": "Lakewood Properties", "Email": "admin@lakewoodprops.com", "Service Type": "MER", "Last Paid Date": "09/05/2026", "Balance Due": "$950.00", "Due Date": "10/05/2026", "Notification Stage": "", "Notes": "" }
   ]
 };
 

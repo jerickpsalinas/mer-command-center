@@ -12,12 +12,13 @@ import ViewAsBanner from "@/components/ViewAsBanner";
 import ViewAsRoleSwitcher from "@/components/ViewAsRoleSwitcher";
 import {
   LayoutDashboard, CalendarCheck, TrendingUp, Users, Download, Settings,
-  Menu, X, ChevronLeft, RefreshCw, Sun, Moon, Workflow, UserCheck, HeartPulse, BookOpen, FilePlus2, FileEdit, LogOut, ClipboardList, Tags, Code2,
+  Menu, X, ChevronLeft, RefreshCw, Sun, Moon, Workflow, UserCheck, HeartPulse, BookOpen, FilePlus2, FileEdit, LogOut, ClipboardList, Tags, Code2, CreditCard, Contact,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useAuth } from "@/hooks/useAuth";
 import logo from "@/assets/logo.png";
 import { FOCUS_RING } from "@/lib/utils";
+import { canAccessGhlContacts } from "@/lib/ghlContactsAccess";
 import HireJPSHeader from "@/components/HireJPSHeader";
 import HireJPSFooter from "@/components/HireJPSFooter";
 import FloatingParticles from "@/components/FloatingParticles";
@@ -30,12 +31,14 @@ const navItems = [
   { title: "Clients", url: "/clients", icon: Users },
   { title: "Bookkeepers", url: "/bookkeepers", icon: UserCheck },
   { title: "GHL Active Clients", url: "/ghl-active-clients", icon: Tags },
+  { title: "GHL Contacts", url: "/ghl-contacts", icon: Contact },
   { title: "Monthly Trends", url: "/monthly-trends", icon: TrendingUp },
   { title: "Activity Log", url: "/activity-log", icon: ClipboardList },
   { title: "Export Center", url: "/reports", icon: Download },
   { title: "User Guide", url: "/user-guide", icon: BookOpen },
   { title: "Settings", url: "/settings", icon: Settings },
   { title: "Developer", url: "/developer", icon: Code2 },
+  { title: "Billing", url: "/billing", icon: CreditCard },
 ];
 
 function ThemeToggleButton() {
@@ -108,7 +111,10 @@ export default function AppLayout() {
     return () => clearInterval(interval);
   }, [lastSynced]);
 
-  const visibleNavItems = navItems.filter((n) => n.url !== "/developer" || isDeveloper);
+  const isJerick = canAccessGhlContacts(user?.id);
+  const visibleNavItems = navItems
+    .filter((n) => n.url !== "/developer" || isDeveloper)
+    .filter((n) => n.url !== "/ghl-contacts" || isJerick);
 
   return (
     <div className="flex flex-col min-h-screen w-full bg-background vignette overflow-x-clip">
@@ -337,7 +343,7 @@ export default function AppLayout() {
           <Outlet />
         </main>
 
-        <footer className="hidden sm:block border-t border-border px-4 sm:px-8 py-3 glass-panel">
+        <footer className="border-t border-border px-4 sm:px-8 py-2 sm:py-3 glass-panel mb-[56px] lg:mb-0">
           <p className="text-[10px] sm:text-[11px] text-muted-foreground font-medium leading-relaxed break-words">
             Last synced <span className="text-foreground">{timeSince}</span>
           </p>

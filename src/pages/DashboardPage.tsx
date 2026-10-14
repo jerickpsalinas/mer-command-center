@@ -3,15 +3,17 @@ import { Link } from "react-router-dom";
 import {
   Users, CheckCircle2, XCircle, Pause, TrendingUp, AlertTriangle,
   FileText, StickyNote, Award, Clock, AlertCircle, ChevronRight, Camera, Download, ArrowRight,
-  BarChart3, PieChart as PieChartIcon, LineChart as LineChartIcon, UserX, type LucideIcon,
+  BarChart3, PieChart as PieChartIcon, LineChart as LineChartIcon, UserX, MoreVertical, type LucideIcon,
 } from "lucide-react";
 import { LineChart, Line, BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from "recharts";
 import html2canvas from "html2canvas";
 import KPICard from "@/components/KPICard";
+import SopPanel from "@/components/SopPanel";
+import { dashboardSop } from "@/data/sopConfigs";
 import StatusBadge from "@/components/StatusBadge";
 import AtRiskAlerts from "@/components/AtRiskAlerts";
 import MonthFilter from "@/components/MonthFilter";
-import { useSheetData, getKPIMetrics, getComplianceBreakdown, getNeedsAttention, getBookkeeperStats, getClientsForMonth } from "@/hooks/useSheetData";
+import { useFilteredSheetData, getKPIMetrics, getComplianceBreakdown, getNeedsAttention, getBookkeeperStats, getClientsForMonth, buildLatestSubmissionMap } from "@/hooks/useSheetData";
 import { DataLoading, DataError } from "@/components/DataStatus";
 import { toast } from "sonner";
 import { EmptyState } from "@/components/EmptyState";
@@ -22,6 +24,7 @@ import type { MerHistoryRow } from "@/services/googleSheets";
 import { useMerWorkflowContacts, contactDisplayName } from "@/hooks/useMerWorkflowContacts";
 import { useDeveloperFilter } from "@/hooks/useDeveloperFilter";
 import RecentActivityFeed from "@/components/RecentActivityFeed";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 
 // Theme-token colors so charts follow the active (dark/light) palette.
 const CHART_COLORS = {
@@ -93,7 +96,7 @@ function NeedsAttentionSection({ clients, merHistory, actionLog }: { clients: Cl
     { title: "Unresolved Transactions", count: attention.unresolvedTransactions.length, icon: AlertCircle, priority: "high" as const,
       items: attention.unresolvedTransactions.slice(0, 6).map(c => ({ id: c.id, name: c.name, label: c.name, badge: <span className="font-mono-data text-xs font-semibold text-destructive">{c.uncategorizedTransactions}</span> })) },
     { title: "Not Reconciled", count: attention.notReconciled.length, icon: Clock, priority: "medium" as const,
-      items: attention.notReconciled.slice(0, 5).map(c => ({ id: c.id, name: c.name, label: c.name, badge: <span className="font-mono-data text-xs text-muted-foreground">{c.lastReconciledDate}</span> })) },
+      items: attention.notReconciled.slice(0, 5).map(c => ({ id: c.id, name: c.name, label: c.name, badge: <span className="font-mono-data text-xs text-destructive font-semibold">{c.lastReconciledDate}</span> })) },
     { title: "No Approved Notes", count: attention.noApprovedNotes.length, icon: StickyNote, priority: "medium" as const,
       items: attention.noApprovedNotes.slice(0, 5).map(c => ({ id: c.id, name: c.name, label: c.name, badge: <span className="text-[10px] font-semibold text-destructive uppercase tracking-wider">Pending</span> })) },
   ];
@@ -154,6 +157,7 @@ function NeedsAttentionSection({ clients, merHistory, actionLog }: { clients: Cl
         onClose={() => setDetailsClient(null)}
         client={detailsRow}
         actionLog={actionLog}
+        merHistory={merHistory}
       />
     </motion.div>
   );
@@ -161,7 +165,6 @@ function NeedsAttentionSection({ clients, merHistory, actionLog }: { clients: Cl
 
 function BookkeepersSection({ clients, bookkeepers, actionLog, merHistory }: { clients: Client[]; bookkeepers: string[]; actionLog: import("@/services/googleSheets").ActionLogEntry[]; merHistory: MerHistoryRow[] }) {
   const bkStats = getBookkeeperStats(clients, bookkeepers);
-
 
   return (
     <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4, delay: 0.15 }}
@@ -185,9 +188,15 @@ function BookkeepersSection({ clients, bookkeepers, actionLog, merHistory }: { c
                 <p className="text-[13px] font-semibold text-foreground truncate" title={bk.name}>{bk.name}</p>
                 <p className="text-[11px] text-muted-foreground break-words tabular-nums">{bk.totalClients} clients · <span className="text-success">{bk.compliant} compliant</span> · <span className="text-destructive">{nonCompliant} non-compliant</span></p>
               </div>
-              <div className="text-right shrink-0">
-                <span className="font-mono-data tabular-nums text-sm font-bold text-foreground">{bk.rate}%</span>
-                <p className="text-[10px] text-muted-foreground">rate</p>
+              <div className="text-right shrink-0 flex items-center gap-3">
+                <div>
+                  <span className="font-mono-data tabular-nums text-sm font-bold text-foreground">{bk.avgCompletion}%</span>
+                  <p className="text-[10px] text-muted-foreground">avg</p>
+                </div>
+                <div>
+                  <span className="font-mono-data tabular-nums text-sm font-bold text-foreground">{bk.rate}%</span>
+                  <p className="text-[10px] text-muted-foreground">rate</p>
+                </div>
               </div>
             </motion.div>
           );
@@ -278,11 +287,11 @@ function KPIChartsSection({ kpi, breakdown }: { kpi: ReturnType<typeof getKPIMet
 }
 
 export default function DashboardPage() {
-  const { data, isLoading, error, refetch, isFetching } = useSheetData();
+  const { data, isLoading, error, refetch, isFetching } = useFilteredSheetData();
   const { contacts: merWorkflowContacts } = useMerWorkflowContacts();
   const dashRef = useRef<HTMLDivElement>(null);
   const [capturing, setCapturing] = useLocalState(false);
-  const [monthFilter, setMonthFilter] = useLocalState<string>("current");
+  const [monthFilter, setMonthFilter] = useLocalState<string>("");
   // Sync freshness is shown in the app footer + header refresh spinner;
   // no page-wide re-render needed here.
 
@@ -319,19 +328,23 @@ export default function DashboardPage() {
   // Strip developer-role users from any list shown to operations.
   const bookkeepers = allBookkeepers.filter((bk) => !isDeveloper(bk));
 
-  // "current" = live latest, else historical snapshot for the picked month
-  const isLatest = monthFilter === "current";
-  const activeMonth = isLatest ? latestMonth : monthFilter;
-  const sheetClients = isLatest ? data.clients : getClientsForMonth(merHistory, monthFilter);
+  // Default to latest month; all views use month-scoped MER data.
+  const activeMonth = (monthFilter && availableMonths.includes(monthFilter)) ? monthFilter : latestMonth;
+  const isCurrentMonth = activeMonth === latestMonth;
+  const sheetClients = getClientsForMonth(merHistory, activeMonth);
+  // Pre-build a lookup of every client's most recent MER across all months
+  // so we can roll forward data for clients without a submission this month.
+  const latestAnyMonth = buildLatestSubmissionMap(merHistory);
 
-  // When viewing the current month, GHL mer-workflow contacts are the source of
-  // truth for WHO appears. Overlay matching MER data; otherwise show a placeholder.
+  // GHL mer-workflow contacts are the source of truth for WHO appears.
+  // Overlay matching MER data for the active view; clients without a
+  // submission for the selected month show their most recent prior data
+  // (rolled over) so the total count and data stay complete.
   const mergedClients: Client[] = (() => {
-    if (!isLatest) return sheetClients;
     const norm = (s: string) => s.trim().toLowerCase();
     const byGhlId = new Map<string, Client>();
     const byName = new Map<string, Client>();
-    for (const c of data.clients) {
+    for (const c of sheetClients) {
       const gid = c.ghlContactId;
       if (gid) byGhlId.set(gid, c);
       byName.set(norm(c.name), c);
@@ -342,34 +355,49 @@ export default function DashboardPage() {
     const seen = new Set<string>();
     const out: Client[] = [];
     for (const contact of merWorkflowContacts) {
-      const matched = byGhlId.get(contact.id) || byName.get(norm(contactDisplayName(contact)));
-      const key = (matched && matched.ghlContactId) || contact.id || norm(contactDisplayName(contact));
+      const cName = contactDisplayName(contact);
+      const matched = byGhlId.get(contact.id) || byName.get(norm(cName));
+      const key = (matched && matched.ghlContactId) || contact.id || norm(cName);
       if (seen.has(key)) continue;
       seen.add(key);
       if (matched) {
         out.push(matched);
       } else {
-        out.push({
-          id: contact.id,
-          name: contactDisplayName(contact),
-          clientType: "For-Profit",
-          bookkeeper: "—",
-          status: "Pending MER",
-          bankTransactions: "",
-          uncategorizedTransactions: 0,
-          transactionsWithoutPayees: 0,
-          undepositedFunds: 0,
-          unappliedPayments: 0,
-          statementRequestStatus: "",
-          lastReconciledDate: "",
-          prevMonthNotesApproved: false,
-          financialsSentToClient: false,
-          booksClosedInQB: false,
-          completionPct: 0,
-          complianceStatus: "Pending MER",
-          ghlContactId: contact.id,
-          categoryTags: (contact.tags || []).join(","),
-        } as Client);
+        // No submission for this month — try rolling over from latest prior month
+        const prior = latestAnyMonth.get(norm(cName));
+        if (prior) {
+          out.push({
+            ...prior,
+            id: contact.id,
+            ghlContactId: contact.id,
+            rolledOver: true,
+            rolledOverFrom: prior.month,
+            categoryTags: (contact.tags || []).join(","),
+          } as Client);
+        } else {
+          // Never submitted — truly pending
+          out.push({
+            id: contact.id,
+            name: cName,
+            clientType: "For-Profit",
+            bookkeeper: "—",
+            status: "Pending MER",
+            bankTransactions: "",
+            uncategorizedTransactions: 0,
+            transactionsWithoutPayees: 0,
+            undepositedFunds: 0,
+            unappliedPayments: 0,
+            statementRequestStatus: "",
+            lastReconciledDate: "",
+            prevMonthNotesApproved: false,
+            financialsSentToClient: false,
+            booksClosedInQB: false,
+            completionPct: 0,
+            complianceStatus: "Pending MER",
+            ghlContactId: contact.id,
+            categoryTags: (contact.tags || []).join(","),
+          } as Client);
+        }
       }
     }
     return out;
@@ -402,54 +430,63 @@ export default function DashboardPage() {
           <h2 className="text-xl sm:text-2xl font-semibold tracking-tight text-foreground">Dashboard</h2>
           <p className="text-sm text-muted-foreground mt-1">
             <span className="font-mono-data tabular-nums text-foreground font-semibold">{clients.length}</span> clients ·{" "}
-            {isLatest ? <span className="text-success">live</span> : <span className="text-warning">historical view · {activeMonth}</span>}
+            {isCurrentMonth ? <span className="text-success">{activeMonth}</span> : <span className="text-warning">historical view · {activeMonth}</span>}
           </p>
         </div>
         <div className="flex flex-col sm:flex-row sm:items-end gap-3 w-full sm:w-auto">
           <div className="flex items-end gap-3">
             <MonthFilter
-              value={monthFilter}
+              value={activeMonth}
               onChange={setMonthFilter}
               months={availableMonths}
               latestMonth={latestMonth}
               label="Reporting Month"
               className="flex-1 sm:flex-none"
             />
-            {!isLatest && (
+            {!isCurrentMonth && (
               <button
                 type="button"
-                onClick={() => setMonthFilter("current")}
+                onClick={() => setMonthFilter(latestMonth)}
                 className="min-h-[40px] text-xs text-muted-foreground hover:text-foreground underline-offset-2 hover:underline transition-colors duration-150 rounded-md px-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring shrink-0"
               >
                 Reset to latest
               </button>
             )}
           </div>
-          <button
-            type="button"
-            onClick={handleCapture}
-            disabled={capturing}
-            className="inline-flex items-center justify-center gap-2 min-h-[40px] rounded-lg border border-border bg-card px-4 py-2 text-xs font-semibold text-muted-foreground shadow-card hover:bg-accent hover:text-foreground transition-colors duration-150 disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-          >
-            <Camera className={`h-3.5 w-3.5 ${capturing ? "animate-pulse" : ""}`} aria-hidden />
-            {capturing ? "Capturing…" : "Capture as PNG"}
-          </button>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <button
+                type="button"
+                className="inline-flex items-center justify-center min-h-[40px] min-w-[40px] rounded-lg border border-border bg-card px-2 py-2 text-muted-foreground shadow-card hover:bg-accent hover:text-foreground transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                aria-label="More options"
+              >
+                <MoreVertical className="h-4 w-4" />
+              </button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem onClick={handleCapture} disabled={capturing}>
+                {capturing ? <Download className="h-3.5 w-3.5 mr-2 animate-pulse" /> : <Camera className="h-3.5 w-3.5 mr-2" />}
+                {capturing ? "Capturing…" : "Capture as PNG"}
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+          <SopPanel config={dashboardSop} />
         </div>
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3 sm:gap-4">
-        <KPICard title="Total Clients" value={kpi.total} icon={Users} index={0} />
+        <KPICard title="Total Clients" value={kpi.total} icon={Users} index={0}
+          subtitle={kpi.rolledOver > 0 ? `${kpi.rolledOver} rolled over` : undefined}
+          tooltip={kpi.rolledOver > 0 ? <><p className="font-semibold text-foreground mb-1">Total Clients</p><p>{kpi.rolledOver} client{kpi.rolledOver !== 1 ? "s" : ""} showing data carried forward from a prior month because no MER was submitted for {activeMonth}.</p></> : undefined} />
         <KPICard title="Compliant" value={kpi.compliant} icon={CheckCircle2} variant="success" index={1}
           delta={deltaCompliant} deltaLabel={deltaLabel}
           tooltip={<><p className="font-semibold text-foreground mb-1">Compliant</p><p>A client counts as Compliant only when ALL 10 checks pass: Bank Transactions Received, 0 Uncategorized, 0 Transactions Without Payees, 0 Undeposited Funds, 0 Unapplied Payments, Statement Request Received, Last Reconciled Date valid, Prev Month Notes Approved, Financials Sent To Client, and Books Closed In QB.</p></>} />
         <KPICard title="Non-Compliant" value={kpi.nonCompliant} icon={XCircle} variant="destructive" index={2}
           delta={deltaNonCompliant} deltaLabel={deltaLabel} invertDeltaColor
           tooltip={<><p className="font-semibold text-foreground mb-1">Non-Compliant</p><p>Any client where one or more of the 10 compliance checks fail and the sheet Status is not "On Hold". Hover an individual badge to see which specific fields failed.</p></>} />
-        <KPICard title="On Hold" value={kpi.onHold} icon={Pause} variant="warning" index={3}
-          tooltip={<><p className="font-semibold text-foreground mb-1">On Hold</p><p>Triggered when the sheet's Status column contains the word "hold" (case-insensitive). On Hold takes precedence over the other 10 checks.</p></>} />
-        <KPICard title="Pending MER" value={kpi.pendingMer} icon={Pause} variant="default" index={4}
-          tooltip={<><p className="font-semibold text-foreground mb-1">Pending MER</p><p>Active GHL contacts (mer-workflow tag) that have not submitted any MER data yet. They are tracked separately from On Hold so the compliance KPIs aren't inflated.</p></>} />
-        <KPICard title="Completion %" value={`${kpi.avgCompletion}%`} icon={TrendingUp} index={5}
+        <KPICard title="Pending MER" value={kpi.pendingMer} icon={Pause} variant="default" index={3}
+          tooltip={<><p className="font-semibold text-foreground mb-1">Pending MER</p><p>Active GHL contacts (mer-workflow tag) that have never submitted any MER data. They are tracked separately so compliance KPIs aren't inflated.</p></>} />
+        <KPICard title="Completion %" value={`${kpi.avgCompletion}%`} icon={TrendingUp} index={4}
           delta={deltaCompletion} deltaLabel={deltaLabel} />
         {/* Not Reconciled / Outstanding Stmts / No Updated Notes removed —
             same numbers are already broken out in the Compliance Breakdown bar

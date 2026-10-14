@@ -27,7 +27,26 @@ export interface NotificationPrefs {
   showWarnings: boolean;
   showInfo: boolean;
   showSuccess: boolean;
+  /** Per-action-type muting. If an action key is `false`, its notifications are suppressed. */
+  actionTypes: Record<string, boolean>;
 }
+
+/** Human-readable labels for each dashboard action type. */
+export const ACTION_TYPE_LABELS: Record<string, { label: string; urgency: "critical" | "routine" }> = {
+  "bank-reconnection":       { label: "Bank Reconnection Request", urgency: "critical" },
+  "missing-statement":       { label: "Missing Statement Follow-Up", urgency: "critical" },
+  "docs-request":            { label: "Documents Request", urgency: "critical" },
+  "notes-approval":          { label: "Notes Approval", urgency: "routine" },
+  "undo-notes-approval":     { label: "Undo Notes Approval", urgency: "routine" },
+  "mark-resolved":           { label: "Mark Resolved", urgency: "routine" },
+  "mark-statement-resolved": { label: "Mark Statement Resolved", urgency: "routine" },
+  "mark-docs-received":      { label: "Mark Docs Received", urgency: "routine" },
+  "clear-mer-data":          { label: "Clear MER Data", urgency: "critical" },
+};
+
+const DEFAULT_ACTION_TYPES: Record<string, boolean> = Object.fromEntries(
+  Object.keys(ACTION_TYPE_LABELS).map((k) => [k, true]),
+);
 
 export const DEFAULT_NOTIF_PREFS: NotificationPrefs = {
   bookkeeperFilter: "",
@@ -35,6 +54,7 @@ export const DEFAULT_NOTIF_PREFS: NotificationPrefs = {
   showWarnings: true,
   showInfo: true,
   showSuccess: true,
+  actionTypes: { ...DEFAULT_ACTION_TYPES },
 };
 
 /* ------------------------------------------------------------------ */

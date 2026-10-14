@@ -1,5 +1,5 @@
 import { useState, useMemo } from "react";
-import { useSheetData } from "@/hooks/useSheetData";
+import { useFilteredSheetData } from "@/hooks/useSheetData";
 import ClientDetailsModal from "@/components/ClientDetailsModal";
 import type { MerHistoryRow } from "@/services/googleSheets";
 
@@ -13,7 +13,7 @@ import type { MerHistoryRow } from "@/services/googleSheets";
  *   {modal}
  */
 export function useClientDetails() {
-  const { data } = useSheetData();
+  const { data } = useFilteredSheetData();
   const [name, setName] = useState<string | null>(null);
 
   const row = useMemo<MerHistoryRow | null>(() => {
@@ -34,6 +34,7 @@ export function useClientDetails() {
       onClose={() => setName(null)}
       client={row}
       actionLog={data?.actionLog ?? []}
+      merHistory={data?.merHistory ?? []}
     />
   );
 

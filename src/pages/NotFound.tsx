@@ -8,8 +8,8 @@ const NotFound = () => {
     <div className="min-h-screen flex items-center justify-center bg-background vignette px-4">
       <div className="w-full max-w-md relative z-10">
         <div className="flex flex-col items-center mb-8">
-          <img src={logo} alt="MER Command Center" className="h-12 w-12 rounded-xl object-contain mb-4" />
-          <p className="text-sm text-muted-foreground">MER Command Center MER Dashboard</p>
+          <img src={logo} alt="Brant & Associates" className="h-12 w-12 rounded-xl object-contain mb-4" />
+          <p className="text-sm text-muted-foreground">Brant &amp; Associates MER Dashboard</p>
         </div>
 
         <div className="glass-panel border border-border rounded-2xl p-7 shadow-elevated text-center space-y-4">

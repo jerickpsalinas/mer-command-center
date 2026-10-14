@@ -72,8 +72,14 @@ export const bankTransactionsOk = (val: unknown): boolean => {
   return true;
 };
 
-export const statementReceived = (val: unknown): boolean =>
-  norm(val) === "received";
+export const statementReceived = (val: unknown): boolean => {
+  const v = norm(val);
+  const positives = new Set([
+    "received", "yes", "y", "done", "complete", "completed", "true",
+    "sent", "submitted", "uploaded", "confirmed",
+  ]);
+  return positives.has(v);
+};
 
 /**
  * Convert a "Sep 2025" / "September 2025" label into the last day of the
@@ -173,11 +179,17 @@ export function buildChecks(row: RowLike): ComplianceCheck[] {
 /** Full evaluation — status + checks + completion %. Callers pass any row with the MER fields. */
 export function evaluateCompliance(row: RowLike): ComplianceEvaluation {
   // 1. On Hold overrides everything (matches historical behavior).
+  //    completionPct still reflects real check results so the KPI average
+  //    stays honest — getKPIMetrics excludes On Hold from the average entirely.
   if (norm(row.status).includes("hold")) {
+    const checks = buildChecks(row);
+    const complianceChecks = checks.filter((c) => c.countsForCompliance);
+    const passing = complianceChecks.filter((c) => c.passed).length;
+    const total = complianceChecks.length || 1;
     return {
       status: "On Hold",
-      checks: buildChecks(row),
-      completionPct: 100, // On Hold is intentionally excluded from completion accounting
+      checks,
+      completionPct: Math.round((passing / total) * 100),
       failingLabels: [],
     };
   }

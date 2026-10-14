@@ -28,6 +28,8 @@ const UserGuidePage = lazy(() => import("@/pages/UserGuidePage"));
 const SettingsPage = lazy(() => import("@/pages/SettingsPage"));
 const ActivityLogPage = lazy(() => import("@/pages/ActivityLogPage"));
 const DeveloperPage = lazy(() => import("@/pages/DeveloperPage"));
+const BillingPage = lazy(() => import("@/pages/BillingPage"));
+const GhlContactsPage = lazy(() => import("@/pages/GhlContactsPage"));
 const NotFound = lazy(() => import("@/pages/NotFound"));
 
 const queryClient = new QueryClient();
@@ -78,6 +80,8 @@ const App = () => (
                   <Route path="/settings" element={<SettingsPage />} />
                   <Route path="/activity-log" element={<ActivityLogPage />} />
                   <Route path="/developer" element={<DeveloperPage />} />
+                  <Route path="/billing" element={<BillingPage />} />
+                  <Route path="/ghl-contacts" element={<GhlContactsPage />} />
                 </Route>
                 <Route path="*" element={<NotFound />} />
               </Routes>

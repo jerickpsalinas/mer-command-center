@@ -1,6 +1,10 @@
 import { useState, useMemo, useEffect, useRef } from "react";
+import { useNavigate } from "react-router-dom";
+import { useAuth } from "@/hooks/useAuth";
 import DOMPurify from "dompurify";
 import { motion } from "framer-motion";
+import SopPanel from "@/components/SopPanel";
+import { exportCenterSop } from "@/data/sopConfigs";
 import { format } from "date-fns";
 import {
   Download, FileSpreadsheet, FileText, Calendar as CalendarIcon, Eye,
@@ -15,7 +19,7 @@ import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
-import { useSheetData, filterHistoryByDateRange } from "@/hooks/useSheetData";
+import { useFilteredSheetData, filterHistoryByDateRange } from "@/hooks/useSheetData";
 import { DataLoading, DataError } from "@/components/DataStatus";
 import { exportXLSX, exportPDF } from "@/lib/merExport";
 import {
@@ -67,9 +71,9 @@ const EXPORTS: ExportDef[] = [
     icon: Users,
     accent: "primary",
     formats: ["xlsx", "pdf"],
-    countLabel: (h) => `${new Set(h.map((r) => r.name)).size} clients`,
-    run: (fmt, h, _c, rangeLabel, base) =>
-      fmt === "xlsx" ? exportClientScorecardXLSX(h, rangeLabel, base) : exportClientScorecardPDF(h, rangeLabel, base),
+    countLabel: (_h, _c, merged) => `${merged.length} clients`,
+    run: (fmt, h, _c, rangeLabel, base, merged) =>
+      fmt === "xlsx" ? exportClientScorecardXLSX(h, rangeLabel, base, merged) : exportClientScorecardPDF(h, rangeLabel, base, merged),
   },
   {
     id: "bookkeeper",
@@ -89,17 +93,12 @@ const EXPORTS: ExportDef[] = [
     icon: ShieldAlert,
     accent: "destructive",
     formats: ["xlsx", "pdf"],
-    countLabel: (h) => {
-      const latest = new Map<string, MerHistoryRow>();
-      for (const r of h) {
-        const ex = latest.get(r.name);
-        if (!ex || r.timestampMs >= ex.timestampMs) latest.set(r.name, r);
-      }
-      const atRisk = Array.from(latest.values()).filter((c) => c.completionPct < 40 || c.complianceStatus === "Non-Compliant").length;
+    countLabel: (_h, _c, merged) => {
+      const atRisk = merged.filter((c) => c.completionPct < 40 || c.complianceStatus === "Non-Compliant" || c.complianceStatus === "Pending MER").length;
       return `${atRisk} at-risk clients`;
     },
-    run: (fmt, h, _c, rangeLabel, base) =>
-      fmt === "xlsx" ? exportAtRiskXLSX(h, rangeLabel, base) : exportAtRiskPDF(h, rangeLabel, base),
+    run: (fmt, h, _c, rangeLabel, base, merged) =>
+      fmt === "xlsx" ? exportAtRiskXLSX(h, rangeLabel, base, merged) : exportAtRiskPDF(h, rangeLabel, base, merged),
   },
   {
     id: "trends",
@@ -141,7 +140,7 @@ const EXPORTS: ExportDef[] = [
     accent: "primary",
     formats: ["xlsx"],
     countLabel: (h, c) => `${h.length + c.length} total rows · 5 sheets`,
-    run: (_fmt, h, c, rangeLabel, base) => exportFullBackupXLSX(h, c, rangeLabel, base),
+    run: (_fmt, h, c, rangeLabel, base, merged) => exportFullBackupXLSX(h, c, rangeLabel, base, merged),
   },
 ];
 
@@ -153,7 +152,10 @@ const ACCENT_CLASS: Record<ExportDef["accent"], string> = {
 };
 
 export default function ReportsPage() {
-  const { data, isLoading, error } = useSheetData();
+  const { isBookkeeper } = useAuth();
+  const navigate = useNavigate();
+  useEffect(() => { if (isBookkeeper) navigate("/", { replace: true }); }, [isBookkeeper, navigate]);
+  const { data, isLoading, error } = useFilteredSheetData();
   const { contacts: merWorkflowContacts } = useMerWorkflowContacts();
   const [mode, setMode] = useState<RangeMode>("all");
   const [singleMonth, setSingleMonth] = useState<string>("");
@@ -354,12 +356,15 @@ export default function ReportsPage() {
       {/* Page intro */}
       <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }}
         className="rounded-xl border border-border bg-card p-5 sm:p-6 shadow-card">
-        <div className="flex items-start gap-3">
+        <div className="flex items-start gap-3 w-full">
           <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
             <Download className="h-5 w-5 text-primary" aria-hidden="true" />
           </div>
-          <div className="min-w-0">
-            <h2 className="text-base font-semibold text-foreground">Export Center</h2>
+          <div className="min-w-0 flex-1">
+            <div className="flex items-center justify-between">
+              <h2 className="text-base font-semibold text-foreground">Export Center</h2>
+              <SopPanel config={exportCenterSop} />
+            </div>
             <p className="text-[12px] text-muted-foreground mt-0.5 leading-relaxed">
               Pick a date range below — it applies to every report. Choose any report and download as Excel or PDF.
             </p>

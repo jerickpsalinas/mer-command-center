@@ -64,6 +64,32 @@ export function parseActionLog(rows: Record<string, string>[]): ActionLogEntry[]
     }));
 }
 
+export interface BillingRow {
+  id: string;
+  clientName: string;
+  email: string;
+  serviceType: string;
+  lastPaidDate: string;
+  balanceDue: string;
+  dueDate: string;
+  notificationStage: string;
+  notes: string;
+}
+
+export function parseBillingRow(row: Record<string, unknown>, index: number): BillingRow {
+  return {
+    id: String(index + 1),
+    clientName: String(row["Client Name"] ?? "").trim(),
+    email: String(row["Email"] ?? "").trim(),
+    serviceType: String(row["Service Type"] ?? "").trim(),
+    lastPaidDate: String(row["Last Paid Date"] ?? "").trim(),
+    balanceDue: String(row["Balance Due"] ?? "").trim(),
+    dueDate: String(row["Due Date"] ?? "").trim(),
+    notificationStage: String(row["Notification Stage"] ?? "").trim(),
+    notes: String(row["Notes"] ?? "").trim(),
+  };
+}
+
 export interface SheetData {
   clients: Client[];
   monthlyTrends: MonthlyTrend[];
@@ -75,6 +101,7 @@ export interface SheetData {
   availableMonths: string[];           // sorted "Mon YYYY" labels (asc)
   latestMonth: string;                 // most recent available month label
   actionLog: ActionLogEntry[];         // entries from "Action Log" tab
+  billing: BillingRow[];               // entries from "Billing" tab
 }
 
 function norm(val: unknown): string {
@@ -275,6 +302,11 @@ function parseSheetData(raw: any): SheetData {
   const actionLogRows: Record<string, string>[] = raw["Action Log"] ?? [];
   const actionLog = parseActionLog(actionLogRows);
 
+  const billingRows: Record<string, unknown>[] = raw["Billing"] ?? [];
+  const billing = billingRows
+    .filter((r) => String(r["Client Name"] ?? "").trim() !== "")
+    .map((r, i) => parseBillingRow(r, i));
+
   // QBO connectivity truth source: the "QBO Credentials" sheet tab written
   // by WF7a on connect and refreshed daily by WF7b. The per-MER-row
   // "QBO Connected" column is only ever set for the current cycle, so on
@@ -398,5 +430,6 @@ function parseSheetData(raw: any): SheetData {
     availableMonths,
     latestMonth,
     actionLog,
+    billing,
   };
 }

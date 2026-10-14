@@ -1,11 +1,14 @@
 import { useEffect, useMemo, useState } from "react";
-import { AlertCircle, Filter, Loader2, Pencil, RefreshCw, Search, Tags, Trash2, UserCheck, UserMinus, Users, X } from "lucide-react";
+import { useNavigate } from "react-router-dom";
+import { useAuth } from "@/hooks/useAuth";
+import { AlertCircle, Filter, Loader2, Pencil, RefreshCw, Search, Tags, Trash2, UserCheck, UserMinus, UserPlus, Users, X } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { toast } from "sonner";
 import { EmptyState } from "@/components/EmptyState";
-import { GHL_BASE, GHL_LOCATION_ID, ghlHeaders } from "@/lib/ghlConfig";
+import { GHL_BASE, ghlHeaders } from "@/lib/ghlConfig";
+import { useGhlContacts } from "@/hooks/useGhlContacts";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -25,6 +28,9 @@ import {
 } from "@/components/ui/dialog";
 import { Separator } from "@/components/ui/separator";
 import { logActivity } from "@/lib/activityLogger";
+import { cn, SELECT_NATIVE, SEARCH_WRAPPER, FOCUS_RING } from "@/lib/utils";
+import SopPanel from "@/components/SopPanel";
+import { ghlActiveClientsSop } from "@/data/sopConfigs";
 
 
 const PROTECTED_TAGS = [
@@ -87,6 +93,26 @@ type GhlContact = {
   tags?: string[];
 };
 
+/** Add a tag to a contact via GHL API */
+async function addTagToContact(contactId: string, tag: string) {
+  const res = await fetch(`${GHL_BASE}/contacts/${contactId}/tags`, {
+    method: "POST",
+    headers: ghlHeaders({ "Content-Type": "application/json" }),
+    body: JSON.stringify({ tags: [tag] }),
+  });
+  if (!res.ok) throw new Error(`Add tag failed (${res.status})`);
+}
+
+/** Remove a tag from a contact via GHL API */
+async function removeTagFromContact(contactId: string, tag: string) {
+  const res = await fetch(`${GHL_BASE}/contacts/${contactId}/tags`, {
+    method: "DELETE",
+    headers: ghlHeaders({ "Content-Type": "application/json" }),
+    body: JSON.stringify({ tags: [tag] }),
+  });
+  if (!res.ok) throw new Error(`Remove tag failed (${res.status})`);
+}
+
 
 function capitalizeWords(s: string) {
   return s
@@ -126,23 +152,39 @@ type PendingAction =
   | null;
 
 export default function GhlActiveClientsPage() {
-  // This tab is intentionally open to every signed-in user (bookkeepers
-  // included): they know best which clients to tag or clear. All actions here —
-  // cycle tags, clearing tags, and removals — are available to everyone.
+  const { isBookkeeper } = useAuth();
+  const navigate = useNavigate();
+  useEffect(() => { if (isBookkeeper) navigate("/", { replace: true }); }, [isBookkeeper, navigate]);
+  // Bookkeepers are redirected away — this page is restricted to admins and
+  // standard users who manage GHL active-client tags.
   const canEditCycleTags = true;
   const canManage = true;
   const [removing, setRemoving] = useState<GhlContact | null>(null);
   const [removingId, setRemovingId] = useState<string | null>(null);
   const [removingFromMer, setRemovingFromMer] = useState<GhlContact | null>(null);
   const [removingFromMerId, setRemovingFromMerId] = useState<string | null>(null);
-  const [contacts, setContacts] = useState<GhlContact[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const [addingToMerId, setAddingToMerId] = useState<string | null>(null);
+  const [markingInactiveId, setMarkingInactiveId] = useState<string | null>(null);
+
+  // Use shared GHL contacts hook (React Query deduplication)
+  const { contacts: allGhlContacts, loading, error, refresh: fetchAll } = useGhlContacts();
+
+  // Filter to active-client contacts (excluding inactive)
+  const contacts = useMemo(
+    () =>
+      allGhlContacts.filter((c) => {
+        const tags = (c.tags || []).map((t) => (t || "").toLowerCase());
+        return tags.includes("active-client") && !tags.includes("inactive-client");
+      }),
+    [allGhlContacts],
+  );
+
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [filter, setFilter] = useState<"all" | "regular" | "cleanup">("all");
   const [search, setSearch] = useState("");
   const [includeTags, setIncludeTags] = useState<Set<string>>(new Set());
   const [excludeTags, setExcludeTags] = useState<Set<string>>(new Set());
+  const [sortBy, setSortBy] = useState<"name" | "tags" | "status">("name");
   const [editing, setEditing] = useState<GhlContact | null>(null);
   const [editingSelected, setEditingSelected] = useState<Set<string>>(new Set());
   const [savingEdit, setSavingEdit] = useState(false);
@@ -157,86 +199,6 @@ export default function GhlActiveClientsPage() {
     failed: number;
   } | null>(null);
 
-  const fetchAll = async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      const tagged = await fetch(
-        `${GHL_BASE}/contacts/?locationId=${GHL_LOCATION_ID}&limit=100&tags[]=active-client`,
-        { headers: ghlHeaders() },
-      );
-      if (tagged.ok) {
-        const json = await tagged.json();
-        const list: GhlContact[] = json.contacts || [];
-        const filtered = list.filter((c) =>
-          (c.tags || []).includes("active-client"),
-        );
-        if (filtered.length >= 47) {
-          setContacts(filtered);
-          return;
-        }
-      }
-
-      const collected: GhlContact[] = [];
-      let startAfter: string | number | undefined;
-      let startAfterId: string | undefined;
-      for (let i = 0; i < 50; i++) {
-        const params = new URLSearchParams({
-          locationId: GHL_LOCATION_ID,
-          limit: "100",
-        });
-        if (startAfter != null) params.set("startAfter", String(startAfter));
-        if (startAfterId) params.set("startAfterId", startAfterId);
-        const res = await fetch(`${GHL_BASE}/contacts/?${params.toString()}`, {
-          headers: ghlHeaders(),
-        });
-        if (!res.ok) throw new Error(`GHL fetch failed (${res.status})`);
-        const json = await res.json();
-        const page: GhlContact[] = json.contacts || [];
-        if (page.length === 0) break;
-        collected.push(...page);
-        const meta = json.meta || {};
-        const nextStartAfter = meta.startAfter ?? meta.nextStartAfter;
-        const nextStartAfterId = meta.startAfterId ?? meta.nextStartAfterId;
-        if (!nextStartAfter && !nextStartAfterId) break;
-        if (
-          nextStartAfter === startAfter &&
-          nextStartAfterId === startAfterId
-        )
-          break;
-        startAfter = nextStartAfter;
-        startAfterId = nextStartAfterId;
-      }
-      setContacts(
-        collected.filter((c) => (c.tags || []).includes("active-client")),
-      );
-    } catch (e: unknown) {
-      setError((e instanceof Error ? e.message : String(e)) || "Failed to load contacts");
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    fetchAll();
-  }, []);
-
-  const refetchContact = async (id: string) => {
-    try {
-      const res = await fetch(`${GHL_BASE}/contacts/${id}`, {
-        headers: ghlHeaders(),
-      });
-      if (!res.ok) return;
-      const json = await res.json();
-      const updated: GhlContact = json.contact || json;
-      setContacts((prev) =>
-        prev.map((c) => (c.id === id ? { ...c, ...updated } : c)),
-      );
-    } catch {
-      /* ignore */
-    }
-  };
-
   const clearTagsFor = async (c: GhlContact): Promise<boolean> => {
     const toRemove = (c.tags || []).filter(
       (t) => !PROTECTED_TAGS.includes(t),
@@ -248,7 +210,6 @@ export default function GhlActiveClientsPage() {
       body: JSON.stringify({ tags: toRemove }),
     });
     if (!res.ok) throw new Error(`Delete failed (${res.status})`);
-    await refetchContact(c.id);
     return true;
   };
 
@@ -263,6 +224,7 @@ export default function GhlActiveClientsPage() {
       } else {
         await clearTagsFor(c);
         toast.success(`Cycle tags cleared for ${contactName(c)}`);
+        fetchAll();
       }
       closeDialog();
     } catch (e: unknown) {
@@ -290,6 +252,7 @@ export default function GhlActiveClientsPage() {
     }
     setBulkProgress(null);
     setSelected(new Set());
+    fetchAll();
     closeDialog();
   };
 
@@ -303,20 +266,21 @@ export default function GhlActiveClientsPage() {
     const c = removing;
     setRemovingId(c.id);
     try {
-      const res = await fetch(`${GHL_BASE}/contacts/${c.id}/tags`, {
-        method: "DELETE",
-        headers: ghlHeaders({ "Content-Type": "application/json" }),
-        body: JSON.stringify({ tags: ["active-client"] }),
-      });
-      if (!res.ok) throw new Error(`Failed (${res.status})`);
-      setContacts((prev) => prev.filter((x) => x.id !== c.id));
+      await removeTagFromContact(c.id, "active-client");
       setSelected((prev) => {
         const next = new Set(prev);
         next.delete(c.id);
         return next;
       });
       toast.success(`Client removed from active list: ${contactName(c)}`);
+      void logActivity({
+        action: "tag-removed",
+        clientName: contactName(c),
+        page: "GHL Active Clients",
+        details: "Removed: active-client",
+      });
       setRemoving(null);
+      fetchAll();
     } catch (e: unknown) {
       toast.error((e instanceof Error ? e.message : String(e)) || "Please try again.");
     } finally {
@@ -329,13 +293,7 @@ export default function GhlActiveClientsPage() {
     const c = removingFromMer;
     setRemovingFromMerId(c.id);
     try {
-      const res = await fetch(`${GHL_BASE}/contacts/${c.id}/tags`, {
-        method: "DELETE",
-        headers: ghlHeaders({ "Content-Type": "application/json" }),
-        body: JSON.stringify({ tags: ["mer-workflow"] }),
-      });
-      if (!res.ok) throw new Error(`Failed (${res.status})`);
-      await refetchContact(c.id);
+      await removeTagFromContact(c.id, "mer-workflow");
       toast.success(`Removed from MER workflow: ${contactName(c)}`);
       void logActivity({
         action: "tag-removed",
@@ -344,10 +302,54 @@ export default function GhlActiveClientsPage() {
         details: "Removed: mer-workflow",
       });
       setRemovingFromMer(null);
+      fetchAll();
     } catch (e: unknown) {
       toast.error((e instanceof Error ? e.message : String(e)) || "Please try again.");
     } finally {
       setRemovingFromMerId(null);
+    }
+  };
+
+  const handleAddToMer = async (c: GhlContact) => {
+    setAddingToMerId(c.id);
+    try {
+      await addTagToContact(c.id, "mer-workflow");
+      toast.success(`Added to MER workflow: ${contactName(c)}`);
+      void logActivity({
+        action: "tag-added",
+        clientName: contactName(c),
+        page: "GHL Active Clients",
+        details: "Added: mer-workflow",
+      });
+      fetchAll();
+    } catch (e: unknown) {
+      toast.error((e instanceof Error ? e.message : String(e)) || "Please try again.");
+    } finally {
+      setAddingToMerId(null);
+    }
+  };
+
+  const handleMarkInactive = async (c: GhlContact) => {
+    setMarkingInactiveId(c.id);
+    try {
+      await addTagToContact(c.id, "inactive-client");
+      toast.success(`Marked inactive: ${contactName(c)}`);
+      void logActivity({
+        action: "tag-added",
+        clientName: contactName(c),
+        page: "GHL Active Clients",
+        details: "Added: inactive-client",
+      });
+      setSelected((prev) => {
+        const next = new Set(prev);
+        next.delete(c.id);
+        return next;
+      });
+      fetchAll();
+    } catch (e: unknown) {
+      toast.error((e instanceof Error ? e.message : String(e)) || "Please try again.");
+    } finally {
+      setMarkingInactiveId(null);
     }
   };
 
@@ -386,6 +388,10 @@ export default function GhlActiveClientsPage() {
     () => sortedAll.filter((c) => hasTag(c, "ready-for-cleanup")).length,
     [sortedAll],
   );
+  const merCount = useMemo(
+    () => sortedAll.filter((c) => hasTag(c, "mer-workflow")).length,
+    [sortedAll],
+  );
 
   const availableCycleTags = useMemo(() => {
     const set = new Set<string>();
@@ -416,8 +422,18 @@ export default function GhlActiveClientsPage() {
     }
     const q = search.trim().toLowerCase();
     if (q) list = list.filter((c) => contactName(c).toLowerCase().includes(q));
+    if (sortBy === "tags") {
+      list = [...list].sort((a, b) => (b.tags || []).length - (a.tags || []).length);
+    } else if (sortBy === "status") {
+      list = [...list].sort((a, b) => {
+        const aHas = hasTag(a, "mer-workflow") ? 1 : 0;
+        const bHas = hasTag(b, "mer-workflow") ? 1 : 0;
+        return bHas - aHas || contactName(a).localeCompare(contactName(b));
+      });
+    }
+    // "name" is the default sort from sortedAll
     return list;
-  }, [sortedAll, filter, search, includeTags, excludeTags]);
+  }, [sortedAll, filter, search, includeTags, excludeTags, sortBy]);
 
   const allSelected =
     sorted.length > 0 && sorted.every((c) => selected.has(c.id));
@@ -435,7 +451,7 @@ export default function GhlActiveClientsPage() {
     });
   };
 
-  const busy = clearingId !== null || bulkProgress !== null;
+  const busy = clearingId !== null || bulkProgress !== null || addingToMerId !== null || markingInactiveId !== null;
 
   const openEdit = (c: GhlContact) => {
     const current = new Set(
@@ -499,7 +515,7 @@ export default function GhlActiveClientsPage() {
           details: `Removed: ${toRemove.join(", ")}`,
         });
       }
-      await refetchContact(c.id);
+      fetchAll();
       toast.success(`Tags updated for ${contactName(c)}`);
       setEditing(null);
     } catch (e: unknown) {
@@ -553,9 +569,15 @@ export default function GhlActiveClientsPage() {
           {loading ? (
             <Skeleton className="h-4 w-28 rounded" />
           ) : (
-            <span className="text-xs text-muted-foreground font-mono-data tabular-nums">
-              {sorted.length} of {sortedAll.length} contacts
-            </span>
+            <>
+              <span className="text-xs text-muted-foreground font-mono-data tabular-nums">
+                {sorted.length} of {sortedAll.length} contacts
+              </span>
+              <span className="inline-flex items-center gap-1 text-xs text-muted-foreground">
+                <span className="inline-block h-2 w-2 rounded-full bg-success" />
+                <span className="font-mono-data tabular-nums">{merCount}</span> on dashboard
+              </span>
+            </>
           )}
         </div>
         <div className="flex items-center gap-2">
@@ -584,6 +606,7 @@ export default function GhlActiveClientsPage() {
             />
             {loading ? "Refreshing…" : "Refresh"}
           </button>
+          <SopPanel config={ghlActiveClientsSop} />
         </div>
       </div>
 
@@ -672,22 +695,32 @@ export default function GhlActiveClientsPage() {
             );
           })}
         </div>
-        <div className="relative flex-1 min-w-[200px] max-w-sm">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground pointer-events-none" aria-hidden="true" />
+        <select
+          value={sortBy}
+          onChange={(e) => setSortBy(e.target.value as "name" | "tags" | "status")}
+          aria-label="Sort contacts"
+          className={`${SELECT_NATIVE} appearance-none pr-8 cursor-pointer`}
+        >
+          <option value="name">Sort: Name (A–Z)</option>
+          <option value="tags">Sort: Tag Count</option>
+          <option value="status">Sort: MER Status</option>
+        </select>
+        <div className={cn(SEARCH_WRAPPER, "flex-1 min-w-[200px] max-w-sm")}>
+          <Search className="h-4 w-4 text-muted-foreground shrink-0" aria-hidden="true" />
           <input
             type="search"
             aria-label="Search clients"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Search clients..."
-            className="w-full h-9 pl-9 pr-9 rounded-lg border border-border bg-background text-foreground placeholder:text-muted-foreground text-xs transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring [&::-webkit-search-cancel-button]:hidden"
+            className="bg-transparent outline-none text-sm text-foreground placeholder:text-muted-foreground w-full min-w-0"
           />
           {search && (
             <button
               type="button"
               aria-label="Clear search"
               onClick={() => setSearch("")}
-              className="absolute right-2 top-1/2 -translate-y-1/2 inline-flex items-center justify-center h-6 w-6 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              className={cn("shrink-0 -mr-1 h-6 w-6 rounded-full flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted transition-colors duration-150", FOCUS_RING)}
             >
               <X className="h-3.5 w-3.5" aria-hidden="true" />
             </button>
@@ -716,7 +749,7 @@ export default function GhlActiveClientsPage() {
         >
           <span className="sr-only">Loading active clients…</span>
           <div className="min-w-[760px]">
-            <div className="grid grid-cols-[24px_1.4fr_1.2fr_1.6fr_160px] items-center gap-3 px-4 py-2.5 border-b border-border bg-muted/40">
+            <div className="grid grid-cols-[24px_1.4fr_1fr_1.4fr_180px] items-center gap-3 px-4 py-2.5 border-b border-border bg-muted/40">
               <Skeleton className="h-4 w-4 rounded" />
               <Skeleton className="h-3 w-16 rounded" />
               <Skeleton className="h-3 w-24 rounded" />
@@ -725,7 +758,7 @@ export default function GhlActiveClientsPage() {
             </div>
             <ul className="divide-y divide-border">
               {Array.from({ length: 6 }).map((_, i) => (
-                <li key={i} className="grid grid-cols-[24px_1.4fr_1.2fr_1.6fr_160px] items-start gap-3 px-4 py-3">
+                <li key={i} className="grid grid-cols-[24px_1.4fr_1fr_1.4fr_180px] items-start gap-3 px-4 py-3">
                   <Skeleton className="h-4 w-4 mt-1 rounded" />
                   <div className="space-y-1.5">
                     <Skeleton className="h-4 w-40 rounded" />
@@ -791,7 +824,7 @@ export default function GhlActiveClientsPage() {
       {!loading && !error && sorted.length > 0 && (
         <div className="rounded-xl border border-border bg-card shadow-card overflow-x-auto max-h-[70vh] overflow-y-auto scrollbar-thin">
           <div className="min-w-[760px]">
-            <div className="sticky top-0 z-10 grid grid-cols-[24px_1.4fr_1.2fr_1.6fr_160px] items-center gap-3 px-4 py-2.5 border-b border-border bg-muted/40 backdrop-blur supports-[backdrop-filter]:bg-muted/60 text-xs font-medium uppercase tracking-wider text-muted-foreground">
+            <div className="sticky top-0 z-10 grid grid-cols-[24px_1.4fr_1fr_1.4fr_180px] items-center gap-3 px-4 py-2.5 border-b border-border bg-muted/40 backdrop-blur supports-[backdrop-filter]:bg-muted/60 text-xs font-medium uppercase tracking-wider text-muted-foreground">
               <input
                 type="checkbox"
                 aria-label="Select all"
@@ -826,7 +859,7 @@ export default function GhlActiveClientsPage() {
                 return (
                   <li
                     key={c.id}
-                    className="grid grid-cols-[24px_1.4fr_1.2fr_1.6fr_160px] items-start gap-3 px-4 py-3 hover:bg-muted/40 transition-colors duration-150"
+                    className="grid grid-cols-[24px_1.4fr_1fr_1.4fr_180px] items-start gap-3 px-4 py-3 hover:bg-muted/40 transition-colors duration-150"
                   >
                     <input
                       type="checkbox"
@@ -836,11 +869,21 @@ export default function GhlActiveClientsPage() {
                       className="h-4 w-4 mt-1 rounded border-border accent-primary cursor-pointer"
                     />
                     <div className="min-w-0">
-                      <h3 className="text-sm font-semibold text-foreground truncate" title={company || full || "Unnamed Contact"}>
-                        {company || full || "Unnamed Contact"}
-                      </h3>
+                      <div className="flex items-center gap-1.5">
+                        <span
+                          title={hasTag(c, "mer-workflow") ? "On MER Dashboard" : "Not on MER Dashboard"}
+                          className={`inline-block h-2 w-2 rounded-full shrink-0 ${
+                            hasTag(c, "mer-workflow")
+                              ? "bg-success"
+                              : "bg-muted-foreground/30"
+                          }`}
+                        />
+                        <h3 className="text-sm font-semibold text-foreground truncate" title={company || full || "Unnamed Contact"}>
+                          {company || full || "Unnamed Contact"}
+                        </h3>
+                      </div>
                       {company && full && (
-                        <p className="text-[11px] text-muted-foreground truncate" title={full}>
+                        <p className="text-[11px] text-muted-foreground truncate pl-3.5" title={full}>
                           {full}
                         </p>
                       )}
@@ -888,7 +931,7 @@ export default function GhlActiveClientsPage() {
                         <Pencil className="h-3.5 w-3.5" aria-hidden="true" />
                         Edit Tags
                       </button>
-                      {canEditCycleTags && hasTag(c, "mer-workflow") && (
+                      {canEditCycleTags && hasTag(c, "mer-workflow") ? (
                         <button
                           type="button"
                           onClick={() => setRemovingFromMer(c)}
@@ -902,6 +945,21 @@ export default function GhlActiveClientsPage() {
                             <UserMinus className="h-3.5 w-3.5" aria-hidden="true" />
                           )}
                           Remove from MER
+                        </button>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={() => handleAddToMer(c)}
+                          disabled={busy || addingToMerId === c.id}
+                          aria-label={`Add ${contactName(c)} to MER workflow`}
+                          className="inline-flex items-center justify-center gap-1.5 h-8 px-2.5 rounded-md text-[11px] font-semibold bg-success/10 text-success border border-success/20 hover:bg-success/15 transition-colors duration-150 disabled:opacity-40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                        >
+                          {addingToMerId === c.id ? (
+                            <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden="true" />
+                          ) : (
+                            <UserPlus className="h-3.5 w-3.5" aria-hidden="true" />
+                          )}
+                          Add to MER
                         </button>
                       )}
                       {canManage && (
@@ -939,6 +997,22 @@ export default function GhlActiveClientsPage() {
                             <UserMinus className="h-3.5 w-3.5" aria-hidden="true" />
                           )}
                           Remove Client
+                        </button>
+                      )}
+                      {canManage && (
+                        <button
+                          type="button"
+                          onClick={() => handleMarkInactive(c)}
+                          disabled={busy || markingInactiveId === c.id}
+                          aria-label={`Mark ${contactName(c)} as inactive`}
+                          className="inline-flex items-center justify-center gap-1.5 h-8 px-2.5 rounded-md text-[11px] font-semibold bg-muted text-muted-foreground border border-border hover:bg-muted/80 transition-colors duration-150 disabled:opacity-40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                        >
+                          {markingInactiveId === c.id ? (
+                            <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden="true" />
+                          ) : (
+                            <UserMinus className="h-3.5 w-3.5" aria-hidden="true" />
+                          )}
+                          Mark Inactive
                         </button>
                       )}
                     </div>

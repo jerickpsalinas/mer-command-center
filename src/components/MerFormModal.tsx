@@ -184,7 +184,7 @@ type ClientOption = {
 
 export default function MerFormModal({ open, mode, client, clients, onClose, onSaved }: Props) {
   const qc = useQueryClient();
-  const { isAdmin, isDeveloper, profile, user } = useAuth();
+  const { isAdmin, isDeveloper, isBookkeeper, profile, user } = useAuth();
   const dashboardUser = profile?.name || user?.email || "Dashboard User";
   const canManagerApprove = isAdmin || isDeveloper;
   const { tagsMap, applyTag } = useGhlTags();
@@ -631,22 +631,23 @@ export default function MerFormModal({ open, mode, client, clients, onClose, onS
       if (res.status === 409 && body?.requiresConfirmation) {
         setConfirmOverwrite({
           open: true,
-          message:
+          message: String(
             body?.message ||
             "This record already exists. Overwrite it?",
+          ),
         });
         return;
       }
 
       if (res.status === 400 || res.status === 404) {
         setError(
-          body?.message ||
-            `Request failed (${res.status}). Please check your input.`,
+          String(body?.message ||
+            `Request failed (${res.status}). Please check your input.`),
         );
         return;
       }
 
-      setError(body?.message || `Unexpected error (${res.status}).`);
+      setError(String(body?.message || `Unexpected error (${res.status}).`));
     } catch (e) {
       setError(
         e instanceof Error ? e.message : "Network error. Please try again.",
@@ -1035,11 +1036,11 @@ export default function MerFormModal({ open, mode, client, clients, onClose, onS
 
             <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Checklist</p>
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-              <YesNoField
+              {!isBookkeeper && <YesNoField
                 label="Prev Month Notes Approved"
                 value={form.prevMonthNotesApproved}
                 onChange={(v) => update("prevMonthNotesApproved", v)}
-              />
+              />}
               <YesNoField
                 label="Financials Sent To Client"
                 value={form.financialsSentToClient}

@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { ShieldAlert, ShieldCheck, ChevronDown, ChevronRight, AlertCircle, MessageCircle } from "lucide-react";
 import { Link } from "react-router-dom";
 import { getAtRiskClients } from "@/lib/insights";
-import { useSheetData } from "@/hooks/useSheetData";
+import { useFilteredSheetData } from "@/hooks/useSheetData";
 import { useUserSettings } from "@/hooks/useUserSettings";
 import { useClientDetails } from "@/hooks/useClientDetails";
 import { useClientCommentActivity, markCommentsSeen } from "@/hooks/useClientCommentActivity";
@@ -18,7 +18,7 @@ const REASON_LABEL: Record<string, string> = {
 };
 
 export default function AtRiskAlerts() {
-  const { data } = useSheetData();
+  const { data } = useFilteredSheetData();
   const { thresholds } = useUserSettings();
   const [expanded, setExpanded] = useState(true);
   const { open: openClient, modal: clientModal } = useClientDetails();

@@ -5,12 +5,12 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { OVERLINE, cn } from "@/lib/utils";
 
 interface MonthFilterProps {
-  /** Current selected value: "current" or a month label like "May 2025" */
+  /** Current selected value: a month label like "Sep 2026" */
   value: string;
   onChange: (value: string) => void;
   /** Available month labels (any order — sorted desc internally) */
   months: string[];
-  /** Latest month label, used to mark "Latest" hint when present */
+  /** Latest month label — shown with "(current)" suffix */
   latestMonth?: string;
   /** Optional label shown above (e.g. "Reporting Month"). If omitted, no label rendered. */
   label?: string;
@@ -22,7 +22,8 @@ interface MonthFilterProps {
 
 /**
  * Unified month-filter dropdown used across pages.
- * "current" maps to the latest live data; any month label switches to a historical snapshot.
+ * The latest month is marked "(current)". No separate "Current (latest)" option —
+ * bookkeeping always works on the previous month so the latest month IS the current view.
  */
 export default function MonthFilter({
   value,
@@ -61,11 +62,8 @@ export default function MonthFilter({
           <SelectValue placeholder="Select month" />
         </SelectTrigger>
         <SelectContent>
-          <SelectItem value="current">Current (latest)</SelectItem>
           {sorted.map((m) =>
             latestMonth && m === latestMonth ? (
-              // Rendered with the primitive so the "Latest" badge sits outside
-              // ItemText and never leaks into the closed trigger's value text.
               <SelectPrimitive.Item
                 key={m}
                 value={m}
@@ -77,8 +75,8 @@ export default function MonthFilter({
                   </SelectPrimitive.ItemIndicator>
                 </span>
                 <SelectPrimitive.ItemText>{m}</SelectPrimitive.ItemText>
-                <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground" aria-hidden>
-                  Latest
+                <span className="text-[10px] font-semibold uppercase tracking-wider text-success" aria-hidden>
+                  Current
                 </span>
               </SelectPrimitive.Item>
             ) : (

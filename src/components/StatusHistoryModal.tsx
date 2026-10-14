@@ -7,6 +7,7 @@ import { Clock, History as HistoryIcon, Calendar as CalendarIcon, X } from "luci
 import { cn } from "@/lib/utils";
 import { EmptyState } from "@/components/EmptyState";
 import { format } from "date-fns";
+import type { DateRange } from "react-day-picker";
 import {
   fetchStatusHistory,
   type StatusHistoryEntry,
@@ -78,7 +79,7 @@ export default function StatusHistoryModal({
   const [entries, setEntries] = useState<StatusHistoryEntry[]>([]);
   const [loading, setLoading] = useState(false);
   const [preset, setPreset] = useState<PresetKey>("all");
-  const [customRange, setCustomRange] = useState<{ from?: Date; to?: Date }>({});
+  const [customRange, setCustomRange] = useState<DateRange | undefined>(undefined);
 
   useEffect(() => {
     if (!open || !ghlContactId) return;
@@ -92,12 +93,12 @@ export default function StatusHistoryModal({
   useEffect(() => {
     if (!open) {
       setPreset("all");
-      setCustomRange({});
+      setCustomRange(undefined);
     }
   }, [open]);
 
   const activeRange = useMemo(() => {
-    if (preset === "custom") return customRange;
+    if (preset === "custom") return customRange ?? {};
     return rangeFromPreset(preset);
   }, [preset, customRange]);
 
@@ -122,7 +123,7 @@ export default function StatusHistoryModal({
     return Array.from(map.entries());
   }, [filtered]);
 
-  const customLabel = customRange.from
+  const customLabel = customRange?.from
     ? customRange.to
       ? `${format(customRange.from, "MMM d")} – ${format(customRange.to, "MMM d")}`
       : format(customRange.from, "MMM d")
@@ -184,7 +185,7 @@ export default function StatusHistoryModal({
                 mode="range"
                 selected={customRange}
                 onSelect={(r) => {
-                  setCustomRange(r ?? {});
+                  setCustomRange(r);
                   setPreset("custom");
                 }}
                 numberOfMonths={1}
@@ -198,7 +199,7 @@ export default function StatusHistoryModal({
               type="button"
               onClick={() => {
                 setPreset("all");
-                setCustomRange({});
+                setCustomRange(undefined);
               }}
               className="inline-flex h-7 items-center gap-0.5 rounded-md px-1.5 text-[10.5px] font-semibold text-muted-foreground hover:text-foreground hover:bg-muted/40 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
               aria-label="Clear date filter"
@@ -243,7 +244,7 @@ export default function StatusHistoryModal({
                       type="button"
                       onClick={() => {
                         setPreset("all");
-                        setCustomRange({});
+                        setCustomRange(undefined);
                       }}
                       className="mt-1 inline-flex h-8 items-center gap-1 rounded-md border border-primary/20 bg-primary/10 px-3 text-xs font-semibold text-primary hover:bg-primary/15 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
                     >

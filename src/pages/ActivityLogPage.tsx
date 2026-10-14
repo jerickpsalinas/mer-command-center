@@ -1,15 +1,17 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { useSheetData } from "@/hooks/useSheetData";
+import { useFilteredSheetData } from "@/hooks/useSheetData";
 import { supabase } from "@/integrations/supabase/client";
 import type { Tables } from "@/integrations/supabase/types";
 import { useDeveloperFilter } from "@/hooks/useDeveloperFilter";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { Activity, ClipboardList, Search, Loader2, Calendar, Download, X } from "lucide-react";
+import { Activity, ClipboardList, Search, Loader2, Calendar, Download, X, ChevronUp, ChevronDown } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { EmptyState } from "@/components/EmptyState";
+import SopPanel from "@/components/SopPanel";
+import { activityLogSop } from "@/data/sopConfigs";
 
 const DEVELOPER_EMAILS = new Set(["jerickpsalinas@gmail.com"]);
 
@@ -110,7 +112,7 @@ function downloadCsv(rows: UnifiedEntry[], filename: string) {
 
 export default function ActivityLogPage() {
   const navigate = useNavigate();
-  const { data } = useSheetData();
+  const { data } = useFilteredSheetData();
   const [merHistory, setMerHistory] = useState<Tables<"mer_history">[]>([]);
   const [statusHistory, setStatusHistory] = useState<Tables<"client_status_history">[]>([]);
   const [dashboardActions, setDashboardActions] = useState<Tables<"activity_log">[]>([]);
@@ -122,6 +124,8 @@ export default function ActivityLogPage() {
   const [actionType, setActionType] = useState<string>("all");
   const [fromDate, setFromDate] = useState<string>("");
   const [toDate, setToDate] = useState<string>("");
+  const [sortKey, setSortKey] = useState<"timestamp" | "action" | "clientName" | "triggeredBy">("timestamp");
+  const [sortDir, setSortDir] = useState<"asc" | "desc">("desc");
   const { isDeveloper } = useDeveloperFilter();
 
   useEffect(() => {
@@ -274,7 +278,7 @@ export default function ActivityLogPage() {
     const q = search.trim().toLowerCase();
     const fromMs = fromDate ? Date.parse(fromDate) : 0;
     const toMs = toDate ? Date.parse(toDate) + 24 * 60 * 60 * 1000 : 0;
-    return entries.filter((e) => {
+    const result = entries.filter((e) => {
       if (q && !e.clientName.toLowerCase().includes(q)) return false;
       if (bookkeeper !== "all" && e.triggeredBy !== bookkeeper) return false;
       if (pageFilter !== "all" && e.page !== pageFilter) return false;
@@ -283,7 +287,15 @@ export default function ActivityLogPage() {
       if (toMs && e.timestamp > toMs) return false;
       return true;
     });
-  }, [entries, search, bookkeeper, pageFilter, actionType, fromDate, toDate]);
+    const dir = sortDir === "asc" ? 1 : -1;
+    result.sort((a, b) => {
+      if (sortKey === "timestamp") return (a.timestamp - b.timestamp) * dir;
+      const av = a[sortKey].toLowerCase();
+      const bv = b[sortKey].toLowerCase();
+      return av < bv ? -dir : av > bv ? dir : 0;
+    });
+    return result;
+  }, [entries, search, bookkeeper, pageFilter, actionType, fromDate, toDate, sortKey, sortDir]);
 
   const activeFilterCount =
     (search.trim() ? 1 : 0) +
@@ -307,14 +319,17 @@ export default function ActivityLogPage() {
 
   return (
     <div className="space-y-5">
-      <div className="flex items-center gap-3">
-        <div className="h-10 w-10 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-center">
-          <ClipboardList className="h-5 w-5 text-primary" aria-hidden="true" />
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          <div className="h-10 w-10 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-center">
+            <ClipboardList className="h-5 w-5 text-primary" aria-hidden="true" />
+          </div>
+          <div>
+            <h2 className="text-xl font-display font-semibold text-foreground">Activity Log</h2>
+            <p className="text-xs text-muted-foreground">Unified history of dashboard actions and MER submissions.</p>
+          </div>
         </div>
-        <div>
-          <h2 className="text-xl font-display font-semibold text-foreground">Activity Log</h2>
-          <p className="text-xs text-muted-foreground">Unified history of dashboard actions and MER submissions.</p>
-        </div>
+        <SopPanel config={activityLogSop} />
       </div>
 
       <div className="glass-panel rounded-xl border border-border p-3 flex flex-col lg:flex-row lg:items-center gap-2 lg:gap-3">
@@ -417,12 +432,37 @@ export default function ActivityLogPage() {
           <table className="w-full min-w-[640px] text-sm border-collapse">
             <thead className="sticky top-0 z-10 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80 border-b border-border">
               <tr className="text-left text-xs font-medium uppercase tracking-wider text-muted-foreground">
-                <th scope="col" className="px-4 py-3 hidden sm:table-cell">Date &amp; Time</th>
-                <th scope="col" className="px-4 py-3">Activity</th>
-                <th scope="col" className="px-4 py-3">Client</th>
-                <th scope="col" className="px-4 py-3 hidden sm:table-cell">Page</th>
-                <th scope="col" className="px-4 py-3">User</th>
-                <th scope="col" className="px-4 py-3 hidden sm:table-cell">Details</th>
+                {([
+                  { key: "timestamp" as const, label: "Date & Time", hide: "hidden sm:table-cell" },
+                  { key: "action" as const, label: "Activity", hide: "" },
+                  { key: "clientName" as const, label: "Client", hide: "" },
+                  { key: null, label: "Page", hide: "hidden sm:table-cell" },
+                  { key: "triggeredBy" as const, label: "User", hide: "" },
+                  { key: null, label: "Details", hide: "hidden sm:table-cell" },
+                ] as const).map((col, ci) => (
+                  <th key={ci} scope="col" className={`px-4 py-3 ${col.hide}`}>
+                    {col.key ? (
+                      <button
+                        type="button"
+                        className="inline-flex items-center gap-1 hover:text-foreground transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded"
+                        onClick={() => {
+                          if (sortKey === col.key) {
+                            setSortDir((d) => (d === "asc" ? "desc" : "asc"));
+                          } else {
+                            setSortKey(col.key);
+                            setSortDir(col.key === "timestamp" ? "desc" : "asc");
+                          }
+                        }}
+                        aria-label={`Sort by ${col.label}`}
+                      >
+                        {col.label}
+                        {sortKey === col.key ? (
+                          sortDir === "asc" ? <ChevronUp className="h-3 w-3" aria-hidden="true" /> : <ChevronDown className="h-3 w-3" aria-hidden="true" />
+                        ) : null}
+                      </button>
+                    ) : col.label}
+                  </th>
+                ))}
               </tr>
             </thead>
             <tbody>

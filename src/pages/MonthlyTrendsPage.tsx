@@ -1,15 +1,17 @@
-import { useState } from "react";
-import { Link } from "react-router-dom";
+import { useEffect, useState, useMemo } from "react";
+import { Link, useNavigate } from "react-router-dom";
+import { useAuth } from "@/hooks/useAuth";
 import KPICard from "@/components/KPICard";
 import ComplianceHeatmap from "@/components/ComplianceHeatmap";
 import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from "recharts";
-import { TrendingUp, TrendingDown, CheckCircle2, XCircle, ArrowRight, Calendar, Minus, Sparkles, Download } from "lucide-react";
+import { TrendingUp, TrendingDown, CheckCircle2, XCircle, ArrowRight, Calendar, Minus, Sparkles, Download, Search, X } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { motion, AnimatePresence } from "framer-motion";
-import { useSheetData, getKPIMetrics } from "@/hooks/useSheetData";
+import { useFilteredSheetData, getKPIMetrics } from "@/hooks/useSheetData";
 import { DataError } from "@/components/DataStatus";
 import { Skeleton } from "@/components/ui/skeleton";
 import { EmptyState } from "@/components/EmptyState";
+import { cn, SEARCH_WRAPPER, FOCUS_RING } from "@/lib/utils";
 
 /* Chart palette — all theme tokens so light mode and dark mode both work. */
 const CHART = {
@@ -77,17 +79,30 @@ function getCurrentMonthLabel() {
 }
 
 export default function MonthlyTrendsPage() {
-  const { data, isLoading, error, refetch, isFetching } = useSheetData();
+  const { isBookkeeper } = useAuth();
+  const navigate = useNavigate();
+  useEffect(() => { if (isBookkeeper) navigate("/", { replace: true }); }, [isBookkeeper, navigate]);
+  const { data, isLoading, error, refetch, isFetching } = useFilteredSheetData();
   const [selectedHistoryIdx, setSelectedHistoryIdx] = useState<number | null>(null);
   const [compareIdx, setCompareIdx] = useState<string>("-");
+  const [search, setSearch] = useState("");
+
+  const allClients = data?.clients;
+  const monthlyTrends = data?.monthlyTrends;
+
+  const clients = useMemo(() => {
+    if (!allClients) return [];
+    const q = search.trim().toLowerCase();
+    if (!q) return allClients;
+    return allClients.filter(c => c.name.toLowerCase().includes(q));
+  }, [allClients, search]);
 
   if (isLoading) return <TrendsSkeleton />;
   if (error || !data) return <DataError message={error?.message} onRetry={() => refetch()} isRetrying={isFetching} />;
 
-  const { clients, monthlyTrends } = data;
-
-  // Current month metrics computed from dashboard (Monthly Progress) data
-  const kpi = getKPIMetrics(clients);
+  // Current month metrics — always computed from the full list so KPI cards
+  // stay stable while the user searches.
+  const kpi = getKPIMetrics(allClients);
   const currentMonthLabel = getCurrentMonthLabel();
 
   // Historical trends derived live from every MER submission
@@ -132,6 +147,24 @@ export default function MonthlyTrendsPage() {
           </div>
         </div>
       </motion.div>
+
+      {/* Search */}
+      <div className="flex flex-wrap items-center gap-2">
+        <div className={cn(SEARCH_WRAPPER, "w-full sm:w-72")}>
+          <Search className="h-4 w-4 text-muted-foreground shrink-0" aria-hidden />
+          <input type="search" aria-label="Search clients" placeholder="Search clients…" value={search} onChange={(e) => setSearch(e.target.value)}
+            className="bg-transparent outline-none text-sm text-foreground placeholder:text-muted-foreground w-full min-w-0" />
+          {search && (
+            <button type="button" onClick={() => setSearch("")} aria-label="Clear search"
+              className={cn("shrink-0 -mr-1 h-6 w-6 rounded-full flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted transition-colors duration-150", FOCUS_RING)}>
+              <X className="h-3 w-3" aria-hidden />
+            </button>
+          )}
+        </div>
+        {search && (
+          <span className="text-[12px] text-muted-foreground font-mono-data tabular-nums">{clients.length} of {allClients.length} clients</span>
+        )}
+      </div>
 
       {/* Current KPI Cards */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
@@ -321,6 +354,9 @@ export default function MonthlyTrendsPage() {
                       <tr
                         key={`${t.month}-${i}`}
                         tabIndex={0}
+                        role="button"
+                        aria-pressed={isSelected}
+                        aria-label={`View ${t.month} details — ${t.completionPct}% completion, ${t.trend || "no trend"}`}
                         onClick={() => setSelectedHistoryIdx(i)}
                         onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); setSelectedHistoryIdx(i); } }}
                         className={`border-b border-border last:border-0 hover:bg-muted/40 transition-colors duration-150 cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring ${
@@ -362,7 +398,7 @@ export default function MonthlyTrendsPage() {
       )}
 
       {/* Compliance Heatmap (clients × months) */}
-      {data.merHistory.length > 0 && <ComplianceHeatmap history={data.merHistory} />}
+      {data.merHistory.length > 0 && <ComplianceHeatmap history={search.trim() ? data.merHistory.filter(r => r.name.toLowerCase().includes(search.trim().toLowerCase())) : data.merHistory} />}
 
       {/* Link to Export Center */}
       <Link to="/reports" className="group block rounded-xl border border-border bg-card hover:bg-accent/30 p-4 sm:p-5 shadow-card hover:shadow-card-hover transition-[box-shadow,background-color] duration-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">

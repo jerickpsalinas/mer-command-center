@@ -155,7 +155,7 @@ function buildKpiSheet(clients: Client[], rangeLabel: string): XLSX.WorkSheet {
   const ws: XLSX.WorkSheet = { "!ref": "A1" };
 
   // Title block
-  placeRow(ws, 0, ["KPI Metrics Overview – MER Command Center", "", "", ""], [titleStyle, titleStyle, titleStyle, titleStyle]);
+  placeRow(ws, 0, ["KPI Metrics Overview – Brant & Associates", "", "", ""], [titleStyle, titleStyle, titleStyle, titleStyle]);
   placeRow(ws, 1, [`Range: ${rangeLabel}    •    Generated: ${new Date().toLocaleString()}`, "", "", ""], [subtitleStyle, subtitleStyle, subtitleStyle, subtitleStyle]);
   ws["!merges"] = [
     { s: { r: 0, c: 0 }, e: { r: 0, c: 3 } },
@@ -343,7 +343,7 @@ export function exportXLSX({ history, rangeLabel, fileBaseName, clientsOverride 
   wb.Props = {
     Title: `MER Report – ${rangeLabel}`,
     Subject: "Month-End Review",
-    Author: "MER Command Center",
+    Author: "Brant & Associates",
     CreatedDate: new Date(),
   };
 
@@ -610,7 +610,7 @@ export function exportPDF({ history, rangeLabel, fileBaseName, clientsOverride }
   doc.setFont("helvetica", "bold");
   doc.setFontSize(22);
   doc.setTextColor(255, 255, 255);
-  doc.text("MER Command Center", margin, 36);
+  doc.text("Brant & Associates", margin, 36);
   doc.setFont("helvetica", "normal");
   doc.setFontSize(13);
   doc.text("Month-End Review Report", margin, 58);
@@ -838,7 +838,7 @@ export function exportPDF({ history, rangeLabel, fileBaseName, clientsOverride }
     doc.setFont("helvetica", "normal");
     doc.setFontSize(8);
     doc.setTextColor(255, 255, 255);
-    doc.text("MER Command Center — MER Report", margin, pageH - 7);
+    doc.text("Brant & Associates – MER Report", margin, pageH - 7);
     doc.text(`Page ${i} of ${pageCount}`, pageW - margin, pageH - 7, { align: "right" });
   }
 

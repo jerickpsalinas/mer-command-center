@@ -1,87 +1,49 @@
-import { useCallback } from "react";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { GHL_BASE, GHL_LOCATION_ID, ghlHeaders } from "@/lib/ghlConfig";
+import { useCallback, useMemo } from "react";
+import { useQueryClient } from "@tanstack/react-query";
+import { GHL_BASE, ghlHeaders } from "@/lib/ghlConfig";
 import { DEMO_MODE } from "@/lib/demoMode";
-import { DEMO_GHL_TAGS } from "@/data/demoSheet";
-
-type GhlContact = {
-  id: string;
-  tags?: string[];
-};
+import { useGhlContacts } from "@/hooks/useGhlContacts";
 
 export type GhlTagsMap = Record<string, string[]>;
 
-async function fetchAllGhlTags(): Promise<GhlTagsMap> {
-  const map: GhlTagsMap = {};
-  let startAfter: string | number | undefined;
-  let startAfterId: string | undefined;
-  for (let i = 0; i < 50; i++) {
-    const params = new URLSearchParams({
-      locationId: GHL_LOCATION_ID,
-      limit: "100",
-    });
-    if (startAfter != null) params.set("startAfter", String(startAfter));
-    if (startAfterId) params.set("startAfterId", startAfterId);
-    const res = await fetch(`${GHL_BASE}/contacts/?${params.toString()}`, {
-      headers: ghlHeaders(),
-    });
-    if (!res.ok) throw new Error(`GHL fetch failed (${res.status})`);
-    const json = await res.json();
-    const page: GhlContact[] = json.contacts || [];
-    if (page.length === 0) break;
-    for (const c of page) {
-      if (c.id) map[c.id] = c.tags || [];
-    }
-    const meta = json.meta || {};
-    const nextStartAfter = meta.startAfter ?? meta.nextStartAfter;
-    const nextStartAfterId = meta.startAfterId ?? meta.nextStartAfterId;
-    if (!nextStartAfter && !nextStartAfterId) break;
-    if (nextStartAfter === startAfter && nextStartAfterId === startAfterId)
-      break;
-    startAfter = nextStartAfter;
-    startAfterId = nextStartAfterId;
-  }
-  return map;
-}
-
 export function useGhlTags() {
   const queryClient = useQueryClient();
+  const { contacts, loading, error, refresh } = useGhlContacts();
 
-  const { data, isLoading, error } = useQuery<GhlTagsMap, Error>({
-    queryKey: ["ghl-tags-map"],
-    queryFn: DEMO_MODE ? async () => DEMO_GHL_TAGS : fetchAllGhlTags,
-    staleTime: 0,
-    gcTime: 30_000,
-    refetchOnWindowFocus: false,
-    refetchOnMount: true,
-  });
-
-  const refresh = useCallback(async () => {
-    await queryClient.invalidateQueries({ queryKey: ["ghl-tags-map"] });
-  }, [queryClient]);
+  const tagsMap = useMemo<GhlTagsMap>(() => {
+    const map: GhlTagsMap = {};
+    for (const c of contacts) {
+      if (c.id) map[c.id] = c.tags || [];
+    }
+    return map;
+  }, [contacts]);
 
   const applyTag = useCallback(
     async (contactId: string, tag: string) => {
+      if (DEMO_MODE) return; // demo build never writes to GHL
       const res = await fetch(`${GHL_BASE}/contacts/${contactId}/tags`, {
         method: "POST",
         headers: ghlHeaders({ "Content-Type": "application/json" }),
         body: JSON.stringify({ tags: [tag] }),
       });
       if (!res.ok) throw new Error(`POST failed (${res.status})`);
-      queryClient.setQueryData<GhlTagsMap>(["ghl-tags-map"], (prev) => {
-        const base = prev || {};
-        const existing = base[contactId] || [];
-        if (existing.includes(tag)) return base;
-        return { ...base, [contactId]: [...existing, tag] };
+      // Optimistically update the shared contacts cache
+      queryClient.setQueryData<typeof contacts>(["ghl-all-contacts"], (prev) => {
+        if (!prev) return prev;
+        return prev.map((c) =>
+          c.id === contactId && !(c.tags || []).includes(tag)
+            ? { ...c, tags: [...(c.tags || []), tag] }
+            : c,
+        );
       });
     },
     [queryClient],
   );
 
   return {
-    tagsMap: data ?? {},
-    loading: isLoading,
-    error: error?.message ?? null,
+    tagsMap,
+    loading,
+    error: error ?? null,
     refresh,
     applyTag,
   };

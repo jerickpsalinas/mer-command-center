@@ -168,7 +168,7 @@ function pdfCover(doc: jsPDF, title: string, subtitle: string, rangeLabel: strin
   doc.setFont("helvetica", "bold");
   doc.setFontSize(20);
   doc.setTextColor(255, 255, 255);
-  doc.text("MER Command Center", 40, 34);
+  doc.text("Brant & Associates", 40, 34);
   doc.setFont("helvetica", "normal");
   doc.setFontSize(13);
   doc.text(title, 40, 58);
@@ -195,7 +195,7 @@ function pdfFooter(doc: jsPDF) {
     doc.setFont("helvetica", "normal");
     doc.setFontSize(8);
     doc.setTextColor(255, 255, 255);
-    doc.text("MER Command Center — Export Center", 40, pageH - 7);
+    doc.text("Brant & Associates – Export Center", 40, pageH - 7);
     doc.text(`Page ${i} of ${pageCount}`, pageW - 40, pageH - 7, { align: "right" });
   }
 }
@@ -213,7 +213,7 @@ function latestPerClient(history: MerHistoryRow[]): MerHistoryRow[] {
 /* ============================================================ */
 /* 2. Client Compliance Scorecard                               */
 /* ============================================================ */
-export function exportClientScorecardXLSX(history: MerHistoryRow[], rangeLabel: string, fileBase: string): ExportPayload {
+export function exportClientScorecardXLSX(history: MerHistoryRow[], rangeLabel: string, fileBase: string, mergedClients?: Client[]): ExportPayload {
   const wb = XLSX.utils.book_new();
   const ws: XLSX.WorkSheet = { "!ref": "A1" };
 
@@ -223,7 +223,9 @@ export function exportClientScorecardXLSX(history: MerHistoryRow[], rangeLabel: 
     if (!byClient.has(r.name)) byClient.set(r.name, []);
     byClient.get(r.name)!.push(r);
   }
-  const rows = Array.from(byClient.entries()).map(([name, submissions]) => {
+  const rows: { name: string; type: string; bookkeeper: string; submissions: number; avgCompletion: number; onTimeRate: number; lastMonth: string; lastStatus: string; lastCompletion: number; trend: string }[] = [];
+  // Add clients from history
+  for (const [name, submissions] of byClient.entries()) {
     const sorted = [...submissions].sort((a, b) => a.monthDate.localeCompare(b.monthDate));
     const last = sorted[sorted.length - 1];
     const first = sorted[0];
@@ -232,19 +234,18 @@ export function exportClientScorecardXLSX(history: MerHistoryRow[], rangeLabel: 
     const avgCompletion = sorted.length ? Math.round(sorted.reduce((s, x) => s + x.completionPct, 0) / sorted.length) : 0;
     const trendDiff = last.completionPct - first.completionPct;
     const trendArrow = trendDiff >= 5 ? "↑ Improving" : trendDiff <= -5 ? "↓ Declining" : "→ Stable";
-    return {
-      name,
-      type: last.clientType,
-      bookkeeper: last.bookkeeper,
-      submissions: sorted.length,
-      avgCompletion,
-      onTimeRate,
-      lastMonth: last.month,
-      lastStatus: last.complianceStatus,
-      lastCompletion: last.completionPct,
-      trend: trendArrow,
-    };
-  }).sort((a, b) => a.name.localeCompare(b.name));
+    rows.push({ name, type: last.clientType, bookkeeper: last.bookkeeper, submissions: sorted.length, avgCompletion, onTimeRate, lastMonth: last.month, lastStatus: last.complianceStatus, lastCompletion: last.completionPct, trend: trendArrow });
+  }
+  // Add merged clients that had no history rows (Pending MER / rolled-over)
+  if (mergedClients) {
+    const historyNames = new Set(byClient.keys());
+    for (const c of mergedClients) {
+      if (!historyNames.has(c.name)) {
+        rows.push({ name: c.name, type: c.clientType, bookkeeper: c.bookkeeper, submissions: 0, avgCompletion: c.completionPct, onTimeRate: 0, lastMonth: "—", lastStatus: c.complianceStatus || "Pending MER", lastCompletion: c.completionPct, trend: "— No Data" });
+      }
+    }
+  }
+  rows.sort((a, b) => a.name.localeCompare(b.name));
 
   const headers = ["Client", "Type", "Bookkeeper", "Submissions", "Avg Completion %", "On-Time Rate %", "Last Month", "Last Status", "Last Completion %", "Trend"];
   makeTitleHeader(ws, "Client Compliance Scorecard", `${rows.length} clients · Range: ${rangeLabel} · Generated: ${new Date().toLocaleString()}`, headers.length);
@@ -271,7 +272,7 @@ export function exportClientScorecardXLSX(history: MerHistoryRow[], rangeLabel: 
   XLSX.utils.book_append_sheet(wb, ws, "Client Scorecard");
   return xlsxPayload(wb, `${fileBase}.xlsx`);
 }
-export function exportClientScorecardPDF(history: MerHistoryRow[], rangeLabel: string, fileBase: string): ExportPayload {
+export function exportClientScorecardPDF(history: MerHistoryRow[], rangeLabel: string, fileBase: string, mergedClients?: Client[]): ExportPayload {
   const doc = new jsPDF({ orientation: "landscape", unit: "pt", format: "letter" });
   pdfCover(doc, "Client Compliance Scorecard", "Per-client compliance, on-time rate, completion trend", rangeLabel);
 
@@ -280,7 +281,8 @@ export function exportClientScorecardPDF(history: MerHistoryRow[], rangeLabel: s
     if (!byClient.has(r.name)) byClient.set(r.name, []);
     byClient.get(r.name)!.push(r);
   }
-  const rows = Array.from(byClient.entries()).map(([name, submissions]) => {
+  const rows: string[][] = [];
+  for (const [name, submissions] of byClient.entries()) {
     const sorted = [...submissions].sort((a, b) => a.monthDate.localeCompare(b.monthDate));
     const last = sorted[sorted.length - 1];
     const first = sorted[0];
@@ -289,8 +291,17 @@ export function exportClientScorecardPDF(history: MerHistoryRow[], rangeLabel: s
     const avgCompletion = sorted.length ? Math.round(sorted.reduce((s, x) => s + x.completionPct, 0) / sorted.length) : 0;
     const trendDiff = last.completionPct - first.completionPct;
     const trendArrow = trendDiff >= 5 ? "Improving" : trendDiff <= -5 ? "Declining" : "Stable";
-    return [name, last.clientType, last.bookkeeper, String(sorted.length), `${avgCompletion}%`, `${onTimeRate}%`, last.month, last.complianceStatus, `${last.completionPct}%`, trendArrow];
-  }).sort((a, b) => a[0].localeCompare(b[0]));
+    rows.push([name, last.clientType, last.bookkeeper, String(sorted.length), `${avgCompletion}%`, `${onTimeRate}%`, last.month, last.complianceStatus, `${last.completionPct}%`, trendArrow]);
+  }
+  if (mergedClients) {
+    const historyNames = new Set(byClient.keys());
+    for (const c of mergedClients) {
+      if (!historyNames.has(c.name)) {
+        rows.push([c.name, c.clientType, c.bookkeeper, "0", `${c.completionPct}%`, "0%", "—", c.complianceStatus || "Pending MER", `${c.completionPct}%`, "No Data"]);
+      }
+    }
+  }
+  rows.sort((a, b) => a[0].localeCompare(b[0]));
 
   autoTable(doc, {
     startY: PDF_CONTENT_START_Y,
@@ -446,9 +457,18 @@ export function exportBookkeeperPerfPDF(history: MerHistoryRow[], rangeLabel: st
 /* ============================================================ */
 /* 4. At-Risk Clients Snapshot                                  */
 /* ============================================================ */
-function buildAtRisk(history: MerHistoryRow[]) {
-  const latest = latestPerClient(history);
-  return latest.filter((c) => c.completionPct < 40 || c.complianceStatus === "Non-Compliant").map((c) => {
+function buildAtRisk(history: MerHistoryRow[], mergedClients?: Client[]) {
+  const latest: Client[] = mergedClients ?? latestPerClient(history) as Client[];
+  const monthByName = new Map<string, string>();
+  const tsByName = new Map<string, number>();
+  for (const r of history) {
+    const ts = r.timestampMs ?? 0;
+    if (!monthByName.has(r.name) || ts >= (tsByName.get(r.name) ?? 0)) {
+      monthByName.set(r.name, r.month);
+      tsByName.set(r.name, ts);
+    }
+  }
+  return latest.filter((c) => c.completionPct < 40 || c.complianceStatus === "Non-Compliant" || c.complianceStatus === "Pending MER").map((c) => {
     const reasons: string[] = [];
     if (c.bankTransactions.toLowerCase().includes("missing")) reasons.push("Missing bank statement");
     if (c.uncategorizedTransactions > 0) reasons.push(`${c.uncategorizedTransactions} uncategorized`);
@@ -458,13 +478,13 @@ function buildAtRisk(history: MerHistoryRow[]) {
     if (!c.financialsSentToClient) reasons.push("Financials not sent");
     if (!c.booksClosedInQB) reasons.push("Books not closed");
     if (!c.lastReconciledDate) reasons.push("Not reconciled");
-    return { ...c, reasons: reasons.join(" · ") || "Low completion %" };
+    return { ...c, month: monthByName.get(c.name) ?? "—", reasons: reasons.join(" · ") || "Low completion %" };
   }).sort((a, b) => a.completionPct - b.completionPct);
 }
-export function exportAtRiskXLSX(history: MerHistoryRow[], rangeLabel: string, fileBase: string): ExportPayload {
+export function exportAtRiskXLSX(history: MerHistoryRow[], rangeLabel: string, fileBase: string, mergedClients?: Client[]): ExportPayload {
   const wb = XLSX.utils.book_new();
   const ws: XLSX.WorkSheet = { "!ref": "A1" };
-  const rows = buildAtRisk(history);
+  const rows = buildAtRisk(history, mergedClients);
   const headers = ["Client", "Bookkeeper", "Type", "Latest Month", "Completion %", "Status", "Last Reconciled", "Risk Reasons"];
   // Danger-themed title band to match the PDF cover treatment
   ws["!ref"] = "A1";
@@ -512,10 +532,10 @@ export function exportAtRiskXLSX(history: MerHistoryRow[], rangeLabel: string, f
   XLSX.utils.book_append_sheet(wb, ws, "At-Risk Clients");
   return xlsxPayload(wb, `${fileBase}.xlsx`);
 }
-export function exportAtRiskPDF(history: MerHistoryRow[], rangeLabel: string, fileBase: string): ExportPayload {
+export function exportAtRiskPDF(history: MerHistoryRow[], rangeLabel: string, fileBase: string, mergedClients?: Client[]): ExportPayload {
   const doc = new jsPDF({ orientation: "landscape", unit: "pt", format: "letter" });
   pdfCover(doc, "At-Risk Clients Snapshot", "Clients flagged as Non-Compliant or below 40% completion", rangeLabel);
-  const rows = buildAtRisk(history);
+  const rows = buildAtRisk(history, mergedClients);
   doc.setFont("helvetica", "bold");
   doc.setFontSize(11);
   doc.setTextColor(...RGB.danger);
@@ -875,12 +895,12 @@ export function exportExecSummaryPDF(history: MerHistoryRow[], rangeLabel: strin
 /* ============================================================ */
 /* 8. Full Data Backup (multi-sheet XLSX)                       */
 /* ============================================================ */
-export function exportFullBackupXLSX(history: MerHistoryRow[], cycleEntries: CycleEntry[], rangeLabel: string, fileBase: string): ExportPayload {
+export function exportFullBackupXLSX(history: MerHistoryRow[], cycleEntries: CycleEntry[], rangeLabel: string, fileBase: string, mergedClients?: Client[]): ExportPayload {
   const wb = XLSX.utils.book_new();
   wb.Props = {
     Title: `Full Data Backup – ${rangeLabel}`,
     Subject: "Complete archive",
-    Author: "MER Command Center",
+    Author: "Brant & Associates",
     CreatedDate: new Date(),
   };
 
@@ -909,8 +929,8 @@ export function exportFullBackupXLSX(history: MerHistoryRow[], cycleEntries: Cyc
   autoSizeRowHeights(sub);
   XLSX.utils.book_append_sheet(wb, sub, "MER Submissions");
 
-  // Sheet 2: Latest per-client snapshot
-  const latest = latestPerClient(history) as Client[];
+  // Sheet 2: Latest per-client snapshot (use merged roster when available)
+  const latest = mergedClients ?? latestPerClient(history) as Client[];
   const cli: XLSX.WorkSheet = { "!ref": "A1" };
   const cliHeaders = ["Client", "Type", "Bookkeeper", "Bank", "Uncat", "No-Payee", "Undep", "Unapp", "Stmt", "Last Reconciled", "Notes OK", "Fin Sent", "Closed", "Completion %", "Status"];
   makeTitleHeader(cli, "Latest Client Snapshot", `${latest.length} unique clients`, cliHeaders.length);

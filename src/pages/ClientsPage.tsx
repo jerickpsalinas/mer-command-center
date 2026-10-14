@@ -4,28 +4,29 @@ import ClientSparkline from "@/components/ClientSparkline";
 import SwipeableCard from "@/components/SwipeableCard";
 import { useMemo, useState, useEffect, useDeferredValue } from "react";
 import { useSearchParams } from "react-router-dom";
-import { Search, AlertTriangle, ArrowUpDown, BarChart3, History, TrendingUp, Bookmark, BookmarkPlus, X, Filter, ArrowUp, ArrowDown, Minus, FileText, Lock, CheckCircle2, Eye, ChevronRight, Users } from "lucide-react";
+import { Search, AlertTriangle, ArrowUpDown, BarChart3, History, X, Filter, ArrowUp, ArrowDown, FileText, CheckCircle2, Eye, ChevronRight, Users } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
-import { useSheetData, getClientHistory, getClientsForMonth } from "@/hooks/useSheetData";
+import { useFilteredSheetData, getClientHistory, getClientsForMonth, buildLatestSubmissionMap } from "@/hooks/useSheetData";
 import { hasPendingVerifyTag, type MerHistoryRow, type ActionLogEntry } from "@/services/googleSheets";
-import { evaluateCompliance } from "@/lib/complianceExplain";
+import { evaluateCompliance, isUnreconciled } from "@/lib/complianceExplain";
 
-import { useUserSettings, type SavedFilter } from "@/hooks/useUserSettings";
+import { type SavedFilter } from "@/hooks/useUserSettings";
 import { DataLoading, DataError } from "@/components/DataStatus";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell, LineChart, Line } from "recharts";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Skeleton } from "@/components/ui/skeleton";
 import { diffClientMonths } from "@/lib/insights";
-import { toast } from "sonner";
+
 import { EmptyState } from "@/components/EmptyState";
 import ClientDetailsModal from "@/components/ClientDetailsModal";
 import MonthFilter from "@/components/MonthFilter";
+import SopPanel from "@/components/SopPanel";
+import { clientsSop } from "@/data/sopConfigs";
 import { getSequenceInfoForClient } from "@/utils/sequenceStatus";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useMerWorkflowContacts, contactDisplayName, type MerWorkflowContact } from "@/hooks/useMerWorkflowContacts";
 import type { Client } from "@/data/mockData";
-
 
 type SortKey = "name" | "completionPct" | "complianceStatus" | "uncategorizedTransactions" | "lastReconciled";
 type SortDir = "asc" | "desc";
@@ -69,9 +70,8 @@ function getIssueDetails(c: Client) {
 }
 
 export default function ClientsPage() {
-  const { data: sheetData, isLoading, error } = useSheetData();
+  const { data: sheetData, isLoading, error } = useFilteredSheetData();
   const { contacts: merWorkflowContacts, loading: ghlLoading } = useMerWorkflowContacts();
-  const { savedFilters, saveFilter, deleteFilter } = useUserSettings();
   const [searchParams] = useSearchParams();
 
   const [search, setSearch] = useState(searchParams.get("search") ?? "");
@@ -104,15 +104,9 @@ export default function ClientsPage() {
     if (openName && openName !== detailsClient) setDetailsClient(openName);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchParams]);
-  const [showSaveDialog, setShowSaveDialog] = useState(false);
-  const [newFilterName, setNewFilterName] = useState("");
-  const [monthFilter, setMonthFilter] = useState<string>("current");
-  const [sequenceFilter, setSequenceFilter] = useState<"all" | "active" | "resolved" | "approved">("all");
+  const [monthFilter, setMonthFilter] = useState<string>("");
   const [categoryTagFilter, setCategoryTagFilter] = useState<string>("all");
   const [merStatusFilter, setMerStatusFilter] = useState<string>("all");
-  const [cycleStatusFilter, setCycleStatusFilter] = useState<
-    "all" | "escalation-active" | "bank-reconnection-active" | "statement-request-active" | "docs-request-active" | "ready-for-pipeline" | "pending-verification" | "qbo-not-connected"
-  >("all");
   const [expandedIssues, setExpandedIssues] = useState<Set<string>>(new Set());
   const toggleIssues = (id: string) =>
     setExpandedIssues((prev) => {
@@ -120,13 +114,6 @@ export default function ClientsPage() {
       if (next.has(id)) { next.delete(id); } else { next.add(id); }
       return next;
     });
-  const [comingSoon, setComingSoon] = useState<{ open: boolean; title: string; message: string }>({
-    open: false,
-    title: "",
-    message: "",
-  });
-
-  
 
   const sheetLoading = isLoading || !sheetData;
   const data = sheetData ?? {
@@ -139,16 +126,17 @@ export default function ClientsPage() {
     availableMonths: [] as string[],
   };
 
-  // Snapshot of clients for the chosen month (or live latest)
-  const isLatest = monthFilter === "current";
-  const monthClients = isLatest ? data.clients : getClientsForMonth(data.merHistory, monthFilter);
+  // Snapshot of clients for the chosen month
+  const activeMonth = (monthFilter && data.availableMonths.includes(monthFilter)) ? monthFilter : data.latestMonth;
+  const isLatest = activeMonth === data.latestMonth;
+  const monthClients = getClientsForMonth(data.merHistory, activeMonth);
+  const latestAnyMonth = buildLatestSubmissionMap(data.merHistory);
 
   // Build the client list for the active month.
-  // - Latest: source-of-truth = active GHL contacts (with mer-workflow tag), overlaying current MER snapshot.
-  //   Contacts without a MER row appear as "Pending MER" placeholders.
-  // - Historical month: source-of-truth = MER rows submitted that month (so we always show who was tracked then,
-  //   even if the client is no longer in the current GHL active set). We also append "Pending MER" placeholders
-  //   for any current GHL contact that had no MER row that month.
+  // GHL mer-workflow contacts = source of truth for WHO appears.
+  // Clients without a submission for the selected month get their most recent
+  // prior data rolled forward (rolledOver=true). Clients who have NEVER submitted
+  // remain as "Pending MER" placeholders.
   const mergedClients: Client[] = (() => {
     const norm = (s: string) => s.trim().toLowerCase();
     const byGhlId = new Map<string, Client>();
@@ -159,27 +147,41 @@ export default function ClientsPage() {
       byName.set(norm(c.name), c);
     }
 
-    const makePlaceholder = (contact: MerWorkflowContact): Client => ({
-      id: contact.id,
-      name: contactDisplayName(contact),
-      clientType: "For-Profit",
-      bookkeeper: "—",
-      status: "Pending MER",
-      bankTransactions: "",
-      uncategorizedTransactions: 0,
-      transactionsWithoutPayees: 0,
-      undepositedFunds: 0,
-      unappliedPayments: 0,
-      statementRequestStatus: "",
-      lastReconciledDate: "",
-      prevMonthNotesApproved: false,
-      financialsSentToClient: false,
-      booksClosedInQB: false,
-      completionPct: 0,
-      complianceStatus: "Pending MER",
-      ghlContactId: contact.id,
-      categoryTags: (contact.tags || []).join(","),
-    } as Client);
+    const makeRolledOverOrPlaceholder = (contact: MerWorkflowContact): Client => {
+      const cName = contactDisplayName(contact);
+      const prior = latestAnyMonth.get(norm(cName));
+      if (prior) {
+        return {
+          ...prior,
+          id: contact.id,
+          ghlContactId: contact.id,
+          rolledOver: true,
+          rolledOverFrom: prior.month,
+          categoryTags: (contact.tags || []).join(","),
+        } as Client;
+      }
+      return {
+        id: contact.id,
+        name: cName,
+        clientType: "For-Profit",
+        bookkeeper: "—",
+        status: "Pending MER",
+        bankTransactions: "",
+        uncategorizedTransactions: 0,
+        transactionsWithoutPayees: 0,
+        undepositedFunds: 0,
+        unappliedPayments: 0,
+        statementRequestStatus: "",
+        lastReconciledDate: "",
+        prevMonthNotesApproved: false,
+        financialsSentToClient: false,
+        booksClosedInQB: false,
+        completionPct: 0,
+        complianceStatus: "Pending MER",
+        ghlContactId: contact.id,
+        categoryTags: (contact.tags || []).join(","),
+      } as Client;
+    };
 
     if (isLatest) {
       return merWorkflowContacts.map<Client>((contact) => {
@@ -190,28 +192,43 @@ export default function ClientsPage() {
           categoryTags: liveTags.join(","),
           pendingVerification: hasPendingVerifyTag(liveTags),
         };
-        return makePlaceholder(contact);
+        return makeRolledOverOrPlaceholder(contact);
       });
     }
 
-    // Historical: base list is that month's MER rows only (so old/completed clients still appear
-    // for that month). We deliberately do NOT append placeholders for currently-active GHL contacts
-    // that had no MER row that month — a client onboarded later shouldn't appear as "Pending MER"
-    // for a month before they existed. That would pollute historical compliance counts.
-    return monthClients.map((c) => {
+    // Historical: start with MER rows for that month, then append rolled-over
+    // data for any current GHL contact missing from that month.
+    const seen = new Set<string>();
+    const out: Client[] = [];
+    for (const c of monthClients) {
       const gid = c.ghlContactId;
       const contact =
         (gid && merWorkflowContacts.find((x) => x.id === gid)) ||
         merWorkflowContacts.find((x) => norm(contactDisplayName(x)) === norm(c.name));
-      if (!contact) return c;
+      const key = gid || norm(c.name);
+      seen.add(key);
+      if (!contact) { out.push(c); continue; }
       const liveTags = contact.tags || [];
-      return {
+      out.push({
         ...c,
         categoryTags: liveTags.join(","),
         pendingVerification: hasPendingVerifyTag(liveTags),
-      };
-    });
+      });
+    }
+    // Append rolled-over data for GHL contacts not in this month's submissions
+    for (const contact of merWorkflowContacts) {
+      const key = contact.id || norm(contactDisplayName(contact));
+      if (seen.has(key)) continue;
+      // Also check by name
+      if (seen.has(norm(contactDisplayName(contact)))) continue;
+      seen.add(key);
+      out.push(makeRolledOverOrPlaceholder(contact));
+    }
+    return out;
   })();
+
+  // Bookkeepers work on all clients regardless of who is assigned.
+  const visibleClients = mergedClients;
 
   const history = historyClient ? getClientHistory(data.merHistory, historyClient) : [];
   const monthDiff = history.length >= 2 ? diffClientMonths(history[history.length - 2], history[history.length - 1]) : [];
@@ -244,7 +261,7 @@ export default function ClientsPage() {
     }
   };
 
-  const filtered = mergedClients
+  const filtered = visibleClients
     .filter((c) => c.name.toLowerCase().includes(deferredSearch.toLowerCase()))
     .filter((c) => statusFilter === "all" || c.complianceStatus === statusFilter)
     .filter((c) => {
@@ -266,46 +283,6 @@ export default function ClientsPage() {
       if (!raw) return false;
       const tags = raw.split(",").map((t) => t.trim().toLowerCase()).filter(Boolean);
       return tags.includes(categoryTagFilter);
-    })
-    .filter((c) => {
-      if (sequenceFilter === "all" && cycleStatusFilter === "all") return true;
-      const ghlId = c.ghlContactId || (c.merKey || "").split("_")[0] || "";
-      const seqMonth = data.clientMonths[c.name] || data.latestMonth;
-      const seq = getSequenceInfoForClient(ghlId, seqMonth, data.actionLog);
-      if (sequenceFilter !== "all") {
-        if (sequenceFilter === "active" && !seq.hasActiveSequence) return false;
-        if (
-          sequenceFilter === "resolved" &&
-          seq.bankReconnection.status !== "resolved" &&
-          seq.statementRequest.status !== "resolved"
-        )
-          return false;
-        if (sequenceFilter === "approved" && seq.notesApprovalCount === 0) return false;
-      }
-      if (cycleStatusFilter !== "all") {
-        if (cycleStatusFilter === "bank-reconnection-active") {
-          if (seq.bankReconnection.status !== "active") return false;
-        } else if (cycleStatusFilter === "statement-request-active") {
-          if (seq.statementRequest.status !== "active") return false;
-        } else if (cycleStatusFilter === "docs-request-active") {
-          if (seq.docsRequest.status !== "active") return false;
-        } else if (cycleStatusFilter === "escalation-active") {
-          const entries = (data.actionLog || []).filter((e) => e.ghlContactId === ghlId);
-          const hasTrigger = entries.some((e) => /escalat/i.test(e.actionType) && !/resolv/i.test(e.actionType));
-          const hasResolve = entries.some((e) => /escalat/i.test(e.actionType) && /resolv/i.test(e.actionType));
-          if (!hasTrigger || hasResolve) return false;
-        } else if (cycleStatusFilter === "ready-for-pipeline") {
-          const entries = (data.actionLog || []).filter((e) => e.ghlContactId === ghlId);
-          if (!entries.some((e) => /ready[-_ ]?for[-_ ]?pipeline/i.test(e.actionType))) return false;
-        } else if (cycleStatusFilter === "pending-verification") {
-          if (!c.pendingVerification) return false;
-        } else if (cycleStatusFilter === "qbo-not-connected") {
-          const v = String(c.qboConnected ?? "").trim().toLowerCase();
-          const connected = v === "yes" || v === "true" || v === "connected";
-          if (connected) return false;
-        }
-      }
-      return true;
     })
     .sort((a, b) => {
       const mul = sortDir === "asc" ? 1 : -1;
@@ -335,29 +312,6 @@ export default function ClientsPage() {
     { key: "name", label: "Name" },
   ];
 
-  const applyFilter = (f: SavedFilter) => {
-    setSearch(f.search);
-    setStatusFilter(f.status);
-    setBookkeeperFilter(f.bookkeeper);
-    setTypeFilter(f.clientType);
-    setMinCompletion(f.minCompletion);
-  };
-
-  const handleSaveFilter = () => {
-    if (!newFilterName.trim()) return;
-    saveFilter({
-      name: newFilterName.trim(),
-      search,
-      status: statusFilter,
-      bookkeeper: bookkeeperFilter,
-      clientType: typeFilter,
-      minCompletion,
-    });
-    toast.success(`"${newFilterName.trim()}" available in your saved views.`);
-    setNewFilterName("");
-    setShowSaveDialog(false);
-  };
-
   const hasActiveFilter = search || statusFilter !== "all" || bookkeeperFilter || typeFilter || minCompletion > 0 || merStatusFilter !== "all";
   const activeFilterCount = [
     !!search,
@@ -366,8 +320,6 @@ export default function ClientsPage() {
     !!typeFilter,
     minCompletion > 0,
     merStatusFilter !== "all",
-    sequenceFilter !== "all",
-    cycleStatusFilter !== "all",
   ].filter(Boolean).length;
   const clearAllFilters = () => {
     setSearch("");
@@ -376,21 +328,19 @@ export default function ClientsPage() {
     setTypeFilter("");
     setMinCompletion(0);
     setMerStatusFilter("all");
-    setSequenceFilter("all");
-    setCycleStatusFilter("all");
   };
   const clientTypes = Array.from(new Set(monthClients.map((c) => c.clientType))).sort();
 
   const merStatusCounts = useMemo(() => {
-    const completed = mergedClients.filter((c) => (c.status || "").trim().toLowerCase() === "completed").length;
-    const review = mergedClients.filter((c) => {
+    const completed = visibleClients.filter((c) => (c.status || "").trim().toLowerCase() === "completed").length;
+    const review = visibleClients.filter((c) => {
       const statusMatch = (c.status || "").trim().toLowerCase() === "ready for manager's review";
       const tags = (c.categoryTags || "").split(",").map((t) => t.trim().toLowerCase());
       const tagMatch = tags.includes("review-ready") || tags.includes("review-ready-cleanup");
       return statusMatch || tagMatch;
     }).length;
     return { completed, review };
-  }, [mergedClients]);
+  }, [visibleClients]);
 
   if (isLoading && ghlLoading) return <DataLoading variant="list" />;
   if (error) return <DataError message={error?.message} />;
@@ -402,7 +352,7 @@ export default function ClientsPage() {
       <StickyPageHeader>
         <span className="inline-flex items-center gap-1.5 rounded-full bg-card px-2.5 py-1 text-[11px] font-semibold text-foreground border border-border">
           <Search className="h-3 w-3 text-muted-foreground" aria-hidden="true" />
-          <span className="font-mono-data tabular-nums">{filtered.length} of {mergedClients.length}</span>
+          <span className="font-mono-data tabular-nums">{filtered.length} of {visibleClients.length}</span>
         </span>
         {statusFilter !== "all" && (
           <span className="inline-flex items-center gap-1 rounded-full bg-primary/10 text-primary px-2 py-0.5 text-[11px] font-medium border border-primary/20">
@@ -488,30 +438,6 @@ export default function ClientsPage() {
         )}
       </motion.div>
 
-      {/* Saved filter chips */}
-      {savedFilters.length > 0 && (
-        <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}
-          className="flex flex-wrap items-center gap-2">
-          <span className="text-[11px] text-muted-foreground uppercase tracking-wider font-semibold mr-1 inline-flex items-center gap-1">
-            <Bookmark className="h-3 w-3" aria-hidden="true" />Saved:
-          </span>
-          {savedFilters.map((f) => (
-            <span key={f.id} className="inline-flex items-center gap-1 rounded-full border border-border bg-card pl-3 pr-1.5 py-1 text-[11px] font-medium text-foreground hover:border-primary/30 transition-colors">
-              <button type="button" onClick={() => applyFilter(f)} title={`Apply saved view ${f.name}`} className="max-w-[160px] truncate rounded-sm hover:text-primary transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background">{f.name}</button>
-              <button
-                type="button"
-                onClick={() => deleteFilter(f.id)}
-                aria-label={`Delete saved filter ${f.name}`}
-                title={`Delete saved filter ${f.name}`}
-                className="h-6 w-6 rounded-full hover:bg-destructive/10 text-muted-foreground hover:text-destructive flex items-center justify-center transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
-              >
-                <X className="h-3 w-3" aria-hidden="true" />
-              </button>
-            </span>
-          ))}
-        </motion.div>
-      )}
-
       {/* Filters */}
       <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}
         className="flex flex-col gap-3">
@@ -541,7 +467,7 @@ export default function ClientsPage() {
           </div>
 
           <MonthFilter
-            value={monthFilter}
+            value={activeMonth}
             onChange={setMonthFilter}
             months={data.availableMonths}
             latestMonth={data.latestMonth}
@@ -550,55 +476,22 @@ export default function ClientsPage() {
           {!isLatest && (
             <button
               type="button"
-              onClick={() => setMonthFilter("current")}
+              onClick={() => setMonthFilter(data.latestMonth)}
               className="h-9 rounded-md px-1 text-[11px] text-muted-foreground hover:text-foreground underline-offset-2 hover:underline transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
             >
               Reset to latest
             </button>
           )}
 
-          {(() => {
-            const active = cycleStatusFilter === "qbo-not-connected";
-            return (
-              <button
-                type="button"
-                onClick={() => setCycleStatusFilter(active ? "all" : "qbo-not-connected")}
-                aria-pressed={active}
-                title={active ? "Clear QBO Not Connected filter" : "Show only clients not connected to QuickBooks"}
-                className={`inline-flex h-9 items-center gap-1.5 text-[11px] font-semibold px-2.5 rounded-md border transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background ${
-                  active
-                    ? "bg-primary/15 text-primary border-primary/40 shadow-[0_0_12px_-2px_hsl(var(--primary)/0.25)]"
-                    : "bg-muted/30 text-muted-foreground border-border/50 hover:bg-muted/50 hover:text-foreground"
-                }`}
-              >
-                <Lock className="h-3 w-3" aria-hidden="true" />
-                QBO Not Connected
-                {active && <X className="h-3 w-3 ml-0.5" aria-hidden="true" />}
-              </button>
-            );
-          })()}
+          <SopPanel config={clientsSop} />
 
           {hasActiveFilter && (
             <button
-              onClick={() => {
-                setSearch("");
-                setStatusFilter("all");
-                setBookkeeperFilter("");
-                setTypeFilter("");
-                setMinCompletion(0);
-                setMerStatusFilter("all");
-              }}
+              onClick={clearAllFilters}
               type="button"
               className="inline-flex h-9 items-center gap-1 text-[11px] font-semibold px-2.5 rounded-md bg-destructive/10 text-destructive border border-destructive/20 hover:bg-destructive/15 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
             >
               <X className="h-3 w-3" aria-hidden="true" />Clear filters
-            </button>
-          )}
-
-          {hasActiveFilter && (
-            <button type="button" onClick={() => setShowSaveDialog(true)}
-              className="inline-flex h-9 items-center gap-1 text-[11px] font-semibold px-2.5 rounded-md bg-primary/10 text-primary border border-primary/20 hover:bg-primary/15 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background">
-              <BookmarkPlus className="h-3 w-3" aria-hidden="true" />Save view
             </button>
           )}
 
@@ -663,34 +556,6 @@ export default function ClientsPage() {
             {clientTypes.map((t) => <option key={t} value={t}>{t}</option>)}
           </select>
 
-          <select
-            aria-label="Sequence status"
-            value={sequenceFilter}
-            onChange={(e) => setSequenceFilter(e.target.value as typeof sequenceFilter)}
-            className="h-9 rounded-lg border border-border bg-card px-2.5 text-xs font-medium text-foreground flex-1 sm:flex-none min-w-0 transition-colors hover:border-primary/30 focus:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background max-w-[50%] sm:max-w-none"
-          >
-            <option value="all">All sequences</option>
-            <option value="active">🟡 Active sequences</option>
-            <option value="resolved">✅ Resolved sequences</option>
-            <option value="approved">📝 Notes approved</option>
-          </select>
-
-          <select
-            value={cycleStatusFilter}
-            onChange={(e) => setCycleStatusFilter(e.target.value as typeof cycleStatusFilter)}
-            className="h-9 rounded-lg border border-border bg-card px-2.5 text-xs font-medium text-foreground flex-1 sm:flex-none min-w-0 transition-colors hover:border-primary/30 focus:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background max-w-[50%] sm:max-w-none"
-            aria-label="Cycle status"
-          >
-            <option value="all">All cycle statuses</option>
-            <option value="pending-verification">🟡 Pending Verification</option>
-            <option value="qbo-not-connected">🔒 QBO Not Connected</option>
-            <option value="escalation-active">🚨 Escalation Active</option>
-            <option value="bank-reconnection-active">🔌 Bank Reconnection Active</option>
-            <option value="statement-request-active">📄 Statement Request Active</option>
-            <option value="docs-request-active">📁 Docs Request Active</option>
-            <option value="ready-for-pipeline">🔄 Ready for Pipeline</option>
-          </select>
-
           <div className="h-4 w-px bg-border mx-1 hidden sm:block" />
 
           {[
@@ -723,7 +588,7 @@ export default function ClientsPage() {
         </div>
       </motion.div>
 
-      {(ghlLoading || sheetLoading) && mergedClients.length === 0 && (
+      {(ghlLoading || sheetLoading) && visibleClients.length === 0 && (
         <div
           className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 density-gap-3"
           aria-busy="true"
@@ -790,6 +655,11 @@ export default function ClientsPage() {
                     {seq.hasActiveSequence ? "Active" : seq.hasAnyActivity ? "Clear" : "Idle"}
                   </span>
                   <StatusBadge status={c.complianceStatus} client={c} />
+                  {c.rolledOver && (
+                    <span className="inline-flex items-center gap-1 rounded-md bg-warning/10 border border-warning/20 px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wider text-warning" title={`Data from ${c.rolledOverFrom} — not yet updated for this month`}>
+                      <History className="h-2.5 w-2.5" aria-hidden /> {c.rolledOverFrom}
+                    </span>
+                  )}
                 </div>
               </div>
               {(() => {
@@ -836,7 +706,7 @@ export default function ClientsPage() {
               <div className="grid grid-cols-3 gap-2 text-xs">
                 <div className="min-w-0">
                   <span className="text-muted-foreground">Last Reconciled</span>
-                  <p className="font-mono-data tabular-nums text-foreground truncate" title={c.lastReconciledDate || undefined}>{c.lastReconciledDate || "—"}</p>
+                  <p className={`font-mono-data tabular-nums truncate ${isUnreconciled(c.lastReconciledDate) ? "text-destructive font-semibold" : "text-foreground"}`} title={c.lastReconciledDate || undefined}>{c.lastReconciledDate || "—"}</p>
                 </div>
                 <div className="min-w-0">
                   <span className="text-muted-foreground">Uncat. Txns</span>
@@ -879,7 +749,7 @@ export default function ClientsPage() {
                 </ul>
               )}
               <div className="mt-3 pt-2 border-t border-border/50 flex items-center justify-between text-[10px] text-muted-foreground/70 group-hover:text-primary transition-colors">
-                <span className="flex items-center gap-1"><FileText className="h-3 w-3" aria-hidden="true" /> Tap for details <span className="hidden sm:inline">· swipe ← for history</span></span>
+                <span className="flex items-center gap-1"><FileText className="h-3 w-3" aria-hidden="true" /> <span className="hidden sm:inline">Click</span><span className="sm:hidden">Tap</span> for details <span className="hidden sm:inline">· swipe ← for history</span></span>
                 <ChevronRight className="h-3 w-3" aria-hidden="true" />
               </div>
             </div>
@@ -909,7 +779,7 @@ export default function ClientsPage() {
           );
         })}
         {filtered.length === 0 && !sheetLoading && !ghlLoading && (
-          mergedClients.length === 0 ? (
+          visibleClients.length === 0 ? (
             <div className="col-span-full flex flex-col items-center justify-center text-center py-16 gap-2 rounded-xl border border-dashed border-border">
               <EmptyState
                 icon={Users}
@@ -922,7 +792,7 @@ export default function ClientsPage() {
               {!isLatest && (
                 <button
                   type="button"
-                  onClick={() => setMonthFilter("current")}
+                  onClick={() => setMonthFilter(data.latestMonth)}
                   className="mt-1 inline-flex h-8 items-center gap-1.5 text-xs font-semibold px-3 rounded-md bg-primary/10 text-primary border border-primary/20 hover:bg-primary/15 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
                 >
                   Back to latest month
@@ -959,6 +829,7 @@ export default function ClientsPage() {
         onClose={() => setDetailsClient(null)}
         client={detailsRow}
         actionLog={data.actionLog}
+        merHistory={data.merHistory}
         onViewHistory={() => {
           if (detailsClient) {
             const name = detailsClient;
@@ -986,65 +857,6 @@ export default function ClientsPage() {
         </DialogContent>
       </Dialog>
 
-
-
-      {/* Save filter dialog */}
-      <Dialog open={showSaveDialog} onOpenChange={setShowSaveDialog}>
-        <DialogContent className="w-[calc(100vw-2rem)] sm:max-w-md max-h-[85vh] flex flex-col gap-0 p-0">
-          <DialogHeader className="px-4 sm:px-6 pt-4 sm:pt-6 pb-3 text-left">
-            <DialogTitle className="flex items-center gap-2 pr-8">
-              <BookmarkPlus className="h-4 w-4 text-primary shrink-0" aria-hidden="true" />
-              Save Filter View
-            </DialogTitle>
-            <DialogDescription className="text-xs">Give your current filter combination a name.</DialogDescription>
-          </DialogHeader>
-          <div className="px-4 sm:px-6 pb-4 space-y-4 overflow-y-auto min-h-0">
-            <div className="space-y-1.5">
-              <label htmlFor="save-filter-name" className="text-xs font-medium text-foreground">View name</label>
-              <input
-                id="save-filter-name"
-                autoFocus
-                type="text"
-                value={newFilterName}
-                onChange={(e) => setNewFilterName(e.target.value)}
-                onKeyDown={(e) => e.key === "Enter" && handleSaveFilter()}
-                placeholder="e.g. My non-compliant clients"
-                autoComplete="off"
-                className="w-full h-9 rounded-lg border border-border bg-card px-3 text-sm text-foreground outline-none transition-colors focus:border-primary/40 focus-visible:ring-2 focus-visible:ring-ring/30"
-              />
-            </div>
-            <div className="rounded-lg bg-muted/30 p-3 text-[11px] text-muted-foreground space-y-1">
-              <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-1.5">Included filters</p>
-              <p><span className="font-semibold text-foreground">Search:</span> {search || "—"}</p>
-              <p><span className="font-semibold text-foreground">Status:</span> {statusFilter}</p>
-              <p><span className="font-semibold text-foreground">Bookkeeper:</span> {bookkeeperFilter || "any"}</p>
-              <p><span className="font-semibold text-foreground">Type:</span> {typeFilter || "any"}</p>
-              <p><span className="font-semibold text-foreground">Min completion:</span> <span className="font-mono-data tabular-nums">{minCompletion}%</span></p>
-            </div>
-          </div>
-          <DialogFooter className="flex-row items-center justify-end gap-2 px-4 sm:px-6 py-3 border-t border-border/60 sm:space-x-0">
-            <button type="button" onClick={() => setShowSaveDialog(false)} className="h-9 text-xs px-3 rounded-md border border-border text-muted-foreground hover:text-foreground hover:bg-accent transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background">
-              Cancel
-            </button>
-            <button type="button" onClick={handleSaveFilter} disabled={!newFilterName.trim()}
-              className="h-9 text-xs px-4 rounded-md bg-primary text-primary-foreground font-semibold hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background">
-              Save view
-            </button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      <Dialog open={comingSoon.open} onOpenChange={(o) => setComingSoon((s) => ({ ...s, open: o }))}>
-        <DialogContent className="w-[calc(100vw-2rem)] sm:max-w-md p-5">
-          <DialogHeader className="text-left">
-            <DialogTitle className="flex items-center gap-2 pr-8">
-              <Lock className="h-4 w-4 text-muted-foreground shrink-0" aria-hidden="true" />
-              {comingSoon.title}
-            </DialogTitle>
-            <DialogDescription>{comingSoon.message}</DialogDescription>
-          </DialogHeader>
-        </DialogContent>
-      </Dialog>
     </div>
   );
 }
@@ -1134,12 +946,8 @@ function MerHistoryList({ clientName }: { clientName: string }) {
   }
   if (error) {
     return (
-      <div className="flex flex-col items-center justify-center text-center py-10 gap-2" role="alert">
-        <div className="h-10 w-10 rounded-full bg-destructive/10 flex items-center justify-center">
-          <AlertTriangle className="h-5 w-5 text-destructive" aria-hidden="true" />
-        </div>
-        <p className="text-sm font-medium text-foreground">Failed to load history</p>
-        <p className="text-xs text-muted-foreground">Please close and try again.</p>
+      <div role="alert">
+        <EmptyState icon={AlertTriangle} title="Failed to load history" hint="Please close and try again." />
       </div>
     );
   }

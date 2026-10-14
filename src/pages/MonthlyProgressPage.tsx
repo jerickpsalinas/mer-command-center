@@ -1,6 +1,7 @@
 import { useState, useMemo } from "react";
 import { useClientDetails } from "@/hooks/useClientDetails";
-import { bankTransactionsOk, statementReceived } from "@/lib/complianceExplain";
+import { bankTransactionsOk, statementReceived, isUnreconciled } from "@/lib/complianceExplain";
+import { useMerWorkflowContacts, contactDisplayName } from "@/hooks/useMerWorkflowContacts";
 
 function formatDateToISO(dateStr: string): string {
   if (!dateStr || dateStr.trim() === "") return "—";
@@ -31,13 +32,16 @@ function formatDateToISO(dateStr: string): string {
 }
 import StatusBadge from "@/components/StatusBadge";
 import MonthFilter from "@/components/MonthFilter";
-import { Search, ArrowUpDown, Filter, ChevronDown, SearchX, X } from "lucide-react";
+import SopPanel from "@/components/SopPanel";
+import { monthlyProgressSop } from "@/data/sopConfigs";
+import { Search, ArrowUpDown, Filter, ChevronDown, SearchX, X, Columns3, History } from "lucide-react";
 import { motion } from "framer-motion";
-import { useSheetData, getClientsForMonth } from "@/hooks/useSheetData";
+import { useFilteredSheetData, getClientsForMonth, buildLatestSubmissionMap } from "@/hooks/useSheetData";
+import type { Client } from "@/data/mockData";
 import { DataError } from "@/components/DataStatus";
 import { Skeleton } from "@/components/ui/skeleton";
 import { EmptyState } from "@/components/EmptyState";
-import { cn, FOCUS_RING, FOCUS_RING_INSET, TH, COUNT_BADGE, BTN_SOFT_DESTRUCTIVE, SEARCH_WRAPPER, SELECT_NATIVE, CARD } from "@/lib/utils";
+import { cn, FOCUS_RING, FOCUS_RING_INSET, TH, COUNT_BADGE, BTN_SOFT_DESTRUCTIVE, BTN_OUTLINE, SEARCH_WRAPPER, SELECT_NATIVE, CARD } from "@/lib/utils";
 
 type SortKey = "name" | "completionPct" | "lastReconciledDate" | "uncategorizedTransactions";
 type SortDir = "asc" | "desc";
@@ -83,26 +87,62 @@ function ProgressSkeleton() {
   );
 }
 
+const STICKY_COL = "sticky left-0 z-20 bg-card after:absolute after:right-0 after:top-0 after:bottom-0 after:w-px after:bg-border/60";
+const STICKY_COL_HOVER = "group-hover/row:bg-muted/40";
+const STICKY_COL_STRIPE = "group-even/row:bg-muted/30";
+const STICKY_TH = "sticky left-0 z-30 bg-card/95 backdrop-blur-sm after:absolute after:right-0 after:top-0 after:bottom-0 after:w-px after:bg-border/60";
+
 export default function MonthlyProgressPage() {
-  const { data, isLoading, error, refetch, isFetching } = useSheetData();
+  const { data, isLoading, error, refetch, isFetching } = useFilteredSheetData();
   const [search, setSearch] = useState("");
   const [filterType, setFilterType] = useState("");
   const [filterBookkeeper, setFilterBookkeeper] = useState("");
   const [filterStatus, setFilterStatus] = useState("");
   const [sortKey, setSortKey] = useState<SortKey>("name");
   const [sortDir, setSortDir] = useState<SortDir>("asc");
-  const [monthFilter, setMonthFilter] = useState<string>("current");
+  const [monthFilter, setMonthFilter] = useState<string>("");
+  const [showAllCols, setShowAllCols] = useState(false);
   const { open: openClient, modal: clientModal } = useClientDetails();
+  const { contacts: merWorkflowContacts } = useMerWorkflowContacts();
 
   const toggleSort = (key: SortKey) => {
     if (sortKey === key) setSortDir(d => (d === "asc" ? "desc" : "asc"));
     else { setSortKey(key); setSortDir("asc"); }
   };
 
-  const clients = useMemo(
-    () => (monthFilter === "current" ? (data?.clients ?? []) : getClientsForMonth(data?.merHistory ?? [], monthFilter)),
-    [data, monthFilter]
-  );
+  const activeMonth = (monthFilter && data?.availableMonths?.includes(monthFilter)) ? monthFilter : (data?.latestMonth ?? "");
+  const merHistory = data?.merHistory ?? [];
+  const clients = useMemo(() => {
+    const norm = (s: string) => s.trim().toLowerCase();
+    const sheetClients = getClientsForMonth(merHistory, activeMonth);
+    if (!merWorkflowContacts.length) return sheetClients;
+    const latestAnyMonth = buildLatestSubmissionMap(merHistory);
+    const byGhlId = new Map<string, Client>();
+    const byName = new Map<string, Client>();
+    for (const c of sheetClients) {
+      if (c.ghlContactId) byGhlId.set(c.ghlContactId, c);
+      byName.set(norm(c.name), c);
+    }
+    const seen = new Set<string>();
+    const out: Client[] = [];
+    for (const contact of merWorkflowContacts) {
+      const cName = contactDisplayName(contact);
+      const matched = byGhlId.get(contact.id) || byName.get(norm(cName));
+      const key = (matched?.ghlContactId) || contact.id || norm(cName);
+      if (seen.has(key)) continue;
+      seen.add(key);
+      if (matched) { out.push(matched); }
+      else {
+        const prior = latestAnyMonth.get(norm(cName));
+        if (prior) {
+          out.push({ ...prior, id: contact.id, ghlContactId: contact.id, rolledOver: true, rolledOverFrom: prior.month, categoryTags: (contact.tags || []).join(",") } as Client);
+        } else {
+          out.push({ id: contact.id, name: cName, clientType: "For-Profit", bookkeeper: "—", status: "Pending MER", bankTransactions: "", uncategorizedTransactions: 0, transactionsWithoutPayees: 0, undepositedFunds: 0, unappliedPayments: 0, statementRequestStatus: "", lastReconciledDate: "", prevMonthNotesApproved: false, financialsSentToClient: false, booksClosedInQB: false, completionPct: 0, complianceStatus: "Pending MER", ghlContactId: contact.id, categoryTags: (contact.tags || []).join(",") } as Client);
+        }
+      }
+    }
+    return out;
+  }, [merHistory, activeMonth, merWorkflowContacts]);
   const bookkeepers = data?.bookkeepers ?? [];
   const clientTypes = useMemo(() => [...new Set(clients.map(c => c.clientType))], [clients]);
   const complianceStatuses = ["Compliant", "Non-Compliant", "On Hold"];
@@ -179,12 +219,13 @@ export default function MonthlyProgressPage() {
           )}
         </div>
         <MonthFilter
-          value={monthFilter}
+          value={activeMonth}
           onChange={setMonthFilter}
           months={data.availableMonths}
           latestMonth={data.latestMonth}
           compact
         />
+        <SopPanel config={monthlyProgressSop} />
         <div className="flex items-center gap-1.5 text-xs text-muted-foreground font-medium">
           <Filter className="h-3.5 w-3.5" aria-hidden /><span>Filters</span>
           {activeFilters > 0 && <span className={COUNT_BADGE} aria-label={`${activeFilters} active filters`}>{activeFilters}</span>}
@@ -212,6 +253,15 @@ export default function MonthlyProgressPage() {
             <X className="h-3 w-3" aria-hidden /> Clear
           </button>
         )}
+        <button
+          type="button"
+          onClick={() => setShowAllCols(v => !v)}
+          className={cn(BTN_OUTLINE, "hidden sm:inline-flex")}
+          aria-pressed={showAllCols}
+        >
+          <Columns3 className="h-3.5 w-3.5" aria-hidden />
+          {showAllCols ? "Fewer columns" : "All columns"}
+        </button>
         <div className="sm:ml-auto text-[12px] text-muted-foreground font-mono-data tabular-nums">{filtered.length} of {clients.length} clients</div>
       </motion.div>
 
@@ -236,6 +286,11 @@ export default function MonthlyProgressPage() {
                     {needsAttention && <span className="h-1.5 w-1.5 rounded-full bg-destructive shrink-0" aria-label="Needs attention" />}
                     <span className="truncate">{c.name}</span>
                   </p>
+                  {c.rolledOver && (
+                    <span className="inline-flex items-center gap-1 rounded-md bg-warning/10 border border-warning/20 px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wider text-warning" title={`Data from ${c.rolledOverFrom} — not yet updated for this month`}>
+                      <History className="h-2.5 w-2.5" aria-hidden /> {c.rolledOverFrom}
+                    </span>
+                  )}
                   <p className="text-[11px] text-muted-foreground truncate">{c.clientType} · {c.bookkeeper}</p>
                 </div>
                 <StatusBadge status={c.complianceStatus} client={c} />
@@ -253,7 +308,7 @@ export default function MonthlyProgressPage() {
                 <div className="flex justify-between"><dt className="text-muted-foreground">No Payee</dt><dd className={`font-mono-data tabular-nums ${c.transactionsWithoutPayees > 0 ? "text-warning" : "text-foreground"}`}>{c.transactionsWithoutPayees}</dd></div>
                 <div className="flex justify-between"><dt className="text-muted-foreground">Undep.</dt><dd className="font-mono-data tabular-nums text-foreground">{c.undepositedFunds}</dd></div>
                 <div className="flex justify-between"><dt className="text-muted-foreground">Unapplied</dt><dd className="font-mono-data tabular-nums text-foreground">{c.unappliedPayments}</dd></div>
-                <div className="flex justify-between col-span-2"><dt className="text-muted-foreground">Last Recon.</dt><dd className="font-mono-data tabular-nums text-foreground">{formatDateToISO(c.lastReconciledDate)}</dd></div>
+                <div className="flex justify-between col-span-2"><dt className="text-muted-foreground">Last Recon.</dt><dd className={`font-mono-data tabular-nums ${isUnreconciled(c.lastReconciledDate) ? "text-destructive font-semibold" : "text-foreground"}`}>{formatDateToISO(c.lastReconciledDate)}</dd></div>
                 <div className="flex justify-between col-span-2"><dt className="text-muted-foreground">Notes Approved</dt><dd className={c.prevMonthNotesApproved ? "text-success" : "text-destructive"}>{c.prevMonthNotesApproved ? "Yes" : "No"}</dd></div>
               </dl>
             </motion.div>
@@ -274,20 +329,34 @@ export default function MonthlyProgressPage() {
       <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}
         className={cn(CARD, "hidden sm:block overflow-hidden relative")}>
         <div className="overflow-x-auto overflow-y-auto max-h-[calc(100vh-220px)] scrollbar-thin">
-          <table className="w-full text-sm">
+          <table className="w-full text-sm border-collapse">
             <thead>
               <tr>
-                <SortHeader label="Client" field="name" className="min-w-[180px]" />
-                <StaticHeader>Type</StaticHeader>
+                {/* Sticky client column header */}
+                <th
+                  scope="col"
+                  aria-sort={sortKey === "name" ? (sortDir === "asc" ? "ascending" : "descending") : "none"}
+                  className={cn(TH, "text-left min-w-[200px]", STICKY_TH)}
+                >
+                  <button
+                    type="button"
+                    onClick={() => toggleSort("name")}
+                    className={cn("inline-flex items-center gap-1 -my-1 py-1 rounded-sm uppercase tracking-wider hover:text-foreground transition-colors duration-150 select-none", FOCUS_RING, sortKey === "name" && "text-foreground")}
+                  >
+                    Client
+                    <ArrowUpDown className={`h-3 w-3 ${sortKey === "name" ? "text-primary" : ""}`} aria-hidden />
+                  </button>
+                </th>
+                {showAllCols && <StaticHeader>Type</StaticHeader>}
                 <StaticHeader>Bookkeeper</StaticHeader>
                 <StaticHeader>Bank Txns</StaticHeader>
-                <SortHeader label="Uncat." field="uncategorizedTransactions" align="right" />
-                <StaticHeader align="right">No Payee</StaticHeader>
-                <StaticHeader align="right">Undep.</StaticHeader>
-                <StaticHeader align="right">Unapplied</StaticHeader>
+                {showAllCols && <SortHeader label="Uncat." field="uncategorizedTransactions" align="right" />}
+                {showAllCols && <StaticHeader align="right">No Payee</StaticHeader>}
+                {showAllCols && <StaticHeader align="right">Undep.</StaticHeader>}
+                {showAllCols && <StaticHeader align="right">Unapplied</StaticHeader>}
                 <StaticHeader>Stmt Status</StaticHeader>
                 <SortHeader label="Last Recon." field="lastReconciledDate" />
-                <StaticHeader>Notes</StaticHeader>
+                {showAllCols && <StaticHeader>Notes</StaticHeader>}
                 <SortHeader label="Completion" field="completionPct" />
                 <StaticHeader>Status</StaticHeader>
               </tr>
@@ -300,39 +369,49 @@ export default function MonthlyProgressPage() {
                     tabIndex={0}
                     onClick={() => openClient(c.name)}
                     onKeyDown={(e) => { if (e.target !== e.currentTarget) return; if (e.key === "Enter" || e.key === " ") { e.preventDefault(); openClient(c.name); } }}
-                    className={cn("border-b border-border/60 last:border-0 hover:bg-muted/40 transition-colors duration-150 cursor-pointer", FOCUS_RING_INSET, needsAttention && "bg-destructive/[0.03]")}>
-                    <td className="px-4 py-3 font-semibold text-foreground whitespace-nowrap text-[13px]">
-                      <div className="flex items-center gap-2 max-w-[260px]">
+                    className={cn(
+                      "group/row border-b border-border/60 last:border-0 hover:bg-muted/40 transition-colors duration-150 cursor-pointer even:bg-muted/30",
+                      FOCUS_RING_INSET,
+                      needsAttention && "bg-destructive/[0.03]",
+                    )}>
+                    {/* Sticky client name column */}
+                    <td className={cn("px-4 py-3.5 font-semibold text-foreground whitespace-nowrap text-sm", STICKY_COL, STICKY_COL_HOVER, STICKY_COL_STRIPE)}>
+                      <div className="flex items-center gap-2 max-w-[280px]">
                         {needsAttention && <span className="h-1.5 w-1.5 rounded-full bg-destructive shrink-0" aria-label="Needs attention" />}
                         <span className="truncate" title={c.name}>{c.name}</span>
+                        {c.rolledOver && (
+                          <span className="inline-flex items-center gap-0.5 shrink-0 rounded bg-warning/10 border border-warning/20 px-1 py-px text-[9px] font-semibold uppercase tracking-wider text-warning" title={`Data from ${c.rolledOverFrom}`}>
+                            <History className="h-2.5 w-2.5" aria-hidden /> {c.rolledOverFrom}
+                          </span>
+                        )}
                       </div>
                     </td>
-                    <td className="px-4 py-3 text-muted-foreground whitespace-nowrap text-[13px]">{c.clientType}</td>
-                    <td className="px-4 py-3 text-muted-foreground whitespace-nowrap text-[13px] max-w-[160px] truncate" title={c.bookkeeper}>{c.bookkeeper}</td>
-                    <td className="px-4 py-3 whitespace-nowrap"><StatusBadge status={bankTransactionsOk(c.bankTransactions) ? "Received" : "Not Received"} className="text-[11px]" /></td>
-                    <td className="px-4 py-3 text-right"><span className={`font-mono-data tabular-nums text-[13px] font-semibold ${c.uncategorizedTransactions > 0 ? "text-destructive" : "text-success"}`}>{c.uncategorizedTransactions}</span></td>
-                    <td className="px-4 py-3 text-right"><span className={`font-mono-data tabular-nums text-[13px] font-semibold ${c.transactionsWithoutPayees > 0 ? "text-warning" : "text-foreground"}`}>{c.transactionsWithoutPayees}</span></td>
-                    <td className="px-4 py-3 text-right font-mono-data tabular-nums text-[13px] text-foreground">{c.undepositedFunds}</td>
-                    <td className="px-4 py-3 text-right font-mono-data tabular-nums text-[13px] text-foreground">{c.unappliedPayments}</td>
-                    <td className="px-4 py-3 whitespace-nowrap"><StatusBadge status={statementReceived(c.statementRequestStatus) ? "Received" : "Not Received"} /></td>
-                    <td className="px-4 py-3 font-mono-data tabular-nums text-[13px] text-muted-foreground whitespace-nowrap">{formatDateToISO(c.lastReconciledDate)}</td>
-                    <td className="px-4 py-3 whitespace-nowrap"><StatusBadge status={c.prevMonthNotesApproved ? "Yes" : "No"} /></td>
-                    <td className="px-4 py-3">
+                    {showAllCols && <td className="px-4 py-3.5 text-muted-foreground whitespace-nowrap text-sm">{c.clientType}</td>}
+                    <td className="px-4 py-3.5 text-muted-foreground whitespace-nowrap text-sm max-w-[180px] truncate" title={c.bookkeeper}>{c.bookkeeper}</td>
+                    <td className="px-4 py-3.5 whitespace-nowrap"><StatusBadge status={bankTransactionsOk(c.bankTransactions) ? "Received" : "Not Received"} className="text-[11px]" /></td>
+                    {showAllCols && <td className="px-4 py-3.5 text-right"><span className={`font-mono-data tabular-nums text-sm font-semibold ${c.uncategorizedTransactions > 0 ? "text-destructive" : "text-success"}`}>{c.uncategorizedTransactions}</span></td>}
+                    {showAllCols && <td className="px-4 py-3.5 text-right"><span className={`font-mono-data tabular-nums text-sm font-semibold ${c.transactionsWithoutPayees > 0 ? "text-warning" : "text-foreground"}`}>{c.transactionsWithoutPayees}</span></td>}
+                    {showAllCols && <td className="px-4 py-3.5 text-right font-mono-data tabular-nums text-sm text-foreground">{c.undepositedFunds}</td>}
+                    {showAllCols && <td className="px-4 py-3.5 text-right font-mono-data tabular-nums text-sm text-foreground">{c.unappliedPayments}</td>}
+                    <td className="px-4 py-3.5 whitespace-nowrap"><StatusBadge status={statementReceived(c.statementRequestStatus) ? "Received" : "Not Received"} /></td>
+                    <td className={`px-4 py-3.5 font-mono-data tabular-nums text-sm whitespace-nowrap ${isUnreconciled(c.lastReconciledDate) ? "text-destructive font-semibold" : "text-muted-foreground"}`}>{formatDateToISO(c.lastReconciledDate)}</td>
+                    {showAllCols && <td className="px-4 py-3.5 whitespace-nowrap"><StatusBadge status={c.prevMonthNotesApproved ? "Yes" : "No"} /></td>}
+                    <td className="px-4 py-3.5">
                       <div className="flex items-center gap-2.5">
-                        <div className="w-14 h-2 rounded-full bg-muted overflow-hidden" role="progressbar" aria-valuenow={c.completionPct} aria-valuemin={0} aria-valuemax={100} aria-label="Completion">
+                        <div className="w-16 h-2 rounded-full bg-muted overflow-hidden" role="progressbar" aria-valuenow={c.completionPct} aria-valuemin={0} aria-valuemax={100} aria-label="Completion">
                           <div className={`h-full rounded-full transition-[width] duration-300 ${pctBarTone(c.completionPct)}`}
                             style={{ width: `${Math.min(100, Math.max(0, c.completionPct))}%` }} />
                         </div>
                         <span className={`font-mono-data text-xs font-semibold tabular-nums ${pctTone(c.completionPct)}`}>{c.completionPct}%</span>
                       </div>
                     </td>
-                    <td className="px-4 py-3 whitespace-nowrap"><StatusBadge status={c.complianceStatus} client={c} /></td>
+                    <td className="px-4 py-3.5 whitespace-nowrap"><StatusBadge status={c.complianceStatus} client={c} /></td>
                   </motion.tr>
                 );
               })}
               {filtered.length === 0 && (
                 <tr>
-                  <td colSpan={13} className="p-0">
+                  <td colSpan={showAllCols ? 13 : 7} className="p-0">
                     <EmptyState
                       icon={SearchX}
                       title={hasAnyFilter ? "No clients match the current filters" : "No clients for this month"}
@@ -350,4 +429,3 @@ export default function MonthlyProgressPage() {
     </div>
   );
 }
-

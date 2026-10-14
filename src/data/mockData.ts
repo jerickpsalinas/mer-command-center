@@ -31,6 +31,10 @@ export interface Client {
   pendingVerification?: boolean;
   /** Company name from GHL (may differ from `name`). */
   companyName?: string;
+  /** True when this row's data was carried forward from a prior month (no submission for the selected month). */
+  rolledOver?: boolean;
+  /** The month label the rolled-over data originally came from, e.g. "Aug 2026". */
+  rolledOverFrom?: string;
 }
 
 export interface MonthlyTrend {

@@ -1,13 +1,16 @@
 import { useState, useMemo, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { Award, TrendingUp, TrendingDown, Users, Clock, AlertTriangle, FileText, Activity, ArrowRight, Search, Camera, Loader2, X, UserX, LineChart as LineChartIcon } from "lucide-react";
 import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
-import { useSheetData } from "@/hooks/useSheetData";
+import { useFilteredSheetData, getClientsForMonth, buildLatestSubmissionMap } from "@/hooks/useSheetData";
 import { DataError } from "@/components/DataStatus";
 import { Skeleton } from "@/components/ui/skeleton";
 import { getBookkeeperPerformance, getBookkeeperPerformanceForMonth, type BookkeeperPerformance } from "@/lib/insights";
 import KPICard from "@/components/KPICard";
 import MonthFilter from "@/components/MonthFilter";
+import SopPanel from "@/components/SopPanel";
+import { bookkeepersSop } from "@/data/sopConfigs";
 import { useClientDetails } from "@/hooks/useClientDetails";
 import { useMerWorkflowContacts, contactDisplayName } from "@/hooks/useMerWorkflowContacts";
 import { useAuth } from "@/hooks/useAuth";
@@ -15,6 +18,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { EmptyState } from "@/components/EmptyState";
 import { useDeveloperFilter } from "@/hooks/useDeveloperFilter";
+import { SELECT_NATIVE, SEARCH_WRAPPER, FOCUS_RING } from "@/lib/utils";
 import type { Client } from "@/data/mockData";
 
 
@@ -66,53 +70,84 @@ function BookkeepersSkeleton() {
 }
 
 export default function BookkeepersPage() {
-  const { data, isLoading, error, refetch, isFetching } = useSheetData();
+  const { data, isLoading, error, refetch, isFetching } = useFilteredSheetData();
   const { contacts: merWorkflowContacts } = useMerWorkflowContacts();
-  const { isAdmin } = useAuth();
+  const { isAdmin, isBookkeeper } = useAuth();
+  const navigate = useNavigate();
+  useEffect(() => { if (isBookkeeper) navigate("/", { replace: true }); }, [isBookkeeper, navigate]);
   const [search, setSearch] = useState("");
   const [selected, setSelected] = useState<string | null>(null);
-  const [monthFilter, setMonthFilter] = useState<string>("current");
+  const [monthFilter, setMonthFilter] = useState<string>("");
   const [savingSnap, setSavingSnap] = useState(false);
+  const [sortBy, setSortBy] = useState<"rate" | "name" | "clients">("rate");
   const { open: openClient, modal: clientModal } = useClientDetails();
 
-  // Merge GHL mer-workflow contacts with sheet clients (only for current month).
+  const activeMonth = (monthFilter && data?.availableMonths?.includes(monthFilter)) ? monthFilter : (data?.latestMonth ?? "");
+  const isCurrentMonth = activeMonth === data?.latestMonth;
+
+  // Merge GHL mer-workflow contacts with month-scoped sheet clients.
+  // Clients without a submission for the selected month get their most recent
+  // prior data rolled forward; clients who have never submitted stay as "Pending MER".
   const mergedClients: Client[] = useMemo(() => {
     if (!data) return [];
-    if (monthFilter !== "current") return data.clients;
+    const monthClients = getClientsForMonth(data.merHistory, activeMonth);
+    const latestAnyMonth = buildLatestSubmissionMap(data.merHistory);
     const norm = (s: string) => s.trim().toLowerCase();
     const byGhlId = new Map<string, Client>();
     const byName = new Map<string, Client>();
-    for (const c of data.clients) {
+    for (const c of monthClients) {
       const gid = c.ghlContactId;
       if (gid) byGhlId.set(gid, c);
       byName.set(norm(c.name), c);
     }
-    return merWorkflowContacts.map<Client>((contact) => {
-      const matched = byGhlId.get(contact.id) || byName.get(norm(contactDisplayName(contact)));
-      if (matched) return matched;
-      return {
-        id: contact.id,
-        name: contactDisplayName(contact),
-        clientType: "For-Profit",
-        bookkeeper: "—",
-        status: "Pending MER",
-        bankTransactions: "",
-        uncategorizedTransactions: 0,
-        transactionsWithoutPayees: 0,
-        undepositedFunds: 0,
-        unappliedPayments: 0,
-        statementRequestStatus: "",
-        lastReconciledDate: "",
-        prevMonthNotesApproved: false,
-        financialsSentToClient: false,
-        booksClosedInQB: false,
-        completionPct: 0,
-        complianceStatus: "On Hold",
-        ghlContactId: contact.id,
-        categoryTags: (contact.tags || []).join(","),
-      } as Client;
-    });
-  }, [data, merWorkflowContacts, monthFilter]);
+    const seen = new Set<string>();
+    const out: Client[] = [];
+    for (const contact of merWorkflowContacts) {
+      const cName = contactDisplayName(contact);
+      const matched = byGhlId.get(contact.id) || byName.get(norm(cName));
+      const key = contact.id || norm(cName);
+      if (seen.has(key)) continue;
+      seen.add(key);
+      if (matched) {
+        out.push(matched);
+      } else {
+        const prior = latestAnyMonth.get(norm(cName));
+        if (prior) {
+          out.push({
+            ...prior,
+            id: contact.id,
+            ghlContactId: contact.id,
+            rolledOver: true,
+            rolledOverFrom: prior.month,
+            categoryTags: (contact.tags || []).join(","),
+          } as Client);
+        } else {
+          out.push({
+            id: contact.id,
+            name: cName,
+            clientType: "For-Profit",
+            bookkeeper: "—",
+            status: "Pending MER",
+            bankTransactions: "",
+            uncategorizedTransactions: 0,
+            transactionsWithoutPayees: 0,
+            undepositedFunds: 0,
+            unappliedPayments: 0,
+            statementRequestStatus: "",
+            lastReconciledDate: "",
+            prevMonthNotesApproved: false,
+            financialsSentToClient: false,
+            booksClosedInQB: false,
+            completionPct: 0,
+            complianceStatus: "Pending MER",
+            ghlContactId: contact.id,
+            categoryTags: (contact.tags || []).join(","),
+          } as Client);
+        }
+      }
+    }
+    return out;
+  }, [data, merWorkflowContacts, activeMonth]);
 
 
   // Available months (most recent first) derived from MER history
@@ -133,16 +168,16 @@ export default function BookkeepersPage() {
     if (!data) return [];
     // Filter out developer-role users from the leaderboard.
     const ops = data.bookkeepers.filter((bk) => !isDeveloper(bk));
-    if (monthFilter === "current") {
+    if (isCurrentMonth) {
       return ops
         .map((bk) => getBookkeeperPerformance(mergedClients, data.merHistory, bk))
         .sort((a, b) => b.rate - a.rate);
     }
     return ops
-      .map((bk) => getBookkeeperPerformanceForMonth(data.merHistory, bk, monthFilter))
+      .map((bk) => getBookkeeperPerformanceForMonth(data.merHistory, bk, activeMonth))
       .filter((x): x is BookkeeperPerformance => x !== null)
       .sort((a, b) => b.rate - a.rate);
-  }, [data, mergedClients, monthFilter, isDeveloper]);
+  }, [data, mergedClients, activeMonth, isCurrentMonth, isDeveloper]);
 
   const handleSaveSnapshot = async () => {
     if (!data || savingSnap) return;
@@ -185,10 +220,16 @@ export default function BookkeepersPage() {
   };
 
 
+  const filtered = useMemo(() => {
+    let list = stats.filter((s) => s.name.toLowerCase().includes(search.toLowerCase()));
+    if (sortBy === "name") list = [...list].sort((a, b) => a.name.localeCompare(b.name));
+    else if (sortBy === "clients") list = [...list].sort((a, b) => b.totalClients - a.totalClients);
+    // "rate" is already the default sort from stats
+    return list;
+  }, [stats, search, sortBy]);
+
   if (isLoading) return <BookkeepersSkeleton />;
   if (error || !data) return <DataError message={error?.message} onRetry={() => refetch()} isRetrying={isFetching} />;
-
-  const filtered = stats.filter((s) => s.name.toLowerCase().includes(search.toLowerCase()));
   const focus = selected ? stats.find((s) => s.name === selected) ?? null : null;
 
   // Per-month avg completion for focused bookkeeper
@@ -228,9 +269,9 @@ export default function BookkeepersPage() {
         <KPICard title="Total Clients Managed" value={totalClients} icon={FileText} index={3} />
       </div>
 
-      {/* Search + Month filter */}
+      {/* Search + Sort + Month filter */}
       <div className="flex flex-col sm:flex-row sm:flex-wrap sm:items-center gap-2">
-        <div className="flex items-center gap-2.5 rounded-lg border border-border bg-card px-3.5 py-2 text-sm w-full sm:w-72 shadow-card focus-within:ring-2 focus-within:ring-primary/20 focus-within:border-primary/30 transition-colors duration-150">
+        <div className={`${SEARCH_WRAPPER} w-full sm:w-72`}>
           <Search className="h-4 w-4 text-muted-foreground shrink-0" aria-hidden />
           <input
             type="search"
@@ -245,25 +286,36 @@ export default function BookkeepersPage() {
               type="button"
               onClick={() => setSearch("")}
               aria-label="Clear search"
-              className="shrink-0 -mr-1 h-6 w-6 rounded-full flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted transition-colors duration-150"
+              className={`shrink-0 -mr-1 h-6 w-6 rounded-full flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted transition-colors duration-150 ${FOCUS_RING}`}
             >
               <X className="h-3 w-3" />
             </button>
           )}
         </div>
+        <select
+          value={sortBy}
+          onChange={(e) => setSortBy(e.target.value as "rate" | "name" | "clients")}
+          aria-label="Sort bookkeepers"
+          className={`${SELECT_NATIVE} appearance-none w-full sm:w-auto pr-8 cursor-pointer`}
+        >
+          <option value="rate">Sort: Compliance Rate</option>
+          <option value="name">Sort: Name (A–Z)</option>
+          <option value="clients">Sort: Client Count</option>
+        </select>
         <MonthFilter
-          value={monthFilter}
+          value={activeMonth}
           onChange={(v) => { setMonthFilter(v); setSelected(null); }}
           months={data.availableMonths}
           latestMonth={data.latestMonth}
           compact
         />
-        {monthFilter !== "current" && (
+        {!isCurrentMonth && (
           <span className="text-[11px] text-muted-foreground">
-            Showing performance for <span className="font-semibold text-foreground">{monthFilter}</span>
+            Showing performance for <span className="font-semibold text-foreground">{activeMonth}</span>
           </span>
         )}
-        {isAdmin && monthFilter === "current" && (
+        <SopPanel config={bookkeepersSop} />
+        {isAdmin && isCurrentMonth && (
           <button
             onClick={handleSaveSnapshot}
             disabled={savingSnap}
@@ -363,15 +415,13 @@ export default function BookkeepersPage() {
 
         })}
         {filtered.length === 0 && (
-          <div className="col-span-full rounded-xl border border-border bg-card shadow-card p-10 flex flex-col items-center text-center">
-            <UserX className="h-8 w-8 text-muted-foreground mb-3" aria-hidden />
-            <p className="text-sm font-semibold text-foreground">
-              {stats.length === 0 ? "No bookkeeper data for this month" : "No bookkeepers match your search"}
-            </p>
-            <p className="text-xs text-muted-foreground mt-1">
-              {stats.length === 0 ? "Pick another month or wait for MER submissions to arrive." : "Try a different name or clear the search."}
-            </p>
-          </div>
+          <EmptyState
+            variant="card"
+            className="col-span-full"
+            icon={UserX}
+            title={stats.length === 0 ? "No bookkeeper data for this month" : "No bookkeepers match your search"}
+            hint={stats.length === 0 ? "Pick another month or wait for MER submissions to arrive." : "Try a different name or clear the search."}
+          />
         )}
       </div>
 
