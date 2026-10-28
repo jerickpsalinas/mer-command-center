@@ -72,9 +72,7 @@ function BookkeepersSkeleton() {
 export default function BookkeepersPage() {
   const { data, isLoading, error, refetch, isFetching } = useFilteredSheetData();
   const { contacts: merWorkflowContacts } = useMerWorkflowContacts();
-  const { isAdmin, isBookkeeper } = useAuth();
-  const navigate = useNavigate();
-  useEffect(() => { if (isBookkeeper) navigate("/", { replace: true }); }, [isBookkeeper, navigate]);
+  const { isAdmin } = useAuth();
   const [search, setSearch] = useState("");
   const [selected, setSelected] = useState<string | null>(null);
   const [monthFilter, setMonthFilter] = useState<string>("");
@@ -91,7 +89,7 @@ export default function BookkeepersPage() {
   const mergedClients: Client[] = useMemo(() => {
     if (!data) return [];
     const monthClients = getClientsForMonth(data.merHistory, activeMonth);
-    const latestAnyMonth = buildLatestSubmissionMap(data.merHistory);
+    const latestAnyMonth = buildLatestSubmissionMap(data.merHistory, activeMonth);
     const norm = (s: string) => s.trim().toLowerCase();
     const byGhlId = new Map<string, Client>();
     const byName = new Map<string, Client>();

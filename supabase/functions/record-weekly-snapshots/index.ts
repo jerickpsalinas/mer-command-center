@@ -6,8 +6,9 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type",
 };
 
-const SHEET_URL =
-  "https://script.google.com/macros/s/AKfycbwtoATJXBCb-Yxmim2wWVh5d5baB9Dg1UMQOmhoQiCR1Z-7nFR1fEzM3IbBIpkUq2bj/exec";
+// Demo build: this public repo deliberately ships no real endpoint. Supply
+// one via the SHEET_URL environment variable if you deploy your own copy.
+const SHEET_URL = Deno.env.get("SHEET_URL") ?? "";
 
 function getNyOffsetMinutes(d: Date): number {
   const fmt = new Intl.DateTimeFormat("en-US", {

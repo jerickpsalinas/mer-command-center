@@ -287,9 +287,6 @@ function Watchlist({
 /* ---------------- Page ---------------- */
 
 export default function HealthPillarsPage() {
-  const { isBookkeeper } = useAuth();
-  const navigate = useNavigate();
-  useEffect(() => { if (isBookkeeper) navigate("/", { replace: true }); }, [isBookkeeper, navigate]);
   const { data, isLoading, error, refetch, isFetching } = useFilteredSheetData();
   const { open: openClient, modal: clientModal } = useClientDetails();
 

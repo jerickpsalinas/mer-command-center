@@ -1,6 +1,9 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
-import { BookOpen, FileText, ChevronRight, ClipboardList } from "lucide-react";
+import { BookOpen, FileText, ChevronRight, ClipboardList, Download, Layers } from "lucide-react";
+import { toast } from "sonner";
+import { downloadSopPdf } from "@/lib/sopPdf";
+import { allSops } from "@/data/sopConfigs";
 import PdfViewerModal from "@/components/PdfViewerModal";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
@@ -9,6 +12,8 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from "@/components/ui/accordion";
+import SopPanel from "@/components/SopPanel";
+import { userGuideSop } from "@/data/sopConfigs";
 
 interface Guide {
   id: string;
@@ -77,8 +82,8 @@ function Step({ n, children }: { n: number; children: React.ReactNode }) {
 
 function Tip({ children }: { children: React.ReactNode }) {
   return (
-    <div className="flex gap-2 bg-blue-500/5 border border-blue-500/20 rounded-lg px-3 py-2.5 mb-3">
-      <span className="text-blue-400 text-xs font-bold uppercase shrink-0 pt-0.5">Tip</span>
+    <div className="flex gap-2 bg-info/5 border border-info/20 rounded-lg px-3 py-2.5 mb-3">
+      <span className="text-info text-xs font-bold uppercase shrink-0 pt-0.5">Tip</span>
       <p className="text-[12.5px] text-muted-foreground leading-relaxed">{children}</p>
     </div>
   );
@@ -86,8 +91,8 @@ function Tip({ children }: { children: React.ReactNode }) {
 
 function Warning({ children }: { children: React.ReactNode }) {
   return (
-    <div className="flex gap-2 bg-amber-500/5 border border-amber-500/20 rounded-lg px-3 py-2.5 mb-3">
-      <span className="text-amber-400 text-xs font-bold uppercase shrink-0 pt-0.5">Note</span>
+    <div className="flex gap-2 bg-gold-soft border border-gold/40 rounded-lg px-3 py-2.5 mb-3">
+      <span className="text-gold-foreground text-xs font-bold uppercase shrink-0 pt-0.5">Note</span>
       <p className="text-[12.5px] text-muted-foreground leading-relaxed">{children}</p>
     </div>
   );
@@ -161,11 +166,10 @@ function SOPContent() {
             <SectionTitle>Navigating the Sidebar</SectionTitle>
             <P>The left sidebar shows all the pages you have access to. Click any page name to go there. Your available pages depend on your role:</P>
             <SopTable
-              headers={["Role", "Pages You Can See"]}
+              headers={["Page", "Who sees it"]}
               rows={[
-                ["Admin (Jessica)", "All 14 pages: Dashboard, Monthly Progress, Clients, GHL Active Clients, Master Bookkeeping Cycle, Activity Log, Billing, MER History, Tax Management, Status Snapshots, Cleanup Tracker, Settings, User Guide"],
-                ["Bookkeeper (Sahir, Maricel)", "Dashboard, Monthly Progress, Clients, Activity Log, Billing, User Guide, Settings"],
-                ["Developer (Jerick)", "All pages plus Developer tools"],
+                ["Every page — Dashboard, Compliance Health, Master Bookkeeping Cycle, Monthly Progress, Clients, Bookkeepers, GHL Active Clients, GHL Contacts, Monthly Trends, Activity Log, Export Center, User Guide, Settings, Billing", "Everyone on the team"],
+                ["Developer", "Developer only (system tools)"],
               ]}
             />
             <Tip>The page you're currently on is highlighted in the sidebar. If you ever get lost, click "Dashboard" to go back to the home page.</Tip>
@@ -180,7 +184,7 @@ function SOPContent() {
         {/* ============================================================ */}
         <AccordionItem value="mer-submit" className="border border-border rounded-lg px-4">
           <AccordionTrigger className="text-sm font-semibold hover:no-underline">
-            Submitting a Monthly Expense Report (MER)
+            Submitting a Monthly Engagement Report (MER)
           </AccordionTrigger>
           <AccordionContent className="pb-4">
             <SectionTitle>Adding a New MER (First Submission for the Month)</SectionTitle>
@@ -560,31 +564,33 @@ function SOPContent() {
         {/* ============================================================ */}
         <AccordionItem value="workflows" className="border border-border rounded-lg px-4">
           <AccordionTrigger className="text-sm font-semibold hover:no-underline">
-            Automation Reference (All 17 Workflows)
+            Automation Reference (All 20 Workflows)
           </AccordionTrigger>
           <AccordionContent className="pb-4">
             <P>These automations run in the background. You don't need to manage them — they trigger automatically. This table is for reference so you understand what's happening behind the scenes.</P>
             <SopTable
               headers={["#", "Name", "When It Runs", "What It Does"]}
               rows={[
-                ["WF1", "Bookkeeping Automation", "When \"ready-for-pipeline\" tag is added", "Sends docs request email + SMS to client, then automatic reminders at Day 3, Day 5, and Day 7 if no response"],
-                ["WF2", "Cleanup Workflow", "When \"ready-for-cleanup\" tag is added", "Same reminder sequence as WF1 but for cleanup cycle clients"],
-                ["WF3", "MER Slack Modal", "When someone uses the /mer Slack command", "Opens the MER submission form in Slack and processes the submission"],
+                ["WF1", "Bookkeeping Automation", "When \"ready-for-pipeline\" tag is added", "Sends docs request email + SMS to client, then automatic reminders at Day 10, 13, 16, and 21 if no response"],
+                ["WF2", "Cleanup", "When \"ready-for-cleanup\" tag is added", "Same reminder sequence as WF1 but for cleanup cycle clients"],
+                ["WF3", "MER Dashboard", "Serves the dashboard", "Reads the Bookkeeping Tracker sheet and feeds the dashboard"],
                 ["WF4", "Monthly Auto-Trigger", "Beginning of each month (or manually)", "Tags all active clients with \"ready-for-pipeline\" to start everyone's monthly cycle"],
                 ["WF5", "MER Slash Commands", "Slack slash commands", "Handles /mer and other Slack commands"],
                 ["WF6", "Dashboard Actions", "When you click an action button", "Processes the action — sends the email/SMS, updates tags, logs to Slack"],
-                ["WF7a", "QBO Connect", "When you click \"Connect QBO\"", "Handles the QuickBooks login and saves the connection"],
+                ["WF7a", "QBO OAuth", "When you click \"Connect QBO\"", "Handles the QuickBooks login and saves the connection"],
                 ["WF7b", "QBO Daily Sync", "Every day at 7:00 AM", "Pulls income/expenses from each connected client's QuickBooks"],
-                ["WF8", "MER Submit", "When a MER is submitted", "Saves the MER data, updates the client's status, notifies the team"],
-                ["WF9", "Day 21 Escalation", "Scheduled check", "Alerts the team when a client has been stuck in the pipeline for 21+ days"],
-                ["WF10", "AI Categorization", "On demand", "Uses AI to categorize uncategorized QBO transactions"],
-                ["WF11", "Tax Cycle", "When you start/complete a tax cycle", "Updates the client's tax status and posts TaxDome instructions to Slack"],
-                ["WF12", "Keep-Alive Ping", "Every 5 minutes", "Keeps the automation server running (technical maintenance)"],
-                ["WF13", "Docs Claimed", "When a client texts DOCSDONE", "Marks docs as claimed, posts to #docs-verification for team to verify"],
-                ["WF14", "Junk Cleanup", "Scheduled", "Removes test/junk contacts from GHL (maintenance)"],
-                ["WF15", "Firm QBO Connect", "When firm QBO is connected", "Handles the firm's QuickBooks login for billing data"],
-                ["WF16", "Billing Sync", "Every day at 8:00 AM", "Pulls billing data (balances, invoices, payments) from firm QuickBooks"],
+                ["WF8", "MER Dashboard Submit", "When a MER is submitted", "Saves the MER data, updates the client's status, notifies the team"],
+                ["WF9", "Escalation (Day 21)", "Scheduled check", "Alerts the team when a client has been stuck in the pipeline for 21+ days"],
+                ["WF10", "AI Transaction Categorization", "On demand", "Uses AI to categorize uncategorized QBO transactions"],
+                ["WF11", "Tax Cycle Management", "When you start/complete a tax cycle", "Updates the client's tax status and posts TaxDome instructions to Slack"],
+                ["WF12", "Keep-Alive", "On a schedule", "Keeps the automation server awake (technical maintenance)"],
+                ["WF13", "Docs Claimed Handler", "When a client texts DOCSDONE", "Marks docs as claimed, posts to #docs-verification for team to verify"],
+                ["WF14", "Junk Contact Cleanup", "Every 15 minutes", "Removes test/junk contacts from GHL, logs them, and posts a Slack summary"],
+                ["WF15", "Firm QBO OAuth", "When firm QBO is connected", "Handles the firm's QuickBooks login for billing data"],
+                ["WF16", "Billing Sync (Firm QBO)", "Every day at 8:00 AM", "Pulls billing data (balances, invoices, payments) from firm QuickBooks"],
                 ["WF17", "Billing Field Update", "When you edit a billing field", "Saves your changes to service type, notification stage, or notes"],
+                ["WF18", "GHL Contacts Manager", "From the GHL Contacts page", "Looks up and manages GoHighLevel contacts and their tags"],
+                ["WF19", "Confirm Financials Sent", "When you confirm financials sent", "Marks \"Financials Sent To Client\" = Yes for that client's MER row"],
               ]}
             />
           </AccordionContent>
@@ -624,6 +630,52 @@ function SOPContent() {
 
 
 /* ------------------------------------------------------------------ */
+/*  Page SOPs — the same short SOP shown by each page's ? button,      */
+/*  all in one place so this guide never drifts out of sync.           */
+/* ------------------------------------------------------------------ */
+
+function PageSopsReference() {
+  return (
+    <div className="space-y-3">
+      <div className="bg-muted/30 border border-border rounded-lg px-4 py-3 mb-2">
+        <p className="text-[13px] text-muted-foreground leading-relaxed">
+          <strong className="text-foreground">What each page does</strong> — the quick SOP for every tab in the sidebar.
+          It's the same note you get from the <strong className="text-foreground">SOP</strong> button on each page. Click any page to expand it.
+        </p>
+      </div>
+      <Accordion type="multiple" className="space-y-2">
+        {allSops.map((sop) => (
+          <AccordionItem key={sop.title} value={sop.title} className="border border-border rounded-lg px-4">
+            <AccordionTrigger className="text-sm font-semibold hover:no-underline">
+              <span className="flex flex-col items-start text-left">
+                {sop.title}
+                {sop.subtitle && (
+                  <span className="text-[12px] font-normal text-muted-foreground mt-0.5">{sop.subtitle}</span>
+                )}
+              </span>
+            </AccordionTrigger>
+            <AccordionContent className="pb-4">
+              <div className="space-y-4">
+                {sop.sections.map((s) => (
+                  <div key={s.heading}>
+                    <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-1.5">
+                      {s.heading}
+                    </h3>
+                    <div className="text-[13px] text-muted-foreground leading-relaxed whitespace-pre-line">
+                      {s.content}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </AccordionContent>
+          </AccordionItem>
+        ))}
+      </Accordion>
+    </div>
+  );
+}
+
+/* ------------------------------------------------------------------ */
 /*  Main Page Component                                                */
 /* ------------------------------------------------------------------ */
 
@@ -641,21 +693,47 @@ export default function UserGuidePage() {
           Internal procedures & how-to documents
         </h2>
         <p className="text-[13px] text-muted-foreground max-w-2xl">
-          Browse PDF guides or expand the SOP reference for step-by-step instructions on every process.
+          Start with Page SOPs for what each tab does, open How-To Guides for step-by-step procedures, or grab the PDF guides.
         </p>
+        <div className="pt-1 flex flex-wrap items-center gap-2">
+          <SopPanel config={userGuideSop} />
+          <button
+            type="button"
+            onClick={() => {
+              try {
+                const name = downloadSopPdf(allSops, { manualTitle: "Brant & Associates MER Dashboard" });
+                toast.success(`Full SOP manual downloaded: ${name}`);
+              } catch {
+                toast.error("Could not generate the SOP manual");
+              }
+            }}
+            className="inline-flex items-center gap-1.5 rounded-lg border border-primary/30 bg-primary/10 px-3 py-2 text-xs font-semibold text-primary hover:bg-primary/15 transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          >
+            <Download className="h-3.5 w-3.5" aria-hidden />
+            Download full SOP manual (PDF)
+          </button>
+        </div>
       </div>
 
-      <Tabs defaultValue="sop" className="w-full">
+      <Tabs defaultValue="pages" className="w-full">
         <TabsList>
+          <TabsTrigger value="pages" className="gap-1.5">
+            <Layers className="h-3.5 w-3.5" />
+            Page SOPs
+          </TabsTrigger>
           <TabsTrigger value="sop" className="gap-1.5">
             <ClipboardList className="h-3.5 w-3.5" />
-            SOP Reference
+            How-To Guides
           </TabsTrigger>
           <TabsTrigger value="guides" className="gap-1.5">
             <FileText className="h-3.5 w-3.5" />
             PDF Guides
           </TabsTrigger>
         </TabsList>
+
+        <TabsContent value="pages" className="mt-4">
+          <PageSopsReference />
+        </TabsContent>
 
         <TabsContent value="sop" className="mt-4">
           <SOPContent />

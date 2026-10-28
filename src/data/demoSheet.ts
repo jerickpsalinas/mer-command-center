@@ -2886,6 +2886,7 @@ export const DEMO_GHL_CONTACTS: DemoGhlContact[] = [
     "companyName": "Maple Street Tax Co.",
     "tags": [
       "mer-workflow",
+      "active-client",
       "ready-for-pipeline",
       "review-ready"
     ]
@@ -2897,6 +2898,7 @@ export const DEMO_GHL_CONTACTS: DemoGhlContact[] = [
     "companyName": "Riverside Dental Group",
     "tags": [
       "mer-workflow",
+      "active-client",
       "ready-for-pipeline",
       "review-ready"
     ]
@@ -2908,6 +2910,7 @@ export const DEMO_GHL_CONTACTS: DemoGhlContact[] = [
     "companyName": "Pinehurst Realty LLC",
     "tags": [
       "mer-workflow",
+      "active-client",
       "ready-for-pipeline",
       "review-ready"
     ]
@@ -2937,6 +2940,7 @@ export const DEMO_GHL_CONTACTS: DemoGhlContact[] = [
     "companyName": "Oakwood Learning Center",
     "tags": [
       "mer-workflow",
+      "active-client",
       "ready-for-pipeline",
       "review-ready"
     ]
@@ -2948,6 +2952,7 @@ export const DEMO_GHL_CONTACTS: DemoGhlContact[] = [
     "companyName": "Harbor View Marina",
     "tags": [
       "mer-workflow",
+      "active-client",
       "ready-for-pipeline",
       "review-ready"
     ]
@@ -2959,6 +2964,7 @@ export const DEMO_GHL_CONTACTS: DemoGhlContact[] = [
     "companyName": "Summit Legal Partners",
     "tags": [
       "mer-workflow",
+      "active-client",
       "ready-for-pipeline",
       "review-ready"
     ]
@@ -2970,6 +2976,7 @@ export const DEMO_GHL_CONTACTS: DemoGhlContact[] = [
     "companyName": "Blue Ridge Healthcare",
     "tags": [
       "mer-workflow",
+      "active-client",
       "ready-for-pipeline",
       "review-ready"
     ]
@@ -2981,6 +2988,7 @@ export const DEMO_GHL_CONTACTS: DemoGhlContact[] = [
     "companyName": "Coastal Fitness Studio",
     "tags": [
       "mer-workflow",
+      "active-client",
       "ready-for-pipeline",
       "review-ready"
     ]
@@ -2992,6 +3000,7 @@ export const DEMO_GHL_CONTACTS: DemoGhlContact[] = [
     "companyName": "Lakeview Community Church",
     "tags": [
       "mer-workflow",
+      "active-client",
       "ready-for-pipeline",
       "review-ready"
     ]
@@ -3003,6 +3012,7 @@ export const DEMO_GHL_CONTACTS: DemoGhlContact[] = [
     "companyName": "Northgate Auto Services",
     "tags": [
       "mer-workflow",
+      "active-client",
       "ready-for-pipeline",
       "review-ready"
     ]
@@ -3014,6 +3024,7 @@ export const DEMO_GHL_CONTACTS: DemoGhlContact[] = [
     "companyName": "Elmwood Dance Academy",
     "tags": [
       "mer-workflow",
+      "active-client",
       "ready-for-pipeline",
       "review-ready"
     ]
@@ -3025,6 +3036,7 @@ export const DEMO_GHL_CONTACTS: DemoGhlContact[] = [
     "companyName": "Silverstone Investments",
     "tags": [
       "mer-workflow",
+      "active-client",
       "ready-for-pipeline",
       "review-ready"
     ]
@@ -3044,16 +3056,19 @@ export const DEMO_GHL_CONTACTS: DemoGhlContact[] = [
 export const DEMO_GHL_TAGS: Record<string, string[]> = {
   "C1001": [
     "mer-workflow",
+    "active-client",
     "ready-for-pipeline",
     "review-ready"
   ],
   "C1002": [
     "mer-workflow",
+    "active-client",
     "ready-for-pipeline",
     "review-ready"
   ],
   "C1003": [
     "mer-workflow",
+    "active-client",
     "ready-for-pipeline",
     "review-ready"
   ],
@@ -3065,46 +3080,55 @@ export const DEMO_GHL_TAGS: Record<string, string[]> = {
   ],
   "C1006": [
     "mer-workflow",
+    "active-client",
     "ready-for-pipeline",
     "review-ready"
   ],
   "C1007": [
     "mer-workflow",
+    "active-client",
     "ready-for-pipeline",
     "review-ready"
   ],
   "C1008": [
     "mer-workflow",
+    "active-client",
     "ready-for-pipeline",
     "review-ready"
   ],
   "C1009": [
     "mer-workflow",
+    "active-client",
     "ready-for-pipeline",
     "review-ready"
   ],
   "C1010": [
     "mer-workflow",
+    "active-client",
     "ready-for-pipeline",
     "review-ready"
   ],
   "C1011": [
     "mer-workflow",
+    "active-client",
     "ready-for-pipeline",
     "review-ready"
   ],
   "C1012": [
     "mer-workflow",
+    "active-client",
     "ready-for-pipeline",
     "review-ready"
   ],
   "C1013": [
     "mer-workflow",
+    "active-client",
     "ready-for-pipeline",
     "review-ready"
   ],
   "C1014": [
     "mer-workflow",
+    "active-client",
     "ready-for-pipeline",
     "review-ready"
   ],

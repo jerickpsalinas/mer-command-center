@@ -12,9 +12,15 @@ import {
 } from "@/components/ui/alert-dialog";
 import { cn, FOCUS_RING, SELECT_NATIVE } from "@/lib/utils";
 import { canAccessGhlContacts } from "@/lib/ghlContactsAccess";
+import { DEMO_MODE } from "@/lib/demoMode";
+import { DEMO_GHL_CONTACTS } from "@/data/demoSheet";
+import SopPanel from "@/components/SopPanel";
+import { ghlContactsSop } from "@/data/sopConfigs";
 import { motion, AnimatePresence } from "framer-motion";
 
-const N8N_BASE = import.meta.env.VITE_N8N_BASE_URL || "https://n8n.srv1482383.hstgr.cloud";
+
+// Demo build: no live automation host is baked into this public repo.
+const N8N_BASE = import.meta.env.VITE_N8N_BASE_URL || "";
 
 interface Contact {
   id: string;
@@ -41,7 +47,41 @@ async function getAccessToken(): Promise<string> {
   return data.session?.access_token ?? "";
 }
 
+/**
+ * Demo build: this page is backed by n8n webhooks in production. Rather than
+ * thread DEMO_MODE through every call site, the transport itself answers with
+ * the fictional contact list so the table, tag filters and bulk-tag flow all
+ * behave normally without any outbound request.
+ */
+function demoN8n<T>(path: string, body: unknown): T {
+  if (path.includes("ghl-contacts-list")) {
+    const contacts: Contact[] = DEMO_GHL_CONTACTS.map((c) => {
+      const name = c.companyName || `${c.firstName ?? ""} ${c.lastName ?? ""}`.trim();
+      const slug = name.toLowerCase().replace(/[^a-z0-9]+/g, ".").replace(/^\.|\.$/g, "");
+      const digits = c.id.replace(/\D/g, "").padStart(4, "0").slice(-4);
+      return {
+        id: c.id,
+        name,
+        email: `${slug}@example.com`,
+        phone: `(555) 01${digits.slice(0, 1)}-${digits}`,
+        tags: c.tags ?? [],
+      };
+    });
+    const allTags = Array.from(new Set(contacts.flatMap((c) => c.tags))).sort();
+    return { contacts, allTags, total: contacts.length } as T;
+  }
+  if (path.includes("ghl-contacts-tag")) {
+    const ids = (body as { contactIds?: string[] })?.contactIds ?? [];
+    return { results: ids.map((contactId) => ({ contactId, success: true })) } as T;
+  }
+  return {} as T;
+}
+
 async function n8nPost<T>(path: string, body: unknown): Promise<T> {
+  if (DEMO_MODE) {
+    await new Promise((r) => setTimeout(r, 250));
+    return demoN8n<T>(path, body);
+  }
   const token = await getAccessToken();
   const res = await fetch(`${N8N_BASE}${path}`, {
     method: "POST",
@@ -112,8 +152,8 @@ export default function GhlContactsPage() {
   }, []);
 
   useEffect(() => {
-    if (isJerick) fetchContacts();
-  }, [isJerick, fetchContacts]);
+    fetchContacts();
+  }, [fetchContacts]);
 
   const filtered = useMemo(() => {
     let list = contacts;
@@ -185,21 +225,6 @@ export default function GhlContactsPage() {
     }
   };
 
-  if (!isJerick) {
-    if (isDeveloper) {
-      return (
-        <div className="flex flex-col items-center justify-center py-20 space-y-4">
-          <h1 className="text-2xl font-bold text-foreground">Access Denied</h1>
-          <p className="text-sm text-muted-foreground">Your auth id does not match the allowed user.</p>
-          <p className="text-xs text-muted-foreground font-mono bg-muted px-4 py-2 rounded-lg select-all">
-            Your auth id: {user?.id ?? "unknown"}
-          </p>
-        </div>
-      );
-    }
-    return <Navigate to="/" replace />;
-  }
-
   const successCount = results?.filter((r) => r.success).length ?? 0;
   const failures = results?.filter((r) => !r.success) ?? [];
 
@@ -217,6 +242,8 @@ export default function GhlContactsPage() {
             </p>
           )}
         </div>
+        <div className="flex items-center gap-2">
+        <SopPanel config={ghlContactsSop} />
         <button
           onClick={fetchContacts}
           disabled={loading}
@@ -228,6 +255,7 @@ export default function GhlContactsPage() {
           <RefreshCw className={cn("h-4 w-4", loading && "animate-spin")} />
           Refresh
         </button>
+        </div>
       </div>
 
       {/* Stats bar */}

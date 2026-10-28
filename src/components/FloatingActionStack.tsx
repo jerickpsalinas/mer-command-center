@@ -25,8 +25,7 @@ interface ReactionRow {
 
 const FLOAT_BTN_STYLE: React.CSSProperties = {
   backgroundColor: "hsl(var(--primary))",
-  boxShadow:
-    "0 0 0 1.5px hsl(var(--primary) / 0.45), 0 4px 16px hsl(var(--primary) / 0.25), 0 8px 24px hsl(var(--background) / 0.4)",
+  boxShadow: "var(--shadow-card)",
 };
 
 const CHAT_LAST_SEEN_KEY = "team_chat_last_seen_at";

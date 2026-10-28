@@ -116,7 +116,7 @@ export default function MonthlyProgressPage() {
     const norm = (s: string) => s.trim().toLowerCase();
     const sheetClients = getClientsForMonth(merHistory, activeMonth);
     if (!merWorkflowContacts.length) return sheetClients;
-    const latestAnyMonth = buildLatestSubmissionMap(merHistory);
+    const latestAnyMonth = buildLatestSubmissionMap(merHistory, activeMonth);
     const byGhlId = new Map<string, Client>();
     const byName = new Map<string, Client>();
     for (const c of sheetClients) {

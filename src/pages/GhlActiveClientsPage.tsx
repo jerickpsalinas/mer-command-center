@@ -152,9 +152,6 @@ type PendingAction =
   | null;
 
 export default function GhlActiveClientsPage() {
-  const { isBookkeeper } = useAuth();
-  const navigate = useNavigate();
-  useEffect(() => { if (isBookkeeper) navigate("/", { replace: true }); }, [isBookkeeper, navigate]);
   // Bookkeepers are redirected away — this page is restricted to admins and
   // standard users who manage GHL active-client tags.
   const canEditCycleTags = true;
