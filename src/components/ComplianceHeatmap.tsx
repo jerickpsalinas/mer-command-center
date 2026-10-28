@@ -12,11 +12,11 @@ interface Props {
 
 // Theme-token scale so the heatmap tracks the active (dark/light) palette.
 const SCALE = [
-  { label: "0–24%", color: "hsl(var(--destructive) / 0.9)" },
-  { label: "25–49%", color: "hsl(var(--destructive) / 0.5)" },
-  { label: "50–69%", color: "hsl(var(--warning) / 0.8)" },
-  { label: "70–89%", color: "hsl(var(--success) / 0.5)" },
-  { label: "90–100%", color: "hsl(var(--success) / 0.9)" },
+  { label: "0–24%", color: "hsl(var(--destructive-soft))" },
+  { label: "25–49%", color: "hsl(var(--destructive) / 0.18)" },
+  { label: "50–69%", color: "hsl(var(--warning-soft))" },
+  { label: "70–89%", color: "hsl(var(--success) / 0.18)" },
+  { label: "90–100%", color: "hsl(var(--success-soft))" },
   { label: "No data", color: "hsl(var(--muted))" },
 ] as const;
 

@@ -1,4 +1,6 @@
 import StatusBadge from "@/components/StatusBadge";
+import AccountingBadge from "@/components/AccountingBadge";
+import { buildReconciledThroughMap, getAccountingStatus } from "@/lib/accountingStatus";
 import StickyPageHeader from "@/components/StickyPageHeader";
 import ClientSparkline from "@/components/ClientSparkline";
 import SwipeableCard from "@/components/SwipeableCard";
@@ -104,9 +106,32 @@ export default function ClientsPage() {
     if (openName && openName !== detailsClient) setDetailsClient(openName);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchParams]);
+
+  // Deep links from the Staff Portal: ?client=<GHL Contact ID> opens that
+  // client's details modal; ?q=<client name> is the fallback when the portal
+  // only knows the name. Resolved once sheet data / GHL contacts are loaded.
+  useEffect(() => {
+    const byName = searchParams.get("q");
+    const byId = searchParams.get("client");
+    if (byName) {
+      setDetailsClient(byName);
+      return;
+    }
+    if (!byId || !sheetData) return;
+    const row =
+      sheetData.merHistory.find((r) => r.ghlContactId === byId) ??
+      sheetData.clients.find((c) => c.ghlContactId === byId);
+    if (row) {
+      setDetailsClient(row.name);
+      return;
+    }
+    const contact = merWorkflowContacts.find((c) => c.id === byId);
+    if (contact) setDetailsClient(contactDisplayName(contact));
+  }, [searchParams, sheetData, merWorkflowContacts]);
   const [monthFilter, setMonthFilter] = useState<string>("");
   const [categoryTagFilter, setCategoryTagFilter] = useState<string>("all");
   const [merStatusFilter, setMerStatusFilter] = useState<string>("all");
+  const [reconFilter, setReconFilter] = useState<"all" | "reconciled" | "carried" | "not">("all");
   const [expandedIssues, setExpandedIssues] = useState<Set<string>>(new Set());
   const toggleIssues = (id: string) =>
     setExpandedIssues((prev) => {
@@ -130,7 +155,8 @@ export default function ClientsPage() {
   const activeMonth = (monthFilter && data.availableMonths.includes(monthFilter)) ? monthFilter : data.latestMonth;
   const isLatest = activeMonth === data.latestMonth;
   const monthClients = getClientsForMonth(data.merHistory, activeMonth);
-  const latestAnyMonth = buildLatestSubmissionMap(data.merHistory);
+  const latestAnyMonth = buildLatestSubmissionMap(data.merHistory, activeMonth);
+  const reconciledThroughMap = buildReconciledThroughMap(data.merHistory);
 
   // Build the client list for the active month.
   // GHL mer-workflow contacts = source of truth for WHO appears.
@@ -284,6 +310,14 @@ export default function ClientsPage() {
       const tags = raw.split(",").map((t) => t.trim().toLowerCase()).filter(Boolean);
       return tags.includes(categoryTagFilter);
     })
+    .filter((c) => {
+      if (reconFilter === "all") return true;
+      if (c.complianceStatus === "Pending MER") return false;
+      const a = getAccountingStatus(c.name, activeMonth, c.lastReconciledDate, reconciledThroughMap);
+      if (reconFilter === "reconciled") return a.done;
+      if (reconFilter === "carried") return a.done && a.inferred;
+      return !a.done; // "not"
+    })
     .sort((a, b) => {
       const mul = sortDir === "asc" ? 1 : -1;
       if (sortKey === "name") return mul * a.name.localeCompare(b.name);
@@ -312,7 +346,7 @@ export default function ClientsPage() {
     { key: "name", label: "Name" },
   ];
 
-  const hasActiveFilter = search || statusFilter !== "all" || bookkeeperFilter || typeFilter || minCompletion > 0 || merStatusFilter !== "all";
+  const hasActiveFilter = search || statusFilter !== "all" || bookkeeperFilter || typeFilter || minCompletion > 0 || merStatusFilter !== "all" || reconFilter !== "all";
   const activeFilterCount = [
     !!search,
     statusFilter !== "all",
@@ -320,6 +354,7 @@ export default function ClientsPage() {
     !!typeFilter,
     minCompletion > 0,
     merStatusFilter !== "all",
+    reconFilter !== "all",
   ].filter(Boolean).length;
   const clearAllFilters = () => {
     setSearch("");
@@ -328,6 +363,7 @@ export default function ClientsPage() {
     setTypeFilter("");
     setMinCompletion(0);
     setMerStatusFilter("all");
+    setReconFilter("all");
   };
   const clientTypes = Array.from(new Set(monthClients.map((c) => c.clientType))).sort();
 
@@ -544,6 +580,14 @@ export default function ClientsPage() {
             <option value="Pending MER">Pending MER</option>
           </select>
 
+          <select aria-label="Reconciliation status" value={reconFilter} onChange={(e) => setReconFilter(e.target.value as typeof reconFilter)}
+            className="h-9 rounded-lg border border-border bg-card px-2.5 text-xs font-medium text-foreground flex-1 sm:flex-none min-w-0 transition-colors hover:border-primary/30 focus:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background">
+            <option value="all">All reconciliation</option>
+            <option value="reconciled">Reconciled</option>
+            <option value="carried">Reconciled (carried)</option>
+            <option value="not">Not Reconciled</option>
+          </select>
+
           <select aria-label="Bookkeeper" value={bookkeeperFilter} onChange={(e) => setBookkeeperFilter(e.target.value)}
             className="h-9 rounded-lg border border-border bg-card px-2.5 text-xs font-medium text-foreground flex-1 sm:flex-none min-w-0 transition-colors hover:border-primary/30 focus:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background max-w-[50%] sm:max-w-none">
             <option value="">All bookkeepers</option>
@@ -639,7 +683,7 @@ export default function ClientsPage() {
                     </p>
                   )}
                 </div>
-                <div className="flex items-center gap-2 shrink-0">
+                <div className="flex flex-wrap items-center justify-end gap-1.5 shrink-0 max-w-[58%]">
                   <span
                     className={`inline-flex h-5 items-center gap-1.5 rounded-md border px-2 text-[11px] font-semibold leading-none whitespace-nowrap ${
                       seq.hasActiveSequence
@@ -654,6 +698,10 @@ export default function ClientsPage() {
                     <span className={`h-1.5 w-1.5 rounded-full ${dotCls}`} aria-hidden="true" />
                     {seq.hasActiveSequence ? "Active" : seq.hasAnyActivity ? "Clear" : "Idle"}
                   </span>
+                  {c.complianceStatus !== "Pending MER" && (() => {
+                    const acct = getAccountingStatus(c.name, activeMonth, c.lastReconciledDate, reconciledThroughMap);
+                    return <AccountingBadge status={acct.status} inferred={acct.inferred} reportingMonth={activeMonth} />;
+                  })()}
                   <StatusBadge status={c.complianceStatus} client={c} />
                   {c.rolledOver && (
                     <span className="inline-flex items-center gap-1 rounded-md bg-warning/10 border border-warning/20 px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wider text-warning" title={`Data from ${c.rolledOverFrom} — not yet updated for this month`}>
@@ -664,8 +712,10 @@ export default function ClientsPage() {
               </div>
               {(() => {
                 const qboOn = String(c.qboConnected ?? "").trim().toLowerCase() === "yes";
+                const finSent = !!c.financialsSentToClient;
+                const isPending = c.complianceStatus === "Pending MER";
                 return (
-                  <div className="mb-2">
+                  <div className="mb-2 flex flex-wrap items-center gap-1.5">
                     <span
                       className={`inline-flex h-5 items-center gap-1.5 rounded-md border px-2 text-[10.5px] font-semibold leading-none ${
                         qboOn
@@ -678,6 +728,20 @@ export default function ClientsPage() {
                       <span className={`h-1.5 w-1.5 rounded-full ${qboOn ? "bg-success" : "bg-muted-foreground/60"}`} aria-hidden="true" />
                       {qboOn ? "QBO" : "QBO Not Connected"}
                     </span>
+                    {!isPending && (
+                      <span
+                        className={`inline-flex h-5 items-center gap-1.5 rounded-md border px-2 text-[10.5px] font-semibold leading-none ${
+                          finSent
+                            ? "bg-success/10 text-success border-success/20"
+                            : "bg-warning/10 text-warning border-warning/20"
+                        }`}
+                        title={finSent ? "Financials sent to client" : "Financials not yet sent to client"}
+                        aria-label={finSent ? "Financials sent to client" : "Financials not yet sent to client"}
+                      >
+                        <span className={`h-1.5 w-1.5 rounded-full ${finSent ? "bg-success" : "bg-warning"}`} aria-hidden="true" />
+                        {finSent ? "Financials Sent" : "Financials Pending"}
+                      </span>
+                    )}
                   </div>
                 );
               })()}

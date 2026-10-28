@@ -12,6 +12,8 @@ import { DataError } from "@/components/DataStatus";
 import { Skeleton } from "@/components/ui/skeleton";
 import { EmptyState } from "@/components/EmptyState";
 import { cn, SEARCH_WRAPPER, FOCUS_RING } from "@/lib/utils";
+import SopPanel from "@/components/SopPanel";
+import { monthlyTrendsSop } from "@/data/sopConfigs";
 
 /* Chart palette — all theme tokens so light mode and dark mode both work. */
 const CHART = {
@@ -79,9 +81,6 @@ function getCurrentMonthLabel() {
 }
 
 export default function MonthlyTrendsPage() {
-  const { isBookkeeper } = useAuth();
-  const navigate = useNavigate();
-  useEffect(() => { if (isBookkeeper) navigate("/", { replace: true }); }, [isBookkeeper, navigate]);
   const { data, isLoading, error, refetch, isFetching } = useFilteredSheetData();
   const [selectedHistoryIdx, setSelectedHistoryIdx] = useState<number | null>(null);
   const [compareIdx, setCompareIdx] = useState<string>("-");
@@ -138,6 +137,7 @@ export default function MonthlyTrendsPage() {
               <p className="text-sm text-muted-foreground">Live data from your dashboard</p>
             </div>
           </div>
+          <SopPanel config={monthlyTrendsSop} className="sm:order-last shrink-0" />
           <div className="flex items-start gap-2 rounded-lg border border-primary/20 bg-primary/5 px-3 py-2 max-w-md">
             <Sparkles className="h-3.5 w-3.5 text-primary shrink-0 mt-0.5" />
             <p className="text-[11px] text-muted-foreground leading-relaxed">
@@ -171,7 +171,7 @@ export default function MonthlyTrendsPage() {
         <KPICard title="Compliant" value={kpi.compliant} icon={CheckCircle2} variant="success" index={0} />
         <KPICard title="Non-Compliant" value={kpi.nonCompliant} icon={XCircle} variant="destructive" index={1} />
         <KPICard title="Completion %" value={`${kpi.avgCompletion}%`} icon={TrendingUp} index={2} />
-        <KPICard title="Total Clients" value={kpi.total} icon={Calendar} index={3} />
+        <KPICard title="Active Clients" value={kpi.total} icon={Calendar} index={3} />
       </div>
 
       {/* Historical Trends Section */}

@@ -2,12 +2,14 @@ import { useRef, useCallback, useState as useLocalState } from "react";
 import { Link } from "react-router-dom";
 import {
   Users, CheckCircle2, XCircle, Pause, TrendingUp, AlertTriangle,
-  FileText, StickyNote, Award, Clock, AlertCircle, ChevronRight, Camera, Download, ArrowRight,
-  BarChart3, PieChart as PieChartIcon, LineChart as LineChartIcon, UserX, MoreVertical, type LucideIcon,
+  FileText, FileSpreadsheet, StickyNote, Award, Clock, AlertCircle, ChevronRight, Camera, Download, ArrowRight,
+  BarChart3, PieChart as PieChartIcon, LineChart as LineChartIcon, UserX, MoreVertical, BookCheck, type LucideIcon,
 } from "lucide-react";
 import { LineChart, Line, BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from "recharts";
 import html2canvas from "html2canvas";
 import KPICard from "@/components/KPICard";
+import TodaysFocus from "@/components/TodaysFocus";
+import { buildFocusList } from "@/lib/focus";
 import SopPanel from "@/components/SopPanel";
 import { dashboardSop } from "@/data/sopConfigs";
 import StatusBadge from "@/components/StatusBadge";
@@ -24,6 +26,9 @@ import type { MerHistoryRow } from "@/services/googleSheets";
 import { useMerWorkflowContacts, contactDisplayName } from "@/hooks/useMerWorkflowContacts";
 import { useDeveloperFilter } from "@/hooks/useDeveloperFilter";
 import RecentActivityFeed from "@/components/RecentActivityFeed";
+import { exportXLSX, exportPDF } from "@/lib/merExport";
+import { downloadPayload } from "@/lib/reportExports";
+import { buildReconciledThroughMap, getAccountingStatus } from "@/lib/accountingStatus";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 
 // Theme-token colors so charts follow the active (dark/light) palette.
@@ -74,8 +79,14 @@ function ChartEmpty({ icon: Icon, title, hint, height = 240 }: { icon: LucideIco
   );
 }
 
-function NeedsAttentionSection({ clients, merHistory, actionLog }: { clients: Client[]; merHistory: MerHistoryRow[]; actionLog: import("@/services/googleSheets").ActionLogEntry[] }) {
+function NeedsAttentionSection({ clients, merHistory, actionLog, activeMonth, reconciledThroughMap }: { clients: Client[]; merHistory: MerHistoryRow[]; actionLog: import("@/services/googleSheets").ActionLogEntry[]; activeMonth: string; reconciledThroughMap: ReturnType<typeof buildReconciledThroughMap> }) {
   const attention = getNeedsAttention(clients);
+  // "Not Reconciled" must mean "books not reconciled THROUGH the reporting month"
+  // — the exact complement of the Books Reconciled KPI (cascade), not the loose
+  // "has any date" check. Exclude Pending MER + On Hold, same as that KPI.
+  const notReconciledList = clients
+    .filter((c) => c.complianceStatus !== "Pending MER" && c.complianceStatus !== "On Hold")
+    .filter((c) => !getAccountingStatus(c.name, activeMonth, c.lastReconciledDate, reconciledThroughMap).done);
   const [detailsClient, setDetailsClient] = useLocalState<string | null>(null);
 
   const detailsRow = (() => {
@@ -95,10 +106,12 @@ function NeedsAttentionSection({ clients, merHistory, actionLog }: { clients: Cl
       items: attention.missingStatements.map(c => ({ id: c.id, name: c.name, label: c.name, badge: <StatusBadge status="Non-Compliant" client={c} /> })) },
     { title: "Unresolved Transactions", count: attention.unresolvedTransactions.length, icon: AlertCircle, priority: "high" as const,
       items: attention.unresolvedTransactions.slice(0, 6).map(c => ({ id: c.id, name: c.name, label: c.name, badge: <span className="font-mono-data text-xs font-semibold text-destructive">{c.uncategorizedTransactions}</span> })) },
-    { title: "Not Reconciled", count: attention.notReconciled.length, icon: Clock, priority: "medium" as const,
-      items: attention.notReconciled.slice(0, 5).map(c => ({ id: c.id, name: c.name, label: c.name, badge: <span className="font-mono-data text-xs text-destructive font-semibold">{c.lastReconciledDate}</span> })) },
+    { title: "Not Reconciled", count: notReconciledList.length, icon: Clock, priority: "medium" as const,
+      items: notReconciledList.slice(0, 5).map(c => ({ id: c.id, name: c.name, label: c.name, badge: <span className="font-mono-data text-xs text-destructive font-semibold">{c.lastReconciledDate || "—"}</span> })) },
     { title: "No Approved Notes", count: attention.noApprovedNotes.length, icon: StickyNote, priority: "medium" as const,
       items: attention.noApprovedNotes.slice(0, 5).map(c => ({ id: c.id, name: c.name, label: c.name, badge: <span className="text-[10px] font-semibold text-destructive uppercase tracking-wider">Pending</span> })) },
+    { title: "Financials Not Sent", count: attention.financialsNotSent.length, icon: FileText, priority: "high" as const,
+      items: attention.financialsNotSent.slice(0, 5).map(c => ({ id: c.id, name: c.name, label: c.name, badge: <span className="text-[10px] font-semibold text-warning uppercase tracking-wider">Not Sent</span> })) },
   ];
 
   const priorityStyles = {
@@ -179,7 +192,7 @@ function BookkeepersSection({ clients, bookkeepers, actionLog, merHistory }: { c
         {bkStats.length === 0 ? (
           <EmptyState icon={Users} title="No bookkeepers yet" hint="Rankings appear once clients are assigned" />
         ) : bkStats.map((bk, i) => {
-          const nonCompliant = bk.totalClients - bk.compliant;
+          const nonCompliant = bk.nonCompliant;
           return (
             <motion.div key={bk.name} whileHover={{ scale: 1.01 }} transition={{ type: "spring", stiffness: 400, damping: 25 }}
               className="flex items-center gap-3 p-2.5 rounded-lg hover:bg-accent/50 transition-colors duration-150 -mx-2 cursor-default">
@@ -208,17 +221,25 @@ function BookkeepersSection({ clients, bookkeepers, actionLog, merHistory }: { c
 }
 
 function KPIChartsSection({ kpi, breakdown }: { kpi: ReturnType<typeof getKPIMetrics>; breakdown: ReturnType<typeof getComplianceBreakdown> }) {
+  // Every active client lands in exactly one slice, so the ring sums to
+  // kpi.total (incl. Pending MER). Zero-value slices are dropped to avoid
+  // clutter like a stray "On Hold: 0" label.
   const pieData = [
     { name: "Compliant", value: kpi.compliant, color: CHART_COLORS.success },
     { name: "On Hold", value: kpi.onHold, color: CHART_COLORS.warning },
     { name: "Non-Compliant", value: kpi.nonCompliant, color: CHART_COLORS.destructive },
-  ];
+    { name: "Pending MER", value: kpi.pendingMer, color: CHART_COLORS.muted },
+  ].filter((d) => d.value > 0);
 
+  // Color each bar by how healthy the number is, not by which criterion it is:
+  // ≥90% green, 70–89% amber, <70% red. So a 98% bar always reads as "good".
+  const barFill = (pct: number) =>
+    pct >= 90 ? CHART_COLORS.success : pct >= 70 ? CHART_COLORS.warning : CHART_COLORS.destructive;
   const breakdownData = [
-    { name: "Bank Txns", value: breakdown.bankPct, fill: CHART_COLORS.success },
-    { name: "Uncat. Txns", value: breakdown.uncatPct, fill: CHART_COLORS.primary },
-    { name: "Unapplied", value: breakdown.unappliedPct, fill: CHART_COLORS.warning },
-    { name: "Statements", value: breakdown.stmtPct, fill: CHART_COLORS.destructive },
+    { name: "Bank Txns", value: breakdown.bankPct, fill: barFill(breakdown.bankPct) },
+    { name: "Uncat. Txns", value: breakdown.uncatPct, fill: barFill(breakdown.uncatPct) },
+    { name: "Unapplied", value: breakdown.unappliedPct, fill: barFill(breakdown.unappliedPct) },
+    { name: "Statements", value: breakdown.stmtPct, fill: barFill(breakdown.stmtPct) },
   ];
 
   const renderCustomLabel = ({ cx, cy, midAngle, innerRadius, outerRadius, name, value }: { cx: number; cy: number; midAngle: number; innerRadius: number; outerRadius: number; name: string; value: number }) => {
@@ -288,7 +309,7 @@ function KPIChartsSection({ kpi, breakdown }: { kpi: ReturnType<typeof getKPIMet
 
 export default function DashboardPage() {
   const { data, isLoading, error, refetch, isFetching } = useFilteredSheetData();
-  const { contacts: merWorkflowContacts } = useMerWorkflowContacts();
+  const { contacts: merWorkflowContacts, loading: focusRosterLoading } = useMerWorkflowContacts();
   const dashRef = useRef<HTMLDivElement>(null);
   const [capturing, setCapturing] = useLocalState(false);
   const [monthFilter, setMonthFilter] = useLocalState<string>("");
@@ -300,7 +321,7 @@ export default function DashboardPage() {
     setCapturing(true);
     try {
       const canvas = await html2canvas(dashRef.current, {
-        backgroundColor: "#000000",
+        backgroundColor: getComputedStyle(document.body).backgroundColor,
         scale: 2,
         useCORS: true,
         logging: false,
@@ -331,16 +352,16 @@ export default function DashboardPage() {
   // Default to latest month; all views use month-scoped MER data.
   const activeMonth = (monthFilter && availableMonths.includes(monthFilter)) ? monthFilter : latestMonth;
   const isCurrentMonth = activeMonth === latestMonth;
-  const sheetClients = getClientsForMonth(merHistory, activeMonth);
   // Pre-build a lookup of every client's most recent MER across all months
   // so we can roll forward data for clients without a submission this month.
-  const latestAnyMonth = buildLatestSubmissionMap(merHistory);
 
   // GHL mer-workflow contacts are the source of truth for WHO appears.
   // Overlay matching MER data for the active view; clients without a
   // submission for the selected month show their most recent prior data
   // (rolled over) so the total count and data stay complete.
-  const mergedClients: Client[] = (() => {
+  const buildDashboardClients = (month: string): Client[] => {
+    const sheetClients = getClientsForMonth(merHistory, month);
+    const latestAnyMonth = buildLatestSubmissionMap(merHistory, month);
     const norm = (s: string) => s.trim().toLowerCase();
     const byGhlId = new Map<string, Client>();
     const byName = new Map<string, Client>();
@@ -401,22 +422,79 @@ export default function DashboardPage() {
       }
     }
     return out;
-  })();
+  };
 
-
-  const clients = mergedClients;
+  const clients = buildDashboardClients(activeMonth);
+  // Focus always tracks the current close, independent of historical KPI browsing.
+  const focusItems = buildFocusList(buildDashboardClients(latestMonth), data.cycleEntries, latestMonth);
 
   const kpi = getKPIMetrics(clients);
+
+  // Accounting (reconciliation) status for the selected month — separate track from
+  // compliance. "Done" = books reconciled through this month (directly or carried from a
+  // later month); "carried" = green only because a later month is reconciled.
+  const reconciledThroughMap = buildReconciledThroughMap(merHistory);
+  const accountingStats = (() => {
+    // Exclude Pending MER (no data) and On Hold (paused) — same as Completion % — so the
+    // X/N reflects clients we're actively expected to have reconciled.
+    const scored = clients.filter((c) => c.complianceStatus !== "Pending MER" && c.complianceStatus !== "On Hold");
+    let done = 0, carried = 0;
+    for (const c of scored) {
+      const a = getAccountingStatus(c.name, activeMonth, c.lastReconciledDate, reconciledThroughMap);
+      if (a.done) { done++; if (a.inferred) carried++; }
+    }
+    return { done, carried, total: scored.length };
+  })();
+
+  // Monthly MER report for the month currently selected on this page. Uses the
+  // same merged client list as the KPI cards so the file matches the screen.
+  const handleMonthlyReport = (fmt: "xlsx" | "pdf") => {
+    const rows = merHistory.filter((r) => r.month === activeMonth);
+    if (rows.length === 0 && clients.length === 0) {
+      toast.error(`No MER data for ${activeMonth} yet`);
+      return;
+    }
+    try {
+      const opts = {
+        history: rows,
+        rangeLabel: activeMonth,
+        fileBaseName: `BA_MER_Report_${activeMonth.replace(/\s+/g, "_")}`,
+        clientsOverride: clients,
+        fullHistory: merHistory,
+      };
+      const payload = fmt === "xlsx" ? exportXLSX(opts) : exportPDF(opts);
+      downloadPayload(payload);
+      toast.success(`${payload.filename} downloaded`);
+    } catch (e) {
+      toast.error(`Report failed: ${String(e)}`);
+    }
+  };
   const breakdown = getComplianceBreakdown(clients);
 
-  // Period-over-period deltas from monthly trends (compare active month to previous).
-  const trendIdx = (() => {
-    if (!monthlyTrends?.length) return -1;
+  // The raw monthlyTrends series is built from submitted sheet rows. For the
+  // CURRENT month the dashboard shows the rollover-merged roster (the KPI cards),
+  // so sync that month's trend point to the exact KPI numbers. This guarantees the
+  // cards, donut, trend-line endpoint, completion bar, and the deltas all agree.
+  const displayTrends = (() => {
+    if (!monthlyTrends?.length || !isCurrentMonth) return monthlyTrends ?? [];
+    const synced = { month: activeMonth, compliant: kpi.compliant, nonCompliant: kpi.nonCompliant, completionPct: kpi.avgCompletion, trend: "-", type: "auto" as const };
     const i = monthlyTrends.findIndex((t) => t.month === activeMonth);
-    return i >= 0 ? i : monthlyTrends.length - 1;
+    if (i >= 0) {
+      const copy = monthlyTrends.slice();
+      copy[i] = { ...copy[i], ...synced };
+      return copy;
+    }
+    return [...monthlyTrends, synced];
   })();
-  const currTrend = trendIdx >= 0 ? monthlyTrends[trendIdx] : null;
-  const prevTrend = trendIdx > 0 ? monthlyTrends[trendIdx - 1] : null;
+
+  // Period-over-period deltas (compare active month to the previous entry).
+  const trendIdx = (() => {
+    if (!displayTrends.length) return -1;
+    const i = displayTrends.findIndex((t) => t.month === activeMonth);
+    return i >= 0 ? i : displayTrends.length - 1;
+  })();
+  const currTrend = trendIdx >= 0 ? displayTrends[trendIdx] : null;
+  const prevTrend = trendIdx > 0 ? displayTrends[trendIdx - 1] : null;
   const deltaCompliant = currTrend && prevTrend ? currTrend.compliant - prevTrend.compliant : undefined;
   const deltaNonCompliant = currTrend && prevTrend ? currTrend.nonCompliant - prevTrend.nonCompliant : undefined;
   const deltaCompletion = currTrend && prevTrend ? currTrend.completionPct - prevTrend.completionPct : undefined;
@@ -457,6 +535,29 @@ export default function DashboardPage() {
             <DropdownMenuTrigger asChild>
               <button
                 type="button"
+                aria-label={`Download ${activeMonth} MER report`}
+                className="inline-flex items-center justify-center gap-2 min-h-[40px] rounded-lg border border-primary/30 bg-primary/10 px-3 sm:px-4 py-2 text-xs font-semibold text-primary shadow-card hover:bg-primary/15 transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              >
+                <Download className="h-3.5 w-3.5" aria-hidden />
+                <span className="hidden sm:inline">Download Report</span>
+              </button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem onClick={() => handleMonthlyReport("pdf")}>
+                <FileText className="h-3.5 w-3.5 mr-2" /> {activeMonth} MER Report (PDF)
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => handleMonthlyReport("xlsx")}>
+                <FileSpreadsheet className="h-3.5 w-3.5 mr-2" /> {activeMonth} MER Report (Excel)
+              </DropdownMenuItem>
+              <DropdownMenuItem asChild>
+                <Link to="/reports">More reports in Export Center</Link>
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <button
+                type="button"
                 className="inline-flex items-center justify-center min-h-[40px] min-w-[40px] rounded-lg border border-border bg-card px-2 py-2 text-muted-foreground shadow-card hover:bg-accent hover:text-foreground transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                 aria-label="More options"
               >
@@ -474,20 +575,26 @@ export default function DashboardPage() {
         </div>
       </div>
 
+      <TodaysFocus items={focusItems} month={latestMonth} loading={focusRosterLoading} />
+
       <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3 sm:gap-4">
-        <KPICard title="Total Clients" value={kpi.total} icon={Users} index={0}
+        <KPICard title="Active Clients" value={kpi.total} icon={Users} index={0} featured
           subtitle={kpi.rolledOver > 0 ? `${kpi.rolledOver} rolled over` : undefined}
-          tooltip={kpi.rolledOver > 0 ? <><p className="font-semibold text-foreground mb-1">Total Clients</p><p>{kpi.rolledOver} client{kpi.rolledOver !== 1 ? "s" : ""} showing data carried forward from a prior month because no MER was submitted for {activeMonth}.</p></> : undefined} />
-        <KPICard title="Compliant" value={kpi.compliant} icon={CheckCircle2} variant="success" index={1}
+          tooltip={<><p className="font-semibold text-foreground mb-1">Active Clients</p><p>All clients currently in the MER workflow.{kpi.rolledOver > 0 ? ` ${kpi.rolledOver} ${kpi.rolledOver !== 1 ? "are" : "is"} still showing last month's data because no MER has been submitted for ${activeMonth} yet (“rolled over”).` : ""}</p></>} />
+        <KPICard title="Books Reconciled" value={`${accountingStats.done}/${accountingStats.total}`} icon={BookCheck} variant="success" index={1}
+          subtitle={accountingStats.carried > 0 ? `${accountingStats.carried} carried` : undefined}
+          tooltip={<><p className="font-semibold text-foreground mb-1">Books Reconciled</p><p>How many active clients have their books reconciled through {activeMonth}. Reconciliation is cumulative, so a client counts here once any later month is reconciled too (“carried”). This is the accounting work — separate from MER compliance.</p></>} />
+        <KPICard title="Compliant" value={kpi.compliant} icon={CheckCircle2} variant="success" index={2}
           delta={deltaCompliant} deltaLabel={deltaLabel}
-          tooltip={<><p className="font-semibold text-foreground mb-1">Compliant</p><p>A client counts as Compliant only when ALL 10 checks pass: Bank Transactions Received, 0 Uncategorized, 0 Transactions Without Payees, 0 Undeposited Funds, 0 Unapplied Payments, Statement Request Received, Last Reconciled Date valid, Prev Month Notes Approved, Financials Sent To Client, and Books Closed In QB.</p></>} />
-        <KPICard title="Non-Compliant" value={kpi.nonCompliant} icon={XCircle} variant="destructive" index={2}
+          tooltip={<><p className="font-semibold text-foreground mb-1">Compliant</p><p>Clients with every monthly MER item complete — all 10 checks pass: bank transactions received, zero uncategorized / without payees / undeposited / unapplied, statement received, last reconciled date valid, prior-month notes approved, financials sent, and books closed in QB.</p></>} />
+        <KPICard title="Non-Compliant" value={kpi.nonCompliant} icon={XCircle} variant="destructive" index={3}
           delta={deltaNonCompliant} deltaLabel={deltaLabel} invertDeltaColor
-          tooltip={<><p className="font-semibold text-foreground mb-1">Non-Compliant</p><p>Any client where one or more of the 10 compliance checks fail and the sheet Status is not "On Hold". Hover an individual badge to see which specific fields failed.</p></>} />
-        <KPICard title="Pending MER" value={kpi.pendingMer} icon={Pause} variant="default" index={3}
-          tooltip={<><p className="font-semibold text-foreground mb-1">Pending MER</p><p>Active GHL contacts (mer-workflow tag) that have never submitted any MER data. They are tracked separately so compliance KPIs aren't inflated.</p></>} />
-        <KPICard title="Completion %" value={`${kpi.avgCompletion}%`} icon={TrendingUp} index={4}
-          delta={deltaCompletion} deltaLabel={deltaLabel} />
+          tooltip={<><p className="font-semibold text-foreground mb-1">Non-Compliant</p><p>Clients with one or more MER items still open (and not On Hold). Hover a client's badge to see exactly which items are outstanding.</p></>} />
+        <KPICard title="Pending MER" value={kpi.pendingMer} icon={Pause} variant="default" index={4}
+          tooltip={<><p className="font-semibold text-foreground mb-1">Pending MER</p><p>Clients in the workflow who haven't submitted a MER yet — no data to score. Kept separate so they don't drag down the numbers above.</p></>} />
+        <KPICard title="Completion %" value={`${kpi.avgCompletion}%`} icon={TrendingUp} index={5}
+          delta={deltaCompletion} deltaLabel={deltaLabel}
+          tooltip={<><p className="font-semibold text-foreground mb-1">Completion %</p><p>Average share of the 10 MER items completed, across clients who submitted for {activeMonth}. On Hold and Pending MER clients are left out so it reflects real work done.</p></>} />
         {/* Not Reconciled / Outstanding Stmts / No Updated Notes removed —
             same numbers are already broken out in the Compliance Breakdown bar
             chart below, and in the Needs Attention panel further down. */}
@@ -506,7 +613,7 @@ export default function DashboardPage() {
               <ChartEmpty icon={LineChartIcon} title="No trend data yet" hint="Trends appear after the first monthly submission" />
             ) : (
               <ResponsiveContainer width="100%" height={240}>
-                <LineChart data={monthlyTrends} margin={{ left: -10, right: 10 }}>
+                <LineChart data={displayTrends} margin={{ left: -10, right: 10 }}>
                   <CartesianGrid strokeDasharray="3 3" stroke={CHART_COLORS.grid} strokeOpacity={0.6} />
                   <XAxis dataKey="month" tick={AXIS_TICK} axisLine={false} tickLine={false} />
                   <YAxis tick={AXIS_TICK} axisLine={false} tickLine={false} />
@@ -527,7 +634,7 @@ export default function DashboardPage() {
               <ChartEmpty icon={BarChart3} title="No monthly data yet" hint="Completion history appears after the first submission" />
             ) : (
               <ResponsiveContainer width="100%" height={240}>
-                <BarChart data={monthlyTrends} margin={{ left: -10, right: 10 }}>
+                <BarChart data={displayTrends} margin={{ left: -10, right: 10 }}>
                   <CartesianGrid strokeDasharray="3 3" stroke={CHART_COLORS.grid} strokeOpacity={0.6} />
                   <XAxis dataKey="month" tick={AXIS_TICK} axisLine={false} tickLine={false} />
                   <YAxis tick={AXIS_TICK} axisLine={false} tickLine={false} />
@@ -545,7 +652,7 @@ export default function DashboardPage() {
 
       {/* Needs Attention + Bookkeepers */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-5">
-        <NeedsAttentionSection clients={clients} merHistory={merHistory} actionLog={data.actionLog} />
+        <NeedsAttentionSection clients={clients} merHistory={merHistory} actionLog={data.actionLog} activeMonth={activeMonth} reconciledThroughMap={reconciledThroughMap} />
         <BookkeepersSection clients={clients} bookkeepers={bookkeepers} actionLog={data.actionLog} merHistory={merHistory} />
       </div>
 

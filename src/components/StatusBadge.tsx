@@ -17,7 +17,7 @@ const VARIANTS: Record<string, string> = {
   Compliant: "bg-success/10 text-success border-success/20",
   "Non-Compliant": "bg-destructive/10 text-destructive border-destructive/20",
   "On Hold": "bg-warning/10 text-warning border-warning/20",
-  "Pending MER": "bg-muted text-muted-foreground border-border",
+  "Pending MER": "bg-warning/10 text-warning border-warning/20",
   "Pending Verification": "bg-warning/10 text-warning border-warning/20",
   Received: "bg-success/10 text-success border-success/20",
   "Not Received": "bg-destructive/10 text-destructive border-destructive/20",
@@ -29,7 +29,7 @@ const DOTS: Record<string, string> = {
   Compliant: "bg-success",
   "Non-Compliant": "bg-destructive",
   "On Hold": "bg-warning",
-  "Pending MER": "bg-muted-foreground",
+  "Pending MER": "bg-warning",
   "Pending Verification": "bg-warning",
   Received: "bg-success",
   "Not Received": "bg-destructive",
@@ -106,7 +106,7 @@ export default function StatusBadge({ status, className, client }: StatusBadgePr
                   <span className="sr-only">{c.passed ? "Passed: " : "Failed: "}</span>
                   {c.label}
                   {c.detail !== undefined && (
-                    <span className="text-muted-foreground/70"> — {c.detail}</span>
+                    <span className="text-muted-foreground"> — {c.detail}</span>
                   )}
                 </span>
               </li>

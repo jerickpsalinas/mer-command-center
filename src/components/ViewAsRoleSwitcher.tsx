@@ -40,8 +40,8 @@ export default function ViewAsRoleSwitcher({ compact = false }: { compact?: bool
         aria-label={`View dashboard as another role. Current: ${currentLabel}`}
         className={`inline-flex items-center gap-1.5 rounded-md border transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background ${
           viewAsRole
-            ? "bg-primary/15 text-primary border-primary/40 hover:bg-primary/25"
-            : "bg-accent/40 text-muted-foreground border-border hover:text-foreground hover:bg-accent"
+            ? "bg-sidebar-primary/20 text-sidebar-primary border-sidebar-primary/40 hover:bg-sidebar-primary/30"
+            : "bg-sidebar-accent text-sidebar-foreground/70 border-sidebar-border hover:text-sidebar-foreground hover:bg-sidebar-accent"
         } ${compact ? "h-7 px-2 text-[10px]" : "h-8 px-2.5 text-[11px]"} font-semibold`}
         title="View dashboard as another role"
       >

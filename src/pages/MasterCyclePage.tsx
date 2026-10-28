@@ -50,21 +50,26 @@ import { logActivity } from "@/lib/activityLogger";
  * The Bookkeeping Log sheet writes one row per stage transition; we use this
  * canonical list to render the rail, regardless of which stages exist in data.
  * ──────────────────────────────────────────────────────────────────────── */
+// `tracked` = the automation writes this stage to the Bookkeeping Log.
+// WF1 logs only stages 1, 4, 5, 7, 8. Stages 2, 3, 6 are manual TaxDome / GHL
+// steps that never land in the log, so they ALWAYS show 0 cycles here — we mark
+// them as manual so a 0 reads as "not tracked in this log", not "nobody's on it".
 const PIPELINE_STAGES: {
   num: number;
   name: string;
   short: string;
   automove: boolean;
   who: string;
+  tracked: boolean;
 }[] = [
-  { num: 1, name: "New Cycle Started", short: "New Cycle", automove: true, who: "System (auto)" },
-  { num: 2, name: "Weekly Processing", short: "Weekly Work", automove: false, who: "Team in TaxDome" },
-  { num: 3, name: "Documents Requested", short: "Docs Requested", automove: false, who: "GHL email + SMS" },
-  { num: 4, name: "Awaiting Client Response", short: "Awaiting Client", automove: false, who: "Client (reminders auto)" },
-  { num: 5, name: "Documents Received", short: "Docs Received", automove: false, who: "Bookkeeper applies tag" },
-  { num: 6, name: "Month-End Review", short: "Month-End", automove: false, who: "Bookkeeper + Assistant" },
-  { num: 7, name: "Internal Review", short: "Internal Review", automove: false, who: "Bookkeeper → Jessica" },
-  { num: 8, name: "Completed", short: "Completed", automove: false, who: "Jessica applies tag" },
+  { num: 1, name: "New Cycle Started", short: "New Cycle", automove: true, who: "System (auto)", tracked: true },
+  { num: 2, name: "Weekly Processing", short: "Weekly Work", automove: false, who: "Team in TaxDome", tracked: false },
+  { num: 3, name: "Documents Requested", short: "Docs Requested", automove: false, who: "GHL email + SMS", tracked: false },
+  { num: 4, name: "Awaiting Client Response", short: "Awaiting Client", automove: false, who: "Client (reminders auto)", tracked: true },
+  { num: 5, name: "Documents Received", short: "Docs Received", automove: false, who: "Bookkeeper applies tag", tracked: true },
+  { num: 6, name: "Month-End Review", short: "Month-End", automove: false, who: "Bookkeeper + Assistant", tracked: false },
+  { num: 7, name: "Internal Review", short: "Internal Review", automove: false, who: "Bookkeeper → Jessica", tracked: true },
+  { num: 8, name: "Completed", short: "Completed", automove: false, who: "Jessica applies tag", tracked: true },
 ];
 
 const STAGE_NAME_BY_NUM = new Map(PIPELINE_STAGES.map((s) => [s.num, s.name]));
@@ -194,9 +199,6 @@ function CategoryChips({ tags }: { tags: string }) {
 }
 
 export default function MasterCyclePage() {
-  const { isBookkeeper } = useAuth();
-  const navigate = useNavigate();
-  useEffect(() => { if (isBookkeeper) navigate("/", { replace: true }); }, [isBookkeeper, navigate]);
   const { data, isLoading, error, refetch, isFetching } = useFilteredSheetData();
   const [search, setSearch] = useState("");
   const [filterMonth, setFilterMonth] = useState("");
@@ -290,8 +292,14 @@ export default function MasterCyclePage() {
 
   // Cleanup-cycle clients are tracked separately (see GHL Active Clients page);
   // this pipeline only covers the regular Master Bookkeeping Cycle.
-  const entries = (data?.cycleEntries ?? []).filter(
-    (e) => !isCleanupTagString(e.categoryTags, e.cycleStatus, e.stageName, e.cycleKey),
+  // Memoized so its reference is stable — otherwise the `cycles` memo below
+  // (which depends on it) would recompute on every render.
+  const entries = useMemo(
+    () =>
+      (data?.cycleEntries ?? []).filter(
+        (e) => !isCleanupTagString(e.categoryTags, e.cycleStatus, e.stageName, e.cycleKey),
+      ),
+    [data?.cycleEntries],
   );
 
   // Group entries by Cycle Key (one client per month = one cycle)
@@ -370,7 +378,10 @@ export default function MasterCyclePage() {
   }, [entries, tagsMap]);
 
   const months = useMemo(
-    () => Array.from(new Set(cycles.map((c) => c.month).filter(Boolean))),
+    () =>
+      Array.from(new Set(cycles.map((c) => c.month).filter(Boolean))).sort(
+        (a, b) => (Date.parse(b) || 0) - (Date.parse(a) || 0),
+      ),
     [cycles],
   );
   const statuses = useMemo(
@@ -476,14 +487,27 @@ export default function MasterCyclePage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex justify-end"><SopPanel config={masterCycleSop} /></div>
+      {/* Page header — title + active-month scope so the KPIs read in context */}
+      <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-3">
+        <div className="min-w-0">
+          <h2 className="text-xl sm:text-2xl font-semibold tracking-tight text-foreground">Master Bookkeeping Cycle</h2>
+          <p className="text-sm text-muted-foreground mt-1">
+            <span className="font-mono-data tabular-nums text-foreground font-semibold">{totalCycles}</span>{" "}
+            {totalCycles === 1 ? "cycle" : "cycles"} ·{" "}
+            {filterMonth
+              ? <span className="text-success">{filterMonth}</span>
+              : <span className="text-warning">all months</span>}
+          </p>
+        </div>
+        <SopPanel config={masterCycleSop} />
+      </div>
       {/* KPI strip */}
       <motion.div
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
         className="grid grid-cols-2 lg:grid-cols-5 gap-3"
       >
-        <KpiTile label="Total Cycles" value={totalCycles} icon={<Activity className="h-4 w-4" />} tone="muted" tooltip={<>Total Cycles tracks every client moving through the bookkeeping pipeline (from the Bookkeeping Log), including clients who aren't on the MER workflow. This is why it may not match Dashboard's Total Clients count, which only counts MER workflow clients.</>} />
+        <KpiTile label="Total Cycles" value={totalCycles} icon={<Activity className="h-4 w-4" />} tone="muted" tooltip={<>Total Cycles tracks every client moving through the bookkeeping pipeline (from the Bookkeeping Log), including clients who aren't on the MER workflow. This is why it may not match Dashboard's Active Clients count, which only counts MER workflow clients.</>} />
         <KpiTile label="Active" value={activeCycles} icon={<Clock className="h-4 w-4" />} tone="primary" />
         <KpiTile label="Cycle: Completed" value={completedCycles} icon={<CheckCircle2 className="h-4 w-4" />} tone="success" />
         <KpiTile
@@ -615,6 +639,36 @@ export default function MasterCyclePage() {
                         const count = stageCounts.get(num) ?? 0;
                         const tone = stageTone(num);
                         const selected = filterStage === num;
+
+                        // Manual / untracked stage: the Bookkeeping Log never records it,
+                        // so it can't be counted or filtered. Render a muted, non-interactive
+                        // card that says so, instead of an alarming "0 cycles".
+                        if (!s.tracked) {
+                          return (
+                            <li key={num}>
+                              <div
+                                title={`${s.name} — ${s.who}. Manual step, not recorded in the Bookkeeping Log.`}
+                                className="w-full h-full rounded-xl border border-dashed border-border bg-muted/20 p-3 opacity-80"
+                              >
+                                <div className="flex items-center justify-between">
+                                  <span className="h-6 w-6 rounded-full flex items-center justify-center text-[11px] font-bold font-mono-data bg-muted text-muted-foreground/70">
+                                    {s.num}
+                                  </span>
+                                  <span className="text-[9px] font-mono-data uppercase tracking-wider px-1.5 py-0.5 rounded bg-muted text-muted-foreground">
+                                    Manual
+                                  </span>
+                                </div>
+                                <p className="mt-2 text-[12px] font-semibold text-muted-foreground leading-tight break-words">
+                                  {s.short}
+                                </p>
+                                <p className="mt-1.5 text-[10px] text-muted-foreground/80 leading-snug">
+                                  Not tracked here · {s.who}
+                                </p>
+                              </div>
+                            </li>
+                          );
+                        }
+
                         return (
                           <li key={num}>
                             <button
@@ -722,7 +776,7 @@ export default function MasterCyclePage() {
           )}
 
           <div className="sm:ml-auto text-[12px] text-muted-foreground font-mono-data tabular-nums">
-            {filtered.length} of {cycles.length} cycles
+            {filtered.length} of {scopedCycles.length} cycles{filterMonth ? ` in ${filterMonth}` : ""}
             {filterStage !== null && (
               <span className="ml-2 text-primary">
                 · Stage {filterStage}: {STAGE_NAME_BY_NUM.get(filterStage)}
@@ -936,11 +990,22 @@ export default function MasterCyclePage() {
                   </div>
                 </div>
 
-                {/* Stage timeline — labeled segments across the canonical 8 stages */}
+                {/* Stage timeline — segments across the 8 stages. Manual stages
+                    (2,3,6) are shown dashed/dimmed since they're never logged. */}
                 <div className="mt-4 grid grid-cols-8 gap-1">
                   {PIPELINE_STAGES.map((s) => {
                     const reached = c.entries.some((e) => e.stageNumber >= s.num);
                     const isCurrent = s.num === c.currentStage;
+                    if (!s.tracked) {
+                      return (
+                        <div key={s.num} className="flex flex-col items-stretch gap-1" title={`${s.name} — manual, not tracked`}>
+                          <div className="h-1.5 rounded-full border border-dashed border-muted-foreground/30 bg-transparent" />
+                          <span className="text-[9px] font-mono-data text-center truncate text-muted-foreground/40">
+                            {s.num}
+                          </span>
+                        </div>
+                      );
+                    }
                     return (
                       <div key={s.num} className="flex flex-col items-stretch gap-1">
                         <div

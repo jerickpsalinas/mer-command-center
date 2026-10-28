@@ -1,6 +1,6 @@
 import { useState, useEffect, Fragment } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
-import { Building2, ShieldCheck, Banknote, Workflow, Clock, History, FileText, Loader2, FilePlus2, FileEdit, Database, Tag, Check, Sparkles, Lock, CheckCircle, ExternalLink } from "lucide-react";
+import { Building2, ShieldCheck, Banknote, Workflow, Clock, History, FileText, Loader2, FilePlus2, FileEdit, Database, Tag, Check, Sparkles, Lock, CheckCircle, ExternalLink, ChevronRight, XCircle as XCircleIcon } from "lucide-react";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -14,6 +14,7 @@ import {
 import StatusBadge from "@/components/StatusBadge";
 import { isUnreconciled, evaluateCompliance } from "@/lib/complianceExplain";
 import { getClientHistory } from "@/hooks/useSheetData";
+import { buildReconciledThroughMap, getAccountingStatus } from "@/lib/accountingStatus";
 import type { ActionLogEntry, MerHistoryRow } from "@/services/googleSheets";
 import ActionConfirmModal from "@/components/ActionConfirmModal";
 import ActionResponseModal from "@/components/ActionResponseModal";
@@ -29,11 +30,13 @@ import {
   recordSessionAction,
   scheduleDashboardAction,
   isUndoableAction,
+  confirmFinancialsSent,
   UNDO_WINDOW_MS,
   type ActionType,
   type ActionPayload,
 } from "@/services/dashboardActions";
 import { toast as sonnerToast } from "sonner";
+import { useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/useAuth";
 import { GHL_BASE, ghlHeaders } from "@/lib/ghlConfig";
 import { logActivity } from "@/lib/activityLogger";
@@ -137,49 +140,79 @@ function Section({
   );
 }
 
-/** Inline compliance score trend for the last few months — no external chart lib needed. */
+/**
+ * Inline compliance score trend for the last few months — no external chart lib needed.
+ * Each month's bar is clickable to reveal that month's full 10-check snapshot, so the
+ * client's monthly checklist history is browsable in place (Jessica's "monthly checklist"
+ * ask). Each snapshot is computed from that month's own stored submission, so history is
+ * frozen — a later month never rewrites a prior month's record.
+ */
 function ComplianceTrend({ clientName, merHistory }: { clientName: string; merHistory: MerHistoryRow[] }) {
+  const [openMonth, setOpenMonth] = useState<string | null>(null);
   if (!merHistory.length) return null;
   const history = getClientHistory(merHistory, clientName);
   if (history.length < 2) return null;
-  // Last 6 months max
-  const recent = history.slice(-6);
-  const scores = recent.map((r) => ({
-    month: r.month,
-    pct: evaluateCompliance(r).completionPct,
-    status: evaluateCompliance(r).status,
-  }));
+  // Up to 12 months of history, newest first for readability.
+  const recent = history.slice(-12).slice().reverse();
   const max = 100;
   const barH = 24;
   return (
     <section className="rounded-lg border border-border bg-muted/20 p-4 transition-colors">
-      <div className="flex items-center gap-2 mb-3">
+      <div className="flex items-center gap-2 mb-1">
         <History className="h-3.5 w-3.5 text-primary" aria-hidden="true" />
         <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
           Compliance Trend
         </h3>
       </div>
+      <p className="text-[10px] text-muted-foreground mb-3">Tap a month to see that month's checklist.</p>
       <div className="space-y-1.5">
-        {scores.map((s) => (
-          <div key={s.month} className="flex items-center gap-2">
-            <span className="text-[10px] text-muted-foreground w-16 shrink-0 text-right tabular-nums">{s.month}</span>
-            <div className="flex-1 h-5 rounded-md bg-muted/40 overflow-hidden relative" style={{ height: barH }}>
-              <div
-                className={`h-full rounded-md transition-all duration-500 ${
-                  s.status === "Compliant"
-                    ? "bg-success/70"
-                    : s.status === "On Hold"
-                      ? "bg-warning/70"
-                      : "bg-destructive/70"
-                }`}
-                style={{ width: `${Math.min(s.pct, max)}%` }}
-              />
-              <span className="absolute inset-0 flex items-center justify-end pr-2 text-[10px] font-semibold tabular-nums text-foreground/80">
-                {s.pct}%
-              </span>
+        {recent.map((r) => {
+          const evaln = evaluateCompliance(r);
+          const isOpen = openMonth === r.month;
+          return (
+            <div key={r.month}>
+              <button
+                type="button"
+                onClick={() => setOpenMonth(isOpen ? null : r.month)}
+                aria-expanded={isOpen}
+                className="w-full flex items-center gap-2 rounded-md focus:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1 focus-visible:ring-offset-background"
+              >
+                <span className="text-[10px] text-muted-foreground w-16 shrink-0 text-right tabular-nums">{r.month}</span>
+                <div className="flex-1 h-5 rounded-md bg-muted/40 overflow-hidden relative" style={{ height: barH }}>
+                  <div
+                    className={`h-full rounded-md transition-all duration-500 ${
+                      evaln.status === "Compliant"
+                        ? "bg-success/70"
+                        : evaln.status === "On Hold"
+                          ? "bg-warning/70"
+                          : "bg-destructive/70"
+                    }`}
+                    style={{ width: `${Math.min(evaln.completionPct, max)}%` }}
+                  />
+                  <span className="absolute inset-0 flex items-center justify-end pr-2 text-[10px] font-semibold tabular-nums text-foreground/80">
+                    {evaln.completionPct}%
+                  </span>
+                </div>
+                <ChevronRight className={`h-3 w-3 text-muted-foreground shrink-0 transition-transform ${isOpen ? "rotate-90" : ""}`} aria-hidden />
+              </button>
+              {isOpen && (
+                <div className="mt-1.5 ml-[72px] mr-5 grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-1 rounded-md border border-border bg-background/40 p-2.5">
+                  {evaln.checks.map((chk) => (
+                    <div key={chk.key} className="flex items-center justify-between gap-2 text-[10.5px]">
+                      <span className="flex items-center gap-1 min-w-0">
+                        {chk.passed
+                          ? <CheckCircle className="h-3 w-3 text-success shrink-0" aria-hidden />
+                          : <XCircleIcon className="h-3 w-3 text-destructive shrink-0" aria-hidden />}
+                        <span className="truncate text-muted-foreground" title={chk.label}>{chk.label}</span>
+                      </span>
+                      <span className={`font-mono-data tabular-nums shrink-0 ${chk.passed ? "text-foreground/70" : "text-destructive font-semibold"}`}>{chk.detail}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
     </section>
   );
@@ -190,6 +223,93 @@ const yn = (b: boolean) => (
     {b ? "Yes" : "No"}
   </span>
 );
+
+/**
+ * Delivery & completion — surfaces the two tracks that are separate from client
+ * compliance: whether the books are reconciled (accounting done) and whether the
+ * financials were actually sent to the client. These are independent of the 10-check
+ * compliance badge.
+ */
+function DeliverySection({
+  client,
+  merHistory,
+  onConfirmSent,
+}: {
+  client: MerHistoryRow;
+  merHistory: MerHistoryRow[];
+  onConfirmSent: () => void;
+}) {
+  const reconMap = buildReconciledThroughMap(merHistory);
+  const acct = getAccountingStatus(client.name, client.month, client.lastReconciledDate, reconMap);
+  const financialsSent = !!client.financialsSentToClient;
+
+  const reconChip = (() => {
+    if (!acct.done) {
+      return (
+        <span className="inline-flex items-center gap-1.5 rounded-md border px-2 py-1 text-[11px] font-semibold leading-none bg-destructive/10 text-destructive border-destructive/20">
+          <XCircleIcon className="h-3 w-3" aria-hidden /> Not Reconciled
+        </span>
+      );
+    }
+    return (
+      <span className={`inline-flex items-center gap-1.5 rounded-md border px-2 py-1 text-[11px] font-semibold leading-none ${acct.inferred ? "bg-success/5 text-success/90 border-success/20 border-dashed" : "bg-success/10 text-success border-success/20"}`}>
+        {acct.inferred ? <Clock className="h-3 w-3" aria-hidden /> : <CheckCircle className="h-3 w-3" aria-hidden />}
+        {acct.inferred ? "Reconciled · carried" : "Reconciled"}
+      </span>
+    );
+  })();
+
+  // Phase 3: when the month's accounting is done but financials aren't marked sent, prompt
+  // the team to confirm delivery. Jessica: "if a prior month wasn't marked as sent, the
+  // system should ask us to confirm."
+  const needsConfirm = acct.done && !financialsSent;
+
+  return (
+    <section className="rounded-lg border border-border bg-muted/20 p-4 transition-colors">
+      <div className="flex items-center gap-2 mb-3">
+        <FileText className="h-3.5 w-3.5 text-primary" aria-hidden="true" />
+        <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+          Delivery &amp; Completion
+        </h3>
+      </div>
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        <div className="flex flex-col gap-1.5">
+          <span className="text-[10.5px] uppercase tracking-wide text-muted-foreground">Reconciliation (accounting)</span>
+          {reconChip}
+          <span className="text-[10px] text-muted-foreground">
+            {acct.inferred
+              ? `Carried — a later month is reconciled, so ${client.month} is done too`
+              : client.lastReconciledDate
+                ? `Reconciled through ${client.lastReconciledDate}`
+                : `No reconciled date for ${client.month}`}
+          </span>
+        </div>
+        <div className="flex flex-col gap-1.5">
+          <span className="text-[10.5px] uppercase tracking-wide text-muted-foreground">Financials Delivered</span>
+          <span className={`inline-flex items-center gap-1.5 rounded-md border px-2 py-1 text-[11px] font-semibold leading-none ${financialsSent ? "bg-success/10 text-success border-success/20" : "bg-warning/10 text-warning border-warning/20"}`}>
+            {financialsSent ? <CheckCircle className="h-3 w-3" aria-hidden /> : <Clock className="h-3 w-3" aria-hidden />}
+            {financialsSent ? "Financials Sent" : "Not Sent Yet"}
+          </span>
+          <span className="text-[10px] text-muted-foreground">Tracked separately from reconciliation</span>
+        </div>
+      </div>
+      {needsConfirm && (
+        <div className="mt-3 flex flex-col sm:flex-row sm:items-center gap-2 rounded-md border border-warning/30 bg-warning/5 p-2.5">
+          <p className="text-[11px] text-foreground/90 flex-1">
+            {client.month} is reconciled but financials aren&apos;t marked as sent. Were {client.month}&apos;s financials delivered to the client?
+          </p>
+          <button
+            type="button"
+            onClick={onConfirmSent}
+            className="shrink-0 inline-flex items-center justify-center gap-1.5 rounded-md border border-primary/30 bg-primary/10 px-3 py-1.5 text-[11px] font-semibold text-primary hover:bg-primary/15 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          >
+            <CheckCircle className="h-3 w-3" aria-hidden /> Confirm &amp; record
+          </button>
+        </div>
+      )}
+    </section>
+  );
+}
 
 export default function ClientDetailsModal({ open, onClose, client, onViewHistory, actionLog = [], merHistory = [] }: Props) {
   const [pendingAction, setPendingAction] = useState<ActionType | null>(null);
@@ -228,6 +348,26 @@ export default function ClientDetailsModal({ open, onClose, client, onViewHistor
   const [showCompleteTaxConfirm, setShowCompleteTaxConfirm] = useState(false);
   const { isAdmin, isDeveloper, profile, user } = useAuth();
   const dashboardUser = profile?.name || user?.email || "Dashboard";
+  const queryClient = useQueryClient();
+
+  // One-click confirm "financials sent"; falls back to the Update MER form if the
+  // dedicated webhook isn't reachable (e.g. before WF17 is imported/activated).
+  const handleConfirmFinancialsSent = async () => {
+    if (!client?.merKey) { setMerFormMode("update"); return; }
+    const r = await confirmFinancialsSent({
+      merKey: client.merKey,
+      clientName: client.name,
+      cycleMonth: client.month,
+      triggeredBy: dashboardUser,
+    });
+    if (r.success) {
+      sonnerToast.success("Financials marked as sent");
+      queryClient.invalidateQueries({ queryKey: ["sheet-data"] });
+    } else {
+      sonnerToast("Opening the MER form to record it", { description: "The one-click update wasn't available." });
+      setMerFormMode("update");
+    }
+  };
   const [categorizeLoading, setCategorizeLoading] = useState(false);
   const [categorizeOpen, setCategorizeOpen] = useState(false);
   const [catStep, setCatStep] = useState<"form" | "suggestion" | "override">("form");
@@ -402,7 +542,6 @@ export default function ClientDetailsModal({ open, onClose, client, onViewHistor
 
   const workflow: Field[] = [
     { label: "Prev Month Notes Approved", value: yn(client.prevMonthNotesApproved) },
-    { label: "Financials Sent To Client", value: yn(client.financialsSentToClient) },
   ];
 
   const meta: Field[] = [
@@ -412,7 +551,7 @@ export default function ClientDetailsModal({ open, onClose, client, onViewHistor
 
   return (
     <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
-      <DialogContent className="w-[calc(100vw-2rem)] sm:max-w-3xl max-h-[85vh] flex flex-col gap-0 p-0">
+      <DialogContent className="w-[calc(100vw-2rem)] sm:max-w-3xl lg:max-w-6xl max-h-[92vh] flex flex-col gap-0 p-0">
         <DialogHeader className="px-4 sm:px-6 pt-4 sm:pt-6 pb-3 border-b border-border/60 text-left">
           <DialogTitle className="flex items-center gap-2 pr-8 min-w-0">
             <FileText className="h-4 w-4 text-primary shrink-0" aria-hidden="true" />
@@ -426,11 +565,23 @@ export default function ClientDetailsModal({ open, onClose, client, onViewHistor
 
         <div className="px-4 sm:px-6 py-4 overflow-y-auto min-h-0 flex-1 scrollbar-thin scrollbar-thumb-muted-foreground/20 hover:scrollbar-thumb-muted-foreground/40 scrollbar-track-transparent">
         <div className="space-y-3.5">
-          <Section icon={Building2} title="Client Info" fields={clientInfo} />
-          <Section icon={ShieldCheck} title="Compliance" fields={compliance} />
-          <ComplianceTrend clientName={client.name} merHistory={merHistory} />
-          <Section icon={Banknote} title="Bank & Books" fields={bankBooks} />
-          <Section icon={Workflow} title="Workflow" fields={workflow} />
+          {/* Read-only info — masonry flow into two columns so short cards (e.g. Workflow)
+              don't leave big gaps next to tall ones (Bank & Books). */}
+          <div className="columns-1 lg:columns-2 gap-3.5 [&>*]:mb-3.5 [&>*]:break-inside-avoid">
+            <Section icon={Building2} title="Client Info" fields={clientInfo} />
+            <Section icon={ShieldCheck} title="Compliance" fields={compliance} />
+            <ComplianceTrend clientName={client.name} merHistory={merHistory} />
+            {client.complianceStatus !== "Pending MER" && (
+              <DeliverySection
+                client={client}
+                merHistory={merHistory}
+                onConfirmSent={handleConfirmFinancialsSent}
+              />
+            )}
+            <Section icon={Banknote} title="Bank & Books" fields={bankBooks} />
+            <Section icon={Workflow} title="Workflow" fields={workflow} />
+            <Section icon={Clock} title="Submission Meta" fields={meta} />
+          </div>
 
           {/* GHL Tags */}
           <section className="rounded-lg border border-border bg-muted/20 p-4">
@@ -754,8 +905,6 @@ export default function ClientDetailsModal({ open, onClose, client, onViewHistor
             )}
 
           </section>
-
-          <Section icon={Clock} title="Submission Meta" fields={meta} />
 
           {(() => {
             const noteText = savedNotesOverride !== null

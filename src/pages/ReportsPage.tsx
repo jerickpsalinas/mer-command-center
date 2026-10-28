@@ -47,7 +47,7 @@ interface ExportDef {
   accent: "primary" | "success" | "warning" | "destructive";
   formats: ("xlsx" | "pdf")[];
   countLabel: (h: MerHistoryRow[], c: CycleEntry[], merged: Client[]) => string;
-  run: (fmt: "xlsx" | "pdf", h: MerHistoryRow[], c: CycleEntry[], rangeLabel: string, fileBase: string, merged: Client[]) => ExportPayload;
+  run: (fmt: "xlsx" | "pdf", h: MerHistoryRow[], c: CycleEntry[], rangeLabel: string, fileBase: string, merged: Client[], fullHistory: MerHistoryRow[]) => ExportPayload;
 }
 
 const EXPORTS: ExportDef[] = [
@@ -59,8 +59,8 @@ const EXPORTS: ExportDef[] = [
     accent: "primary",
     formats: ["xlsx", "pdf"],
     countLabel: (h, _c, merged) => `${h.length} submissions · ${merged.length} clients · ${new Set(h.map((r) => r.month)).size} months`,
-    run: (fmt, h, _c, rangeLabel, base, merged) => {
-      const opts = { history: h, rangeLabel, fileBaseName: base, clientsOverride: merged };
+    run: (fmt, h, _c, rangeLabel, base, merged, fullHistory) => {
+      const opts = { history: h, rangeLabel, fileBaseName: base, clientsOverride: merged, fullHistory };
       return fmt === "xlsx" ? exportXLSX(opts) : exportPDF(opts);
     },
   },
@@ -152,9 +152,6 @@ const ACCENT_CLASS: Record<ExportDef["accent"], string> = {
 };
 
 export default function ReportsPage() {
-  const { isBookkeeper } = useAuth();
-  const navigate = useNavigate();
-  useEffect(() => { if (isBookkeeper) navigate("/", { replace: true }); }, [isBookkeeper, navigate]);
   const { data, isLoading, error } = useFilteredSheetData();
   const { contacts: merWorkflowContacts } = useMerWorkflowContacts();
   const [mode, setMode] = useState<RangeMode>("all");
@@ -310,7 +307,7 @@ export default function ReportsPage() {
     }
     const base = `BA_${def.id}_${fileSuffix}`;
     try {
-      return def.run(fmt, filteredHistory, filteredCycle, rangeLabel, base, mergedClientsForReport);
+      return def.run(fmt, filteredHistory, filteredCycle, rangeLabel, base, mergedClientsForReport, data.merHistory);
     } catch (e) {
       toast.error(`Export failed: ${String(e)}`);
       return null;

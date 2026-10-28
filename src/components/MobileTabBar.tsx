@@ -23,7 +23,7 @@ export default function MobileTabBar({ onMore }: Props) {
 
   return (
     <nav
-      className="lg:hidden fixed bottom-0 inset-x-0 z-40 glass-panel border-t border-border"
+      className="lg:hidden fixed bottom-0 inset-x-0 z-40 bg-sidebar border-t border-sidebar-border"
       style={{ paddingBottom: "max(env(safe-area-inset-bottom), 0.25rem)" }}
       aria-label="Primary mobile navigation"
     >
@@ -35,15 +35,15 @@ export default function MobileTabBar({ onMore }: Props) {
               {active && (
                 <motion.span
                   layoutId="tab-bar-active"
-                  className="absolute top-0 inset-x-6 h-[2px] rounded-full bg-primary"
+                  className="absolute top-0 inset-x-6 h-[2px] rounded-full bg-sidebar-primary"
                   transition={{ type: "spring", stiffness: 500, damping: 30 }}
                 />
               )}
               <t.icon
-                className={`h-[18px] w-[18px] transition-transform duration-150 ${active ? "text-primary scale-105" : "text-muted-foreground"}`}
+                className={`h-[18px] w-[18px] transition-transform duration-150 ${active ? "text-sidebar-primary scale-105" : "text-sidebar-foreground/60"}`}
                 aria-hidden="true"
               />
-              <span className={active ? "text-primary" : "text-muted-foreground"}>{t.label}</span>
+              <span className={active ? "text-sidebar-primary" : "text-sidebar-foreground/60"}>{t.label}</span>
             </div>
           );
           return (

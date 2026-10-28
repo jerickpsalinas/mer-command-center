@@ -51,14 +51,14 @@ export default function ResetPasswordPage() {
   const passwordType = showPassword ? "text" : "password";
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-background vignette px-4">
+    <div className="min-h-screen flex items-center justify-center auth-gradient px-4">
       <div className="w-full max-w-md relative z-10">
         <div className="flex flex-col items-center mb-8">
           <img src={logo} alt="Brant & Associates" className="h-12 w-12 rounded-xl object-contain mb-4" />
-          <h1 className="font-display text-2xl font-semibold text-foreground tracking-tight">
+          <h1 className="font-display text-2xl font-semibold text-primary-foreground tracking-tight">
             Set a new password
           </h1>
-          <p className="text-sm text-muted-foreground mt-1">Brant &amp; Associates MER Dashboard</p>
+          <p className="text-sm text-gold mt-1">Brant &amp; Associates MER Dashboard</p>
         </div>
 
         <form

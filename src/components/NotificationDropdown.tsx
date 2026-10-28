@@ -247,7 +247,7 @@ export default function NotificationDropdown({ clients, trends }: { clients: Cli
         onKeyDown={(e) => {
           if (e.key === "Escape") setOpen(false);
         }}
-        className="relative h-9 w-9 flex items-center justify-center rounded-lg text-muted-foreground hover:bg-accent hover:text-foreground transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+        className="relative h-9 w-9 flex items-center justify-center rounded-lg text-sidebar-foreground/60 hover:bg-sidebar-accent hover:text-sidebar-foreground transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
         aria-label={totalBadge > 0 ? `Activity, ${totalBadge} updates` : "Activity"}
         aria-haspopup="dialog"
         aria-expanded={open}

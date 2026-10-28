@@ -8,9 +8,69 @@ import {
   statementReceived,
 } from "@/lib/complianceExplain";
 import type { Client, MonthlyTrend } from "@/data/mockData";
+import { monthLabelToIndex } from "@/lib/accountingStatus";
 import { recordStatusSnapshots } from "@/utils/statusHistory";
 import { useAuth } from "@/hooks/useAuth";
 import { useUserSettings } from "@/hooks/useUserSettings";
+
+// Persists the last successful sheet fetch to localStorage so every page that
+// reads it (Dashboard, Billing, etc.) can render instantly on mount instead of
+// showing a spinner while the Apps Script bridge responds. React Query still
+// treats the cached value as stale per staleTime, so a fresh fetch always
+// kicks off in the background and silently replaces it.
+const SHEET_CACHE_KEY = "brant-sheet-data-cache";
+// If the cache is older than this, discard it rather than risk showing
+// data that's silently gone stale (e.g. the live fetch has been quietly
+// failing) as if it were current. This is generous on purpose — the cache
+// is only ever used for the very first paint. React Query's staleTime
+// (30s, below) means a fresh background fetch fires immediately after
+// mount regardless, so a longer max-age just means more refreshes get an
+// instant paint instead of a spinner, without making anything look more
+// "live" than it already briefly is.
+const SHEET_CACHE_MAX_AGE_MS = 2 * 60 * 60_000;
+// Core keys every valid SheetData must have. Guards against serving a
+// cached object saved by an older build whose shape has since changed
+// (a new field added, etc.) — better to discard and re-fetch than let
+// downstream code choke on an unexpectedly-missing field.
+const SHEET_DATA_KEYS: (keyof SheetData)[] = [
+  "clients", "monthlyTrends", "bookkeepers", "cycleEntries",
+  "submittedBy", "clientMonths", "merHistory", "availableMonths",
+  "latestMonth", "actionLog", "billing",
+];
+
+function isValidSheetData(data: unknown): data is SheetData {
+  if (!data || typeof data !== "object") return false;
+  return SHEET_DATA_KEYS.every((k) => k in (data as Record<string, unknown>));
+}
+
+function readCachedSheetData(): { data: SheetData; savedAt: number } | null {
+  try {
+    const raw = localStorage.getItem(SHEET_CACHE_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    if (!parsed?.data || typeof parsed.savedAt !== "number") return null;
+    if (Date.now() - parsed.savedAt > SHEET_CACHE_MAX_AGE_MS) {
+      localStorage.removeItem(SHEET_CACHE_KEY);
+      return null;
+    }
+    if (!isValidSheetData(parsed.data)) {
+      localStorage.removeItem(SHEET_CACHE_KEY);
+      return null;
+    }
+    return parsed;
+  } catch {
+    return null;
+  }
+}
+
+function writeCachedSheetData(data: SheetData) {
+  try {
+    localStorage.setItem(SHEET_CACHE_KEY, JSON.stringify({ data, savedAt: Date.now() }));
+  } catch {
+    // Storage full/unavailable (private browsing, etc.) — cache is a
+    // convenience only, safe to skip.
+  }
+}
 
 /**
  * `autoRefresh` here is a per-caller opt-out (some pages don't want polling).
@@ -24,14 +84,24 @@ export function useSheetData(autoRefresh = true) {
   const pollMs = autoRefresh && syncPrefs.autoRefresh
     ? Math.max(15, syncPrefs.refreshInterval) * 1000
     : false;
+  // Read once per render rather than once per option — both `initialData`
+  // and `initialDataUpdatedAt` need the same cached snapshot, and React
+  // Query only invokes these lazily on the query's first creation anyway.
+  const cachedSheetData = readCachedSheetData();
   const query = useQuery<SheetData>({
     queryKey: ["sheet-data"],
     queryFn: fetchSheetData,
+    initialData: () => cachedSheetData?.data,
+    initialDataUpdatedAt: () => cachedSheetData?.savedAt,
     staleTime: 30_000,
     gcTime: 5 * 60_000,
     refetchOnWindowFocus: true,
     refetchInterval: pollMs,
   });
+
+  useEffect(() => {
+    if (query.data) writeCachedSheetData(query.data);
+  }, [query.data]);
 
   useEffect(() => {
     if (query.data?.merHistory?.length) {
@@ -72,15 +142,31 @@ export function getLatestSubmission(merHistory: MerHistoryRow[], clientName: str
 }
 
 /**
- * Build a lookup map: normalized client name -> most recent MerHistoryRow across all months.
+ * Build a lookup map: normalized client name → most recent MerHistoryRow across all months.
  * Used by the rollover merge logic to avoid scanning the full history per contact.
  */
-export function buildLatestSubmissionMap(merHistory: MerHistoryRow[]): Map<string, MerHistoryRow> {
+export function buildLatestSubmissionMap(
+  merHistory: MerHistoryRow[],
+  asOfMonthLabel?: string,
+): Map<string, MerHistoryRow> {
+  // When asOfMonthLabel is given (the month being viewed), never roll forward a
+  // submission from a LATER reporting month — otherwise a historical view would
+  // pull future data backward. Pick the most recent reporting month at-or-before
+  // the view, using submission timestamp only as a tiebreaker within a month.
+  const asOfIdx = asOfMonthLabel ? monthLabelToIndex(asOfMonthLabel) : null;
   const map = new Map<string, MerHistoryRow>();
   for (const r of merHistory) {
+    const ri = monthLabelToIndex(r.month);
+    if (asOfIdx != null && ri != null && ri > asOfIdx) continue;
     const key = r.name.trim().toLowerCase();
     const existing = map.get(key);
-    if (!existing || r.timestampMs > existing.timestampMs) map.set(key, r);
+    if (!existing) { map.set(key, r); continue; }
+    const existingIdx = monthLabelToIndex(existing.month);
+    const rKey = ri ?? -Infinity;
+    const eKey = existingIdx ?? -Infinity;
+    if (rKey > eKey || (rKey === eKey && r.timestampMs > existing.timestampMs)) {
+      map.set(key, r);
+    }
   }
   return map;
 }
@@ -134,28 +220,7 @@ export function getClientHistory(merHistory: MerHistoryRow[], clientName: string
 
 
 // Derived helpers that mirror the old mockData functions
-export function getKPIMetrics(clients: Client[]) {
-  const total = clients.length;
-  if (total === 0) return { total: 0, compliant: 0, nonCompliant: 0, onHold: 0, pendingMer: 0, rolledOver: 0, avgCompletion: 0, notReconciled: 0, outstandingStatements: 0, withoutNotes: 0 };
-  const compliant = clients.filter((c) => c.complianceStatus === "Compliant").length;
-  const nonCompliant = clients.filter((c) => c.complianceStatus === "Non-Compliant").length;
-  const onHold = clients.filter((c) => c.complianceStatus === "On Hold").length;
-  const pendingMer = clients.filter((c) => c.complianceStatus === "Pending MER").length;
-  const rolledOver = clients.filter((c) => c.rolledOver).length;
-
-  // Pending MER and On Hold clients are excluded from the completion average:
-  // Pending MER hasn't submitted anything; On Hold is intentionally paused.
-  // Including either inflates or deflates the team's real completion number.
-  const submitted = clients.filter((c) => c.complianceStatus !== "Pending MER" && c.complianceStatus !== "On Hold");
-  const submittedCount = submitted.length || 1;
-  const avgCompletion = Math.round(
-    submitted.reduce((s, c) => s + c.completionPct, 0) / submittedCount,
-  );
-  const notReconciled = submitted.filter((c) => isUnreconciled(c.lastReconciledDate)).length;
-  const outstandingStatements = submitted.filter((c) => !statementReceived(c.statementRequestStatus)).length;
-  const withoutNotes = submitted.filter((c) => !c.prevMonthNotesApproved).length;
-  return { total, compliant, nonCompliant, onHold, pendingMer, rolledOver, avgCompletion, notReconciled, outstandingStatements, withoutNotes };
-}
+export { getKPIMetrics } from "../../supabase/functions/_shared/kpi";
 
 export function getComplianceBreakdown(clients: Client[]) {
   // Pending MER placeholders drag every bar to 0% — exclude them, same as KPIs.
@@ -181,6 +246,7 @@ export function getNeedsAttention(clients: Client[]) {
     notReconciled: submitted.filter((c) => isUnreconciled(c.lastReconciledDate)),
     unresolvedTransactions: submitted.filter((c) => (c.uncategorizedTransactions || 0) > 0),
     noApprovedNotes: submitted.filter((c) => !c.prevMonthNotesApproved),
+    financialsNotSent: submitted.filter((c) => !c.financialsSentToClient),
   };
 }
 
@@ -221,12 +287,15 @@ export function getBookkeeperStats(clients: Client[], bookkeepers: string[]) {
     .map((bk) => {
       const bkClients = clients.filter((c) => c.bookkeeper === bk);
       const compliant = bkClients.filter((c) => c.complianceStatus === "Compliant").length;
+      // Count true Non-Compliant only — NOT total − compliant, which would fold
+      // On Hold + Pending MER into non-compliant (they are neither).
+      const nonCompliant = bkClients.filter((c) => c.complianceStatus === "Non-Compliant").length;
       const rate = bkClients.length > 0 ? Math.round((compliant / bkClients.length) * 100) : 0;
       const submitted = bkClients.filter((c) => c.complianceStatus !== "Pending MER" && c.complianceStatus !== "On Hold");
       const avgCompletion = submitted.length > 0
         ? Math.round(submitted.reduce((s, c) => s + c.completionPct, 0) / submitted.length)
         : 0;
-      return { name: bk, totalClients: bkClients.length, compliant, rate, avgCompletion };
+      return { name: bk, totalClients: bkClients.length, compliant, nonCompliant, rate, avgCompletion };
     })
     .sort((a, b) => b.rate - a.rate);
 }

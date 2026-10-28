@@ -1,126 +1,97 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;450;500&family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,400&display=swap');
-
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 @layer base {
-  :root {
-    --background: 0 0% 0%;
-    --foreground: 0 0% 96%;
-
-    --card: 0 0% 10%;
-    --card-foreground: 0 0% 96%;
-
-    --popover: 0 0% 12%;
-    --popover-foreground: 0 0% 96%;
-
-    --primary: 340 65% 65%;
-    --primary-foreground: 0 0% 8%;
-
-    --secondary: 0 0% 24%;
-    --secondary-foreground: 0 0% 88%;
-
-    --muted: 0 0% 14%;
-    --muted-foreground: 0 0% 62%;
-
-    --accent: 0 0% 16%;
-    --accent-foreground: 0 0% 96%;
-
-    --destructive: 0 78% 68%;
-    --destructive-foreground: 0 0% 8%;
-
-    --success: 145 60% 60%;
-    --success-foreground: 0 0% 8%;
-
-    --info: 210 80% 55%;
+  :root, :root.light {
+    /* Light brand theme — matches brantconnects.com: warm cream, ivory cards,
+       deep plum chrome, magenta actions, champagne gold accents. */
+    --background: 33 37% 94%;            /* #F7F1EA warm cream */
+    --foreground: 330 10% 13%;           /* #2A1620 dark plum-brown */
+    --card: 36 100% 98.5%;               /* #FFFCF8 soft ivory */
+    --card-foreground: var(--foreground);
+    --popover: var(--card);
+    --popover-foreground: var(--foreground);
+    --primary: 332 71% 42%;              /* #B51F65 magenta */
+    --primary-hover: 330 72% 34%;        /* #971951 */
+    --primary-foreground: 0 0% 100%;
+    --secondary: 30 33% 90%;             /* warm hover #F0E7DC */
+    --secondary-foreground: var(--foreground);
+    --muted: var(--secondary);
+    --muted-foreground: 327 10% 44%;     /* #7A6470 */
+    --accent: var(--secondary);
+    --accent-foreground: var(--foreground);
+    --plum: 326 62% 10%;                 /* #2A0A1C deep plum */
+    --gold: 40 51% 57%;                  /* #C9A35A champagne gold */
+    --gold-foreground: 42 52% 34%;       /* #85692A dark gold text */
+    --gold-soft: 37 55% 92%;
+    --destructive: 4 76% 40%;            /* #B42318 */
+    --destructive-foreground: 0 0% 100%;
+    --destructive-soft: 4 68% 96%;
+    --success: 154 46% 31%;              /* softened green, AA on soft badge */
+    --success-foreground: 0 0% 100%;
+    --success-soft: 137 30% 93%;
+    --info: 210 75% 36%;
     --info-foreground: 0 0% 100%;
-
-    --warning: 38 85% 62%;
-    --warning-foreground: 0 0% 8%;
-
-    --border: 0 0% 18%;
-    --input: 0 0% 18%;
-    --ring: 340 65% 65%;
-
+    --warning: 36 71% 42%;               /* #B7791F */
+    --warning-ink: 36 70% 27%;
+    --warning-foreground: 20 13% 9%;
+    --warning-soft: 37 55% 92%;
+    --border: 31 35% 86%;                /* #E8DCCF warm border */
+    --input: var(--border);
+    --ring: var(--primary);
     --radius: 0.625rem;
-
-    --sidebar-background: 0 0% 4%;
-    --sidebar-foreground: 0 0% 78%;
-    --sidebar-primary: 340 65% 65%;
-    --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 0 0% 12%;
-    --sidebar-accent-foreground: 0 0% 96%;
-    --sidebar-border: 0 0% 14%;
-    --sidebar-ring: 340 65% 65%;
-
-    --surface: 0 0% 10%;
-    --surface-alt: 0 0% 14%;
-
-    --rose-accent: 340 65% 65%;
-
-    --shadow-card: 0 2px 8px -2px hsl(0 0% 0% / 0.5), 0 1px 3px -1px hsl(0 0% 0% / 0.3);
-    --shadow-card-hover: 0 6px 20px -4px hsl(0 0% 0% / 0.6), 0 2px 6px -2px hsl(340 65% 65% / 0.1);
-    --shadow-elevated: 0 12px 36px -6px hsl(0 0% 0% / 0.7), 0 4px 12px -2px hsl(340 65% 65% / 0.08);
+    --sidebar-background: 326 62% 10%;   /* #2A0A1C deep plum */
+    --sidebar-foreground: 33 37% 94%;    /* cream text */
+    --sidebar-primary: 40 51% 57%;       /* gold active highlight */
+    --sidebar-primary-foreground: 326 62% 10%;
+    --sidebar-accent: 322 61% 15%;       /* #3D0F2A hover */
+    --sidebar-accent-foreground: 33 37% 94%;
+    --sidebar-border: 322 45% 20%;
+    --sidebar-ring: 40 51% 57%;
+    --surface: var(--card);
+    --surface-alt: var(--background);
+    --rose-accent: var(--primary);
+    --overlay: var(--foreground);
+    --shadow-card: 0 1px 3px -1px hsl(326 40% 20% / 0.08);
+    --shadow-card-hover: 0 4px 12px -2px hsl(326 40% 20% / 0.12);
+    --shadow-elevated: 0 12px 36px -6px hsl(326 40% 20% / 0.16);
   }
 
-  :root.light {
-    --background: 30 20% 96%;
-    --foreground: 20 15% 15%;
-
-    --card: 0 0% 100%;
-    --card-foreground: 20 15% 15%;
-
-    --popover: 0 0% 100%;
-    --popover-foreground: 20 15% 15%;
-
-    --primary: 340 45% 50%;
-    --primary-foreground: 0 0% 100%;
-
-    --secondary: 20 10% 90%;
-    --secondary-foreground: 20 12% 35%;
-
-    --muted: 25 12% 92%;
-    --muted-foreground: 20 8% 45%;
-
-    --accent: 25 15% 93%;
-    --accent-foreground: 20 15% 15%;
-
-    --destructive: 0 65% 50%;
-    --destructive-foreground: 0 0% 100%;
-
-    --success: 160 55% 38%;
-    --success-foreground: 0 0% 100%;
-
-    --info: 210 75% 48%;
-    --info-foreground: 0 0% 100%;
-
-    --warning: 38 80% 48%;
-    --warning-foreground: 20 12% 7%;
-
-    --border: 25 12% 88%;
-    --input: 25 12% 88%;
-    --ring: 340 45% 50%;
-
-    --radius: 0.625rem;
-
-    --sidebar-background: 30 15% 97%;
-    --sidebar-foreground: 20 10% 40%;
-    --sidebar-primary: 340 45% 50%;
-    --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 25 15% 94%;
-    --sidebar-accent-foreground: 20 15% 15%;
-    --sidebar-border: 25 12% 90%;
-    --sidebar-ring: 340 45% 50%;
-
-    --surface: 0 0% 100%;
-    --surface-alt: 25 12% 95%;
-
-    --rose-accent: 340 45% 50%;
-
-    --shadow-card: 0 1px 3px 0 hsl(0 0% 0% / 0.06), 0 1px 2px -1px hsl(0 0% 0% / 0.06);
-    --shadow-card-hover: 0 4px 12px -2px hsl(0 0% 0% / 0.1), 0 2px 4px -1px hsl(340 45% 50% / 0.04);
-    --shadow-elevated: 0 8px 24px -4px hsl(0 0% 0% / 0.12), 0 4px 8px -2px hsl(340 45% 50% / 0.03);
+  :root:not(.light) {
+    --plum: 330 30% 82%;
+    --sidebar-background: 326 62% 10%;
+    --sidebar-foreground: 33 37% 94%;
+    --sidebar-primary: 40 51% 57%;
+    --sidebar-primary-foreground: 326 62% 10%;
+    --sidebar-accent: 322 61% 15%;
+    --sidebar-accent-foreground: 33 37% 94%;
+    --sidebar-border: 322 45% 20%;
+    --sidebar-ring: 40 51% 57%;
+    --background: 20 13.043% 9.02%;
+    --foreground: 30 50% 96.863%;
+    --card: 330 11.429% 13.725%;
+    --secondary: 333.333 9.677% 18.235%;
+    --muted-foreground: 338.571 7.447% 63.137%;
+    --primary: 331.636 62.5% 65.49%;
+    --primary-hover: 332 70% 74%;
+    --primary-foreground: 20 13.043% 9.02%;
+    --gold-foreground: 37.925 77.941% 73.333%;
+    --gold-soft: 38 24% 18%;
+    --success: 150 40.909% 65.49%;
+    --success-foreground: 20 13.043% 9.02%;
+    --success-soft: 153 22% 18%;
+    --destructive: 5.789 82.609% 72.941%;
+    --destructive-foreground: 20 13.043% 9.02%;
+    --destructive-soft: 4 27% 19%;
+    --warning: 37.925 77.941% 73.333%;
+    --warning-ink: var(--warning);
+    --warning-foreground: 20 13.043% 9.02%;
+    --warning-soft: 38 24% 18%;
+    --info: 210 80% 72%;
+    --info-foreground: 20 13.043% 9.02%;
+    --border: 334.286 11.29% 24.314%;
+    --overlay: 20 13.043% 9.02%;
   }
 }
 
@@ -132,6 +103,8 @@
   body {
     @apply bg-background text-foreground antialiased;
     font-family: 'Inter', system-ui, sans-serif;
+    font-size: 15px;
+    line-height: 1.5;
   }
 
   h1, h2, h3, h4, h5, h6 {
@@ -194,73 +167,27 @@ input:-webkit-autofill:active {
 
   /* Glass panel */
   .glass-panel {
-    background: hsl(var(--card) / 0.75);
+    background: hsl(var(--card));
     backdrop-filter: blur(16px) saturate(1.2);
-    border: 1px solid hsl(var(--border) / 0.6);
+    border: 1px solid hsl(var(--border));
   }
 
-  /* ── Rose glow on hover ──────────────────────────────────────────
-     Applied site-wide to interactive surfaces. Respects reduced motion. */
-  .hover-glow {
-    transition: box-shadow 300ms ease, border-color 300ms ease, transform 300ms ease;
-  }
-  .hover-glow:hover {
-    box-shadow:
-      0 0 0 1px hsl(var(--primary) / 0.35),
-      0 0 18px -2px hsl(var(--primary) / 0.45),
-      0 0 42px -8px hsl(var(--primary) / 0.35);
+  /* Plum hero gradient for auth pages (matches brantconnects.com hero). */
+  .auth-gradient {
+    background: linear-gradient(160deg, hsl(326 62% 10%) 0%, hsl(322 61% 15%) 55%, hsl(330 72% 21%) 100%);
   }
 
-  @media (prefers-reduced-motion: no-preference) {
-    /* Interactive controls: buttons, links, role=button */
-    [class*="rounded-"]:is(button, a, [role="button"]):not(:disabled),
-    .shadow-card,
-    .shadow-card-hover,
-    .shadow-sm,
-    .shadow,
-    .shadow-md,
-    .shadow-lg,
-    .glass-panel,
-    .bg-card {
-      transition: box-shadow 300ms ease, border-color 300ms ease, transform 300ms ease;
-    }
-    [class*="rounded-"]:is(button, a, [role="button"]):not(:disabled):hover {
-      box-shadow:
-        0 0 0 1px hsl(var(--primary) / 0.3),
-        0 0 16px -2px hsl(var(--primary) / 0.4),
-        0 0 36px -10px hsl(var(--primary) / 0.3);
-    }
-    /* Card-like surfaces — any element using card background, glass, or card shadows */
-    .shadow-card:hover,
-    .glass-panel:hover,
-    .bg-card:hover,
-    [class*="rounded-"].border.bg-card:hover,
-    .shadow-sm:hover,
-    .shadow:hover,
-    .shadow-md:hover,
-    .shadow-lg:hover {
-      box-shadow:
-        var(--shadow-card-hover),
-        0 0 24px -6px hsl(var(--primary) / 0.35),
-        0 0 56px -16px hsl(var(--primary) / 0.25);
-      border-color: hsl(var(--primary) / 0.35);
-    }
+  /* Featured KPI band: deep magenta/plum gradient with white text. */
+  .kpi-featured {
+    background: linear-gradient(135deg, hsl(330 72% 21%) 0%, hsl(332 71% 42%) 100%);
+    border-color: hsl(330 60% 32%);
   }
 
-  @media (prefers-reduced-motion: reduce) {
-    .hover-glow,
-    .hover-glow:hover { transition: none; box-shadow: none; }
-  }
+  /* Quiet surfaces: no decorative glows or vignette in either theme. */
+  .hover-glow { transition: border-color 150ms ease; }
+  .hover-glow:hover { border-color: hsl(var(--border)); }
+  .vignette::before { content: none; }
 
-  /* Warm vignette overlay */
-  .vignette::before {
-    content: '';
-    position: fixed;
-    inset: 0;
-    background: radial-gradient(ellipse at center, transparent 50%, hsl(var(--background) / 0.4) 100%);
-    pointer-events: none;
-    z-index: 0;
-  }
 }
 
 /* ── Density mode (#4) ─────────────────────────────────────────────
@@ -326,10 +253,10 @@ body:hover,
    it clickable across the full field. A Lucide Calendar icon is rendered on
    the LEFT by the component for visual affordance. */
 .activity-date-input {
-  color-scheme: dark;
-}
-.light .activity-date-input {
   color-scheme: light;
+}
+:root:not(.light) .activity-date-input {
+  color-scheme: dark;
 }
 .activity-date-input::-webkit-calendar-picker-indicator {
   position: absolute;
@@ -348,3 +275,33 @@ body:hover,
     bottom: calc(72px + env(safe-area-inset-bottom) + 12px) !important;
   }
 }
+
+/* Shared Staff Portal presentation, independent of operational views. */
+:root { color-scheme: light; }
+:root:not(.light) { color-scheme: dark; }
+body, input, textarea, select, button { letter-spacing: 0; }
+h1, h2.font-display { font-family: 'Playfair Display', serif; }
+[class~="text-xs"], [class~="text-sm"],
+[class*="text-[9px]"], [class*="text-[10px]"], [class*="text-[11px]"],
+[class*="text-[12px]"], [class*="text-[13px]"], [class*="text-[14px]"] {
+  font-size: 15px;
+  letter-spacing: 0;
+}
+[class*="text-[12.5px]"], [class*="text-[0.65rem]"], [class*="text-[0.7rem]"], [class*="text-[0.78rem]"] { font-size: 15px; }
+[class*="tracking-"] { letter-spacing: 0; }
+[class*="text-muted-foreground/"] { color: hsl(var(--muted-foreground)); }
+[class*="placeholder:text-muted-foreground"]::placeholder { color: hsl(var(--muted-foreground)); }
+.text-warning { color: hsl(var(--warning-ink)); }
+[class~="bg-warning/10"], [class~="bg-warning/15"] { background-color: hsl(var(--warning-soft)); }
+[class~="bg-success/10"], [class~="bg-success/15"] { background-color: hsl(var(--success-soft)); }
+[class~="bg-destructive/10"], [class~="bg-destructive/15"] { background-color: hsl(var(--destructive-soft)); }
+button.bg-primary:hover, a.bg-primary:hover { background-color: hsl(var(--primary-hover)); }
+button[class*="shadow-[0_0_"], button[class*="hover:shadow-[0_0_"],
+[role="button"][class*="shadow-[0_0_"] { box-shadow: none; }
+[class*="shadow-[0_0_12px"], [class*="hover:shadow-[0_0_16px"]:hover { box-shadow: none; }
+thead { background-color: hsl(var(--background)); }
+thead th { background-color: hsl(var(--background)) !important; }
+tbody tr { background-color: hsl(var(--card)); }
+tbody tr:hover { background-color: hsl(var(--accent)); }
+form.glass-panel { background-color: hsl(var(--background)); }
+[data-sonner-toast] { background: hsl(var(--card)); color: hsl(var(--foreground)); border-color: hsl(var(--border)); }

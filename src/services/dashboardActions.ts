@@ -139,6 +139,25 @@ const UNDOABLE_ACTIONS = new Set<ActionType>([
   "undo-notes-approval",
 ]);
 
+/**
+ * Demo build: the live dashboard POSTs this to an Apps Script endpoint. Here we
+ * simulate the round-trip so the confirmation modal, toast and resulting status
+ * change behave exactly as they do in production, with no network call.
+ */
+export async function confirmFinancialsSent(opts: {
+  merKey: string;
+  clientName: string;
+  cycleMonth: string;
+  triggeredBy: string;
+}): Promise<{ success: boolean; message?: string }> {
+  void opts;
+  await new Promise((r) => setTimeout(r, 600));
+  return {
+    success: true,
+    message: "Demo mode — financials marked as sent (nothing was emailed).",
+  };
+}
+
 export function isUndoableAction(action: ActionType): boolean {
   return UNDOABLE_ACTIONS.has(action);
 }

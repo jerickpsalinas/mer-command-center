@@ -20,7 +20,7 @@ export function PageHeader({ title, description, eyebrow, icon: Icon, actions, c
     <div className={cn("flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4", className)}>
       <div className="min-w-0">
         {eyebrow && <p className={cn(OVERLINE, "mb-1")}>{eyebrow}</p>}
-        <h2 className="text-xl sm:text-2xl font-semibold tracking-tight text-foreground flex items-center gap-2">
+        <h2 className="text-xl sm:text-2xl font-display font-semibold tracking-tight text-foreground flex items-center gap-2">
           {Icon && <Icon className="h-5 w-5 text-primary" aria-hidden />}
           {title}
         </h2>

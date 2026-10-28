@@ -12,6 +12,7 @@ import type { Client } from "@/data/mockData";
 import { getKPIMetrics, getComplianceBreakdown, groupHistoryByMonth } from "@/hooks/useSheetData";
 import { autoSizeRowHeights, workbookToHtml } from "@/lib/xlsxRender";
 import type { ExportPayload } from "@/lib/reportExports";
+import { buildReconciledThroughMap, evaluateAccounting } from "@/lib/accountingStatus";
 
 /* ============= Brand palette (matches Gilded Rose aesthetic) ============= */
 const BRAND = {
@@ -232,12 +233,17 @@ function buildKpiSheet(clients: Client[], rangeLabel: string): XLSX.WorkSheet {
   return ws;
 }
 
-function buildClientSheet(clients: Client[], monthLabel: string): XLSX.WorkSheet {
+function buildClientSheet(
+  clients: Client[],
+  monthLabel: string,
+  reconMap?: Map<string, number>,
+): XLSX.WorkSheet {
   const ws: XLSX.WorkSheet = { "!ref": "A1" };
   const headers = [
     "Client Name", "Type", "Bookkeeper", "Bank Txns", "Uncat.", "No-Payee",
     "Undep.", "Unapp.", "Stmt Status", "Last Reconciled",
     "Notes Approved", "Fin. Sent", "Books Closed", "Completion %", "Compliance",
+    "Books Reconciled",
   ];
 
   placeRow(ws, 0, [`Month-End Review – ${monthLabel || "All Months"}`, ...Array(headers.length - 1).fill("")],
@@ -253,6 +259,8 @@ function buildClientSheet(clients: Client[], monthLabel: string): XLSX.WorkSheet
   clients.forEach((c, i) => {
     const row = 4 + i;
     const z = i % 2 === 1;
+    const acct = evaluateAccounting(monthLabel, c.lastReconciledDate, reconMap?.get(c.name.trim().toLowerCase()) ?? null);
+    const acctColor = acct.done ? (acct.inferred ? BRAND.warn : BRAND.success) : BRAND.danger;
     const values: (string | number)[] = [
       c.name, c.clientType, c.bookkeeper, c.bankTransactions || "-",
       String(dash(c.uncategorizedTransactions)), String(dash(c.transactionsWithoutPayees)),
@@ -260,6 +268,7 @@ function buildClientSheet(clients: Client[], monthLabel: string): XLSX.WorkSheet
       c.statementRequestStatus || "-", c.lastReconciledDate || "-",
       bool(c.prevMonthNotesApproved), bool(c.financialsSentToClient),
       bool(c.booksClosedInQB), `${c.completionPct}%`, c.complianceStatus,
+      acct.status === "Unknown" ? "-" : acct.status,
     ];
     const styles: CellStyle[] = [
       cellStyle(z), cellStyle(z), cellStyle(z), numCellStyle(z),
@@ -270,6 +279,7 @@ function buildClientSheet(clients: Client[], monthLabel: string): XLSX.WorkSheet
       { ...cellStyle(z), alignment: { horizontal: "center", vertical: "center" }, font: { name: "Calibri", sz: 9, color: { rgb: c.booksClosedInQB ? BRAND.success : BRAND.danger } } },
       pctStyle(c.completionPct, z),
       statusStyle(c.complianceStatus, z),
+      { ...cellStyle(z), alignment: { horizontal: "center", vertical: "center" }, font: { name: "Calibri", sz: 9, color: { rgb: acctColor } } },
     ];
     placeRow(ws, row, values, styles);
   });
@@ -277,7 +287,7 @@ function buildClientSheet(clients: Client[], monthLabel: string): XLSX.WorkSheet
   ws["!cols"] = [
     { wch: 32 }, { wch: 11 }, { wch: 12 }, { wch: 11 }, { wch: 9 }, { wch: 9 },
     { wch: 9 }, { wch: 9 }, { wch: 18 }, { wch: 14 }, { wch: 13 }, { wch: 11 },
-    { wch: 12 }, { wch: 12 }, { wch: 14 },
+    { wch: 12 }, { wch: 12 }, { wch: 14 }, { wch: 24 },
   ];
   ws["!autofilter"] = { ref: XLSX.utils.encode_range({ s: { r: 3, c: 0 }, e: { r: 3 + clients.length, c: headers.length - 1 } }) };
   ws["!freeze"] = { xSplit: 1, ySplit: 4 };
@@ -336,10 +346,13 @@ export interface ExportOptions {
   fileBaseName: string;
   /** Optional override for KPI/Compliance summary client list (e.g. GHL-merged). */
   clientsOverride?: Client[];
+  /** Full MER history (all months) so the reconciliation cascade can see later months. Falls back to `history`. */
+  fullHistory?: MerHistoryRow[];
 }
 
-export function exportXLSX({ history, rangeLabel, fileBaseName, clientsOverride }: ExportOptions): ExportPayload {
+export function exportXLSX({ history, rangeLabel, fileBaseName, clientsOverride, fullHistory }: ExportOptions): ExportPayload {
   const wb = XLSX.utils.book_new();
+  const reconMap = buildReconciledThroughMap(fullHistory ?? history);
   wb.Props = {
     Title: `MER Report – ${rangeLabel}`,
     Subject: "Month-End Review",
@@ -366,13 +379,13 @@ export function exportXLSX({ history, rangeLabel, fileBaseName, clientsOverride 
   );
 
   if (sortedMonths.length === 1) {
-    const cs = buildClientSheet(grouped.get(sortedMonths[0])!, sortedMonths[0]);
+    const cs = buildClientSheet(grouped.get(sortedMonths[0])!, sortedMonths[0], reconMap);
     autoSizeRowHeights(cs);
     XLSX.utils.book_append_sheet(wb, cs, "Client Review");
   } else {
     for (const m of sortedMonths) {
       const safe = m.replace(/[\\/?*[\]]/g, "").slice(0, 28);
-      const cs = buildClientSheet(grouped.get(m)!, m);
+      const cs = buildClientSheet(grouped.get(m)!, m, reconMap);
       autoSizeRowHeights(cs);
       XLSX.utils.book_append_sheet(wb, cs, safe);
     }
@@ -584,12 +597,18 @@ function drawKpiCard(
   doc.text(value, x + 12, y + 40);
 }
 
-export function exportPDF({ history, rangeLabel, fileBaseName, clientsOverride }: ExportOptions): ExportPayload {
+export function exportPDF({ history, rangeLabel, fileBaseName, clientsOverride, fullHistory }: ExportOptions): ExportPayload {
   const doc = new jsPDF({ orientation: "landscape", unit: "pt", format: "letter" });
   const pageW = doc.internal.pageSize.getWidth();
   const pageH = doc.internal.pageSize.getHeight();
   const margin = 40;
   const FOOTER_RESERVE = 28; // matches footer band height + breathing room
+  const reconMap = buildReconciledThroughMap(fullHistory ?? history);
+  const acctShort = (c: Client, monthLabel: string): string => {
+    const a = evaluateAccounting(monthLabel, c.lastReconciledDate, reconMap.get(c.name.trim().toLowerCase()) ?? null);
+    if (a.status === "Unknown") return "-";
+    return a.done ? (a.inferred ? "Carry" : "Done") : "No";
+  };
 
   const latestByClient = new Map<string, MerHistoryRow>();
   for (const r of history) {
@@ -768,13 +787,13 @@ export function exportPDF({ history, rangeLabel, fileBaseName, clientsOverride }
       startY: 70,
       head: [[
         "Client", "Type", "Bookkeeper", "Bank", "Uncat.", "No-Payee",
-        "Undep.", "Unapp.", "Stmt", "Reconciled", "Notes", "Fin", "Closed", "%", "Status",
+        "Undep.", "Unapp.", "Stmt", "Reconciled", "Books", "Notes", "Fin", "Closed", "%", "Status",
       ]],
       body: cs.map((c) => [
         c.name, c.clientType, c.bookkeeper, c.bankTransactions || "-",
         String(dash(c.uncategorizedTransactions)), String(dash(c.transactionsWithoutPayees)),
         String(dash(c.undepositedFunds)), String(dash(c.unappliedPayments)),
-        c.statementRequestStatus || "-", c.lastReconciledDate || "-",
+        c.statementRequestStatus || "-", c.lastReconciledDate || "-", acctShort(c, m),
         bool(c.prevMonthNotesApproved), bool(c.financialsSentToClient),
         bool(c.booksClosedInQB), `${c.completionPct}%`, c.complianceStatus,
       ]),
@@ -783,36 +802,42 @@ export function exportPDF({ history, rangeLabel, fileBaseName, clientsOverride }
       alternateRowStyles: { fillColor: RGB.zebra },
       styles: { fontSize: 7, cellPadding: 3, overflow: "linebreak", lineColor: RGB.border, lineWidth: 0.25, valign: "middle" },
       columnStyles: {
-        0: { cellWidth: 100, fontStyle: "bold" },
-        1: { cellWidth: 44 },
-        2: { cellWidth: 56 },
-        3: { cellWidth: 44, halign: "right" },
-        4: { cellWidth: 36, halign: "right" },
-        5: { cellWidth: 44, halign: "right" },
-        6: { cellWidth: 36, halign: "right" },
-        7: { cellWidth: 36, halign: "right" },
-        8: { cellWidth: 56 },
-        9: { cellWidth: 56 },
-        10: { cellWidth: 32, halign: "center" },
+        0: { cellWidth: 90, fontStyle: "bold" },
+        1: { cellWidth: 40 },
+        2: { cellWidth: 50 },
+        3: { cellWidth: 40, halign: "right" },
+        4: { cellWidth: 32, halign: "right" },
+        5: { cellWidth: 40, halign: "right" },
+        6: { cellWidth: 32, halign: "right" },
+        7: { cellWidth: 32, halign: "right" },
+        8: { cellWidth: 48 },
+        9: { cellWidth: 52 },
+        10: { cellWidth: 40, halign: "center" },
         11: { cellWidth: 28, halign: "center" },
-        12: { cellWidth: 36, halign: "center" },
-        13: { cellWidth: 36, halign: "right", fontStyle: "bold" },
-        14: { cellWidth: 70, halign: "center", fontStyle: "bold" },
+        12: { cellWidth: 26, halign: "center" },
+        13: { cellWidth: 32, halign: "center" },
+        14: { cellWidth: 32, halign: "right", fontStyle: "bold" },
+        15: { cellWidth: 56, halign: "center", fontStyle: "bold" },
       },
       didParseCell: (d) => {
         if (d.section !== "body") return;
         const v = String(d.cell.raw);
-        // Yes/No coloring
-        if ([10, 11, 12].includes(d.column.index)) {
+        // Books (reconciliation) coloring
+        if (d.column.index === 10) {
+          d.cell.styles.textColor = v === "Done" ? RGB.success : v === "Carry" ? RGB.warn : v === "No" ? RGB.danger : RGB.textMuted;
+          d.cell.styles.fontStyle = "bold";
+        }
+        // Yes/No coloring (Notes, Fin, Closed)
+        if ([11, 12, 13].includes(d.column.index)) {
           d.cell.styles.textColor = v === "Yes" ? RGB.success : RGB.danger;
         }
         // Completion %
-        if (d.column.index === 13) {
+        if (d.column.index === 14) {
           const pct = parseInt(v, 10);
           d.cell.styles.textColor = pct >= 90 ? RGB.success : pct >= 60 ? RGB.warn : RGB.danger;
         }
         // Status badge
-        if (d.column.index === 14) {
+        if (d.column.index === 15) {
           if (v === "Compliant") {
             d.cell.styles.textColor = RGB.success;
             d.cell.styles.fillColor = RGB.successBg;

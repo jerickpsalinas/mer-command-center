@@ -36,6 +36,8 @@ import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { EmptyState } from "@/components/EmptyState";
+import SopPanel from "@/components/SopPanel";
+import { developerSop } from "@/data/sopConfigs";
 
 interface ReminderRow {
   id: string;
@@ -574,11 +576,14 @@ export default function DeveloperPage() {
 
   return (
     <div className="space-y-8 max-w-3xl">
-      <div>
-        <h2 className="text-2xl font-semibold tracking-tight text-foreground">Developer</h2>
-        <p className="text-sm text-muted-foreground mt-1">
-          Manage the global reminder banner and post system updates.
-        </p>
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <h2 className="text-2xl font-semibold tracking-tight text-foreground">Developer</h2>
+          <p className="text-sm text-muted-foreground mt-1">
+            Manage the global reminder banner and post system updates.
+          </p>
+        </div>
+        <SopPanel config={developerSop} />
       </div>
 
       {/* Section A — Reminder */}

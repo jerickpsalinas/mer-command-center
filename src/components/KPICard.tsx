@@ -24,6 +24,8 @@ interface KPICardProps {
   invertDeltaColor?: boolean;
   /** Optional subtitle shown below the value (e.g. "3 rolled over"). */
   subtitle?: string;
+  /** Featured tile: deep magenta/plum gradient band with white text (brand hero style). */
+  featured?: boolean;
 }
 
 const variantStyles = {
@@ -47,7 +49,7 @@ const valueStyles = {
   warning: "text-warning",
 };
 
-export default function KPICard({ title, value, icon: Icon, trend, variant = "default", index = 0, suffix, tooltip, delta, deltaLabel, invertDeltaColor, subtitle }: KPICardProps) {
+export default function KPICard({ title, value, icon: Icon, trend, variant = "default", index = 0, suffix, tooltip, delta, deltaLabel, invertDeltaColor, subtitle, featured = false }: KPICardProps) {
   const isNumeric = typeof value === "number";
 
   const hasDelta = typeof delta === "number" && Number.isFinite(delta);
@@ -76,20 +78,20 @@ export default function KPICard({ title, value, icon: Icon, trend, variant = "de
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.4, delay: index * 0.06, ease: [0.2, 0.8, 0.2, 1] }}
       className={cn(
-        "group rounded-xl border bg-card p-5 density-card shadow-card hover:shadow-card-hover transition-[box-shadow,border-color] duration-300 hover:border-primary/15",
-        variantStyles[variant]
+        "group rounded-xl border p-5 density-card shadow-card hover:shadow-card-hover transition-[box-shadow,border-color] duration-300",
+        featured ? "kpi-featured" : cn("bg-card hover:border-primary/15", variantStyles[variant])
       )}
     >
       <div className="flex items-center justify-between mb-3">
         <div className="flex items-center gap-1.5 min-w-0">
-          <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider truncate" title={title}>{title}</p>
+          <p className={cn("text-[11px] font-semibold uppercase tracking-wider truncate", featured ? "text-primary-foreground/80" : "text-muted-foreground")} title={title}>{title}</p>
           {tooltip && (
             <Tooltip>
               <TooltipTrigger asChild>
                 <button
                   type="button"
                   aria-label={`About ${title}`}
-                  className={cn("inline-flex items-center justify-center h-8 w-8 -m-2 rounded-md text-muted-foreground/70 hover:text-foreground transition-colors duration-150 shrink-0", FOCUS_RING)}
+                  className={cn("inline-flex items-center justify-center h-8 w-8 -m-2 rounded-md transition-colors duration-150 shrink-0", featured ? "text-primary-foreground/70 hover:text-primary-foreground" : "text-muted-foreground/70 hover:text-foreground", FOCUS_RING)}
                   onClick={(e) => e.preventDefault()}
                 >
                   <Info className="h-3 w-3" aria-hidden />
@@ -103,16 +105,16 @@ export default function KPICard({ title, value, icon: Icon, trend, variant = "de
         </div>
         <div className={cn(
           "h-8 w-8 rounded-lg flex items-center justify-center transition-transform duration-300 group-hover:scale-105",
-          iconStyles[variant]
+          featured ? "bg-primary-foreground/15 text-gold" : iconStyles[variant]
         )}>
           <Icon className="h-4 w-4" aria-hidden />
         </div>
       </div>
-      <p className={cn("text-[28px] font-bold font-mono-data tabular-nums leading-none truncate", valueStyles[variant])}>
+      <p className={cn("text-[28px] font-bold font-mono-data tabular-nums leading-none truncate", featured ? "text-primary-foreground" : valueStyles[variant])}>
         {isNumeric ? <AnimatedNumber value={value} suffix={suffix ?? ""} /> : value}
       </p>
       {subtitle && (
-        <p className="mt-1 text-[10px] font-semibold text-warning uppercase tracking-wider">{subtitle}</p>
+        <p className={cn("mt-1 text-[10px] font-semibold uppercase tracking-wider", featured ? "text-gold" : "text-warning")}>{subtitle}</p>
       )}
       {(hasDelta || trend) && (
         <div className="mt-2 flex items-center gap-1.5 flex-wrap">
@@ -127,7 +129,7 @@ export default function KPICard({ title, value, icon: Icon, trend, variant = "de
             </span>
           )}
           {(deltaLabel || trend) && (
-            <span className="text-[10px] text-muted-foreground">{deltaLabel || trend}</span>
+            <span className={cn("text-[10px]", featured ? "text-primary-foreground/70" : "text-muted-foreground")}>{deltaLabel || trend}</span>
           )}
         </div>
       )}

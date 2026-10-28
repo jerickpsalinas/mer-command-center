@@ -10,6 +10,8 @@ import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
 import UserManagementSection from "@/components/UserManagementSection";
 import ChangePasswordSection from "@/components/ChangePasswordSection";
+import SopPanel from "@/components/SopPanel";
+import { settingsSop } from "@/data/sopConfigs";
 
 const CARD_CLASS = "rounded-xl border-border shadow-card overflow-hidden";
 const HEADER_CLASS = "flex flex-row items-center gap-3 space-y-0 px-4 sm:px-6 py-4 border-b border-border";
@@ -59,9 +61,12 @@ export default function SettingsPage() {
 
   return (
     <div className="max-w-2xl mx-auto space-y-5">
-      <div className="space-y-1">
-        <h2 className="text-xl font-display font-semibold text-foreground">Settings</h2>
-        <p className="text-xs text-muted-foreground">Workspace info, sync, alert thresholds, notifications, and display preferences.</p>
+      <div className="flex items-start justify-between gap-3">
+        <div className="space-y-1">
+          <h2 className="text-xl font-display font-semibold text-foreground">Settings</h2>
+          <p className="text-xs text-muted-foreground">Workspace info, sync, alert thresholds, notifications, and display preferences.</p>
+        </div>
+        <SopPanel config={settingsSop} />
       </div>
 
       {/* General */}
