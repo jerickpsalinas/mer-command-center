@@ -63,8 +63,8 @@ export default function LoginPage() {
     // spacing — otherwise it overflows and the frame grows a scrollbar. The
     // standalone page keeps min-h-screen so short screens can still scroll.
     <div
-      className={`flex flex-col bg-background vignette overflow-x-clip ${
-        isEmbedded ? "h-screen overflow-y-hidden" : "min-h-screen"
+      className={`login-brand flex flex-col bg-background vignette overflow-x-clip ${
+        isEmbedded ? "h-screen overflow-y-auto" : "min-h-screen"
       }`}
     >
       <FloatingParticles />
@@ -77,18 +77,18 @@ export default function LoginPage() {
         <div className={`w-full ${isEmbedded ? "max-w-sm" : "max-w-md"}`}>
           <div
             className={`flex flex-col items-center text-center ${
-              isEmbedded ? "mb-4" : "mb-8"
+              isEmbedded ? "mb-3" : "mb-8"
             }`}
           >
             {!isEmbedded && <BrandMark className="h-12 w-12 mb-4" />}
             <h1
               className={`font-serif font-semibold text-foreground tracking-tight ${
-                isEmbedded ? "text-xl" : "text-2xl"
+                isEmbedded ? "text-lg" : "text-2xl"
               }`}
             >
               MER Command Center
             </h1>
-            <p className="text-sm text-muted-foreground mt-1">
+            <p className={`text-muted-foreground mt-1 ${isEmbedded ? "text-xs" : "text-sm"}`}>
               Monthly End Review Dashboard · Live Demo
             </p>
           </div>
@@ -96,7 +96,7 @@ export default function LoginPage() {
           <form
             onSubmit={handleSubmit}
             className={`glass-panel border border-border rounded-2xl shadow-elegant ${
-              isEmbedded ? "p-5 space-y-4" : "p-7 space-y-5"
+              isEmbedded ? "p-4 space-y-3" : "p-7 space-y-5"
             }`}
           >
             <div className="space-y-2">
@@ -108,7 +108,7 @@ export default function LoginPage() {
                 required
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                className={`w-full ${isEmbedded ? "h-10" : "h-11"} px-4 rounded-lg bg-background border border-border text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary/40 transition`}
+                className={`w-full ${isEmbedded ? "h-9" : "h-11"} px-4 rounded-lg bg-background border border-border text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary/40 transition`}
                 placeholder="you@example.com"
                 autoComplete="email"
               />
@@ -124,7 +124,7 @@ export default function LoginPage() {
                   required
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className={`w-full ${isEmbedded ? "h-10" : "h-11"} px-4 pr-11 rounded-lg bg-background border border-border text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary/40 transition`}
+                  className={`w-full ${isEmbedded ? "h-9" : "h-11"} px-4 pr-11 rounded-lg bg-background border border-border text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary/40 transition`}
                   placeholder="••••••••"
                   autoComplete="current-password"
                 />
@@ -148,15 +148,15 @@ export default function LoginPage() {
             <button
               type="submit"
               disabled={submitting}
-              className={`w-full ${isEmbedded ? "h-10" : "h-11"} rounded-lg bg-primary text-primary-foreground font-semibold text-sm hover:bg-primary/90 transition-colors flex items-center justify-center gap-2 disabled:opacity-60`}
+              className={`w-full ${isEmbedded ? "h-9" : "h-11"} rounded-lg bg-primary text-primary-foreground font-semibold text-sm hover:bg-primary/90 transition-colors flex items-center justify-center gap-2 disabled:opacity-60`}
             >
               {submitting && <Loader2 className="h-4 w-4 animate-spin" />}
               Sign In to Demo
             </button>
 
-            <div className={`relative rounded-xl border border-primary/25 bg-primary/[0.06] overflow-hidden ${isEmbedded ? "mt-2 p-3" : "mt-3 p-4"}`}>
+            <div className={`relative rounded-xl border border-primary/25 bg-primary/[0.06] overflow-hidden ${isEmbedded ? "mt-1 p-2.5" : "mt-3 p-4"}`}>
               <div className="absolute inset-0 bg-gradient-to-br from-primary/10 via-transparent to-primary/5 pointer-events-none" />
-              <div className="relative space-y-3">
+              <div className={`relative ${isEmbedded ? "space-y-2" : "space-y-3"}`}>
                 <div className="flex items-center gap-2">
                   <KeyRound className="h-3.5 w-3.5 text-primary" />
                   <span className="text-[10px] font-bold uppercase tracking-[0.1em] text-primary">
@@ -172,14 +172,16 @@ export default function LoginPage() {
                 <button
                   type="button"
                   onClick={handleAutofill}
-                  className="w-full h-8 rounded-lg border border-primary/30 bg-primary/10 text-primary text-[12px] font-semibold flex items-center justify-center gap-1.5 hover:bg-primary/20 hover:border-primary/50 transition-all"
+                  className="w-full h-7 rounded-lg border border-primary/30 bg-primary/10 text-primary text-[12px] font-semibold flex items-center justify-center gap-1.5 hover:bg-primary/20 hover:border-primary/50 transition-all"
                 >
                   {copied ? <Check className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />}
                   {copied ? "Filled!" : "Quick Fill Credentials"}
                 </button>
-                <p className="text-[11px] leading-relaxed text-muted-foreground/80 text-center pt-0.5">
-                  All figures, clients, and people shown are fictional sample data.
-                </p>
+                {!isEmbedded && (
+                  <p className="text-[11px] leading-relaxed text-muted-foreground/80 text-center pt-0.5">
+                    All figures, clients, and people shown are fictional sample data.
+                  </p>
+                )}
               </div>
             </div>
           </form>

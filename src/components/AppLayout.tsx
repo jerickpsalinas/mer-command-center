@@ -116,6 +116,14 @@ export default function AppLayout() {
     .filter((n) => n.url !== "/developer" || isDeveloper)
     .filter((n) => n.url !== "/ghl-contacts" || isJerick);
 
+  const isEmbedded = typeof window !== "undefined" && window.self !== window.top;
+
+  // The HireJPS bar is sticky and 63px tall, so the sidebar and page header
+  // must start below it; it is hidden inside the marketing iframe, where the
+  // offset is 0.
+  const chromeTop = isEmbedded ? "top-0" : "top-[63px]";
+  const chromeHeight = isEmbedded ? "h-screen" : "h-[calc(100vh-63px)]";
+
   return (
     <div className="flex flex-col min-h-screen w-full bg-background vignette overflow-x-clip">
       <FloatingParticles />
@@ -137,7 +145,7 @@ export default function AppLayout() {
 
       {/* Sidebar */}
       <aside
-        className={`fixed lg:sticky top-0 left-0 z-50 h-screen flex flex-col border-r border-border bg-sidebar transition-all duration-300 ${
+        className={`fixed lg:sticky ${chromeTop} left-0 z-50 ${chromeHeight} flex flex-col border-r border-border bg-sidebar transition-all duration-300 ${
           sidebarOpen ? "w-[240px]" : "w-[60px]"
         } ${mobileOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"}`}
       >
@@ -251,7 +259,7 @@ export default function AppLayout() {
       {/* Main */}
       <div className="flex-1 flex flex-col min-w-0 relative z-10">
         <ViewAsBanner />
-        <header className="sticky top-0 z-40 flex h-[56px] items-center gap-2 sm:gap-4 border-b border-border glass-panel px-3 sm:px-5 lg:px-8">
+        <header className={`sticky ${chromeTop} z-40 flex h-[56px] items-center gap-2 sm:gap-4 border-b border-border glass-panel px-3 sm:px-5 lg:px-8`}>
           <button
             onClick={() => setMobileOpen(true)}
             aria-label="Open navigation menu"
