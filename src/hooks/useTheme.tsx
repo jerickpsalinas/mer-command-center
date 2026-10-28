@@ -1,5 +1,6 @@
 /* eslint-disable react-refresh/only-export-components */
 import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
+import { safeGet, safeSet } from "@/lib/safeStorage";
 
 type Theme = "dark" | "light";
 
@@ -10,13 +11,13 @@ const ThemeContext = createContext<{ theme: Theme; toggle: () => void }>({
 
 export function ThemeProvider({ children }: { children: ReactNode }) {
   const [theme, setTheme] = useState<Theme>(() => {
-    const stored = localStorage.getItem("mer-theme");
+    const stored = safeGet("mer-theme");
     return stored === "light" ? "light" : "dark";
   });
 
   useEffect(() => {
     document.documentElement.classList.toggle("light", theme === "light");
-    localStorage.setItem("mer-theme", theme);
+    safeSet("mer-theme", theme);
   }, [theme]);
 
   const toggle = () => setTheme((t) => (t === "dark" ? "light" : "dark"));

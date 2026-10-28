@@ -6,6 +6,7 @@ import HireJPSHeader from "@/components/HireJPSHeader";
 import HireJPSFooter from "@/components/HireJPSFooter";
 import FloatingParticles from "@/components/FloatingParticles";
 import { useAuth, DEMO_LOGIN_KEY, DEMO_AUTH_EVENT } from "@/hooks/useAuth";
+import { safeSet } from "@/lib/safeStorage";
 
 const DEMO_EMAIL = "demo@merdashboard.app";
 const DEMO_PASSWORD = "demo2025";
@@ -45,7 +46,7 @@ export default function LoginPage() {
     setSubmitting(false);
     if (email.trim().toLowerCase() === DEMO_EMAIL && password === DEMO_PASSWORD) {
       try {
-        localStorage.setItem(DEMO_LOGIN_KEY, "true");
+        safeSet(DEMO_LOGIN_KEY, "true");
       } catch {
         /* ignore */
       }
@@ -57,24 +58,46 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen flex flex-col bg-background vignette overflow-x-clip">
+    // Embedded in the marketing site's window mock, the sign-in card is the
+    // only thing to show, so pin it to the frame height and tighten the
+    // spacing — otherwise it overflows and the frame grows a scrollbar. The
+    // standalone page keeps min-h-screen so short screens can still scroll.
+    <div
+      className={`login-brand flex flex-col bg-background vignette overflow-x-clip ${
+        isEmbedded ? "h-screen overflow-y-auto" : "min-h-screen"
+      }`}
+    >
       <FloatingParticles />
       <HireJPSHeader />
-      <div className="flex-1 flex items-center justify-center px-4 py-10 relative z-10">
-        <div className="w-full max-w-md">
-          <div className="flex flex-col items-center mb-8 text-center">
+      <div
+        className={`flex-1 flex items-center justify-center px-4 relative z-10 ${
+          isEmbedded ? "py-4" : "py-10"
+        }`}
+      >
+        <div className={`w-full ${isEmbedded ? "max-w-sm" : "max-w-md"}`}>
+          <div
+            className={`flex flex-col items-center text-center ${
+              isEmbedded ? "mb-3" : "mb-8"
+            }`}
+          >
             {!isEmbedded && <BrandMark className="h-12 w-12 mb-4" />}
-            <h1 className="font-serif text-2xl font-semibold text-foreground tracking-tight">
+            <h1
+              className={`font-serif font-semibold text-foreground tracking-tight ${
+                isEmbedded ? "text-lg" : "text-2xl"
+              }`}
+            >
               MER Command Center
             </h1>
-            <p className="text-sm text-muted-foreground mt-1">
+            <p className={`text-muted-foreground mt-1 ${isEmbedded ? "text-xs" : "text-sm"}`}>
               Monthly End Review Dashboard · Live Demo
             </p>
           </div>
 
           <form
             onSubmit={handleSubmit}
-            className="glass-panel border border-border rounded-2xl p-7 space-y-5 shadow-elegant"
+            className={`glass-panel border border-border rounded-2xl shadow-elegant ${
+              isEmbedded ? "p-4 space-y-3" : "p-7 space-y-5"
+            }`}
           >
             <div className="space-y-2">
               <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
@@ -85,7 +108,7 @@ export default function LoginPage() {
                 required
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                className="w-full h-11 px-4 rounded-lg bg-background border border-border text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary/40 transition"
+                className={`w-full ${isEmbedded ? "h-9" : "h-11"} px-4 rounded-lg bg-background border border-border text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary/40 transition`}
                 placeholder="you@example.com"
                 autoComplete="email"
               />
@@ -101,7 +124,7 @@ export default function LoginPage() {
                   required
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="w-full h-11 px-4 pr-11 rounded-lg bg-background border border-border text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary/40 transition"
+                  className={`w-full ${isEmbedded ? "h-9" : "h-11"} px-4 pr-11 rounded-lg bg-background border border-border text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary/40 transition`}
                   placeholder="••••••••"
                   autoComplete="current-password"
                 />
@@ -125,15 +148,15 @@ export default function LoginPage() {
             <button
               type="submit"
               disabled={submitting}
-              className="w-full h-11 rounded-lg bg-primary text-primary-foreground font-semibold text-sm hover:bg-primary/90 transition-colors flex items-center justify-center gap-2 disabled:opacity-60"
+              className={`w-full ${isEmbedded ? "h-9" : "h-11"} rounded-lg bg-primary text-primary-foreground font-semibold text-sm hover:bg-primary/90 transition-colors flex items-center justify-center gap-2 disabled:opacity-60`}
             >
               {submitting && <Loader2 className="h-4 w-4 animate-spin" />}
               Sign In to Demo
             </button>
 
-            <div className="relative mt-3 rounded-xl border border-primary/25 bg-primary/[0.06] p-4 overflow-hidden">
+            <div className={`relative rounded-xl border border-primary/25 bg-primary/[0.06] overflow-hidden ${isEmbedded ? "mt-1 p-2.5" : "mt-3 p-4"}`}>
               <div className="absolute inset-0 bg-gradient-to-br from-primary/10 via-transparent to-primary/5 pointer-events-none" />
-              <div className="relative space-y-3">
+              <div className={`relative ${isEmbedded ? "space-y-2" : "space-y-3"}`}>
                 <div className="flex items-center gap-2">
                   <KeyRound className="h-3.5 w-3.5 text-primary" />
                   <span className="text-[10px] font-bold uppercase tracking-[0.1em] text-primary">
@@ -149,14 +172,16 @@ export default function LoginPage() {
                 <button
                   type="button"
                   onClick={handleAutofill}
-                  className="w-full h-8 rounded-lg border border-primary/30 bg-primary/10 text-primary text-[12px] font-semibold flex items-center justify-center gap-1.5 hover:bg-primary/20 hover:border-primary/50 transition-all"
+                  className="w-full h-7 rounded-lg border border-primary/30 bg-primary/10 text-primary text-[12px] font-semibold flex items-center justify-center gap-1.5 hover:bg-primary/20 hover:border-primary/50 transition-all"
                 >
                   {copied ? <Check className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />}
                   {copied ? "Filled!" : "Quick Fill Credentials"}
                 </button>
-                <p className="text-[11px] leading-relaxed text-muted-foreground/80 text-center pt-0.5">
-                  All figures, clients, and people shown are fictional sample data.
-                </p>
+                {!isEmbedded && (
+                  <p className="text-[11px] leading-relaxed text-muted-foreground/80 text-center pt-0.5">
+                    All figures, clients, and people shown are fictional sample data.
+                  </p>
+                )}
               </div>
             </div>
           </form>

@@ -1,6 +1,7 @@
 /* eslint-disable react-refresh/only-export-components */
 import { createContext, useContext, useEffect, useState, ReactNode } from "react";
 import type { Session, User } from "@supabase/supabase-js";
+import { safeGet, safeSet, safeRemove } from "@/lib/safeStorage";
 
 export type AppRole = "admin" | "bookkeeper" | "developer";
 export interface Profile {
@@ -50,7 +51,7 @@ const VIEW_AS_STORAGE_KEY = "mer:viewAsRole";
 function readLoggedIn(): boolean {
   if (typeof window === "undefined") return false;
   try {
-    return window.localStorage.getItem(DEMO_LOGIN_KEY) === "true";
+    return safeGet(DEMO_LOGIN_KEY) === "true";
   } catch {
     return false;
   }
@@ -60,15 +61,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loggedIn, setLoggedIn] = useState<boolean>(readLoggedIn);
   const [viewAsRole, setViewAsRoleState] = useState<AppRole | null>(() => {
     if (typeof window === "undefined") return null;
-    const v = window.localStorage.getItem(VIEW_AS_STORAGE_KEY);
+    const v = safeGet(VIEW_AS_STORAGE_KEY);
     return v === "admin" || v === "bookkeeper" || v === "developer" ? v : null;
   });
 
   const setViewAsRole = (role: AppRole | null) => {
     setViewAsRoleState(role);
     if (typeof window !== "undefined") {
-      if (role) window.localStorage.setItem(VIEW_AS_STORAGE_KEY, role);
-      else window.localStorage.removeItem(VIEW_AS_STORAGE_KEY);
+      if (role) safeSet(VIEW_AS_STORAGE_KEY, role);
+      else safeRemove(VIEW_AS_STORAGE_KEY);
     }
   };
 
@@ -84,7 +85,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const signOut = async () => {
     try {
-      window.localStorage.removeItem(DEMO_LOGIN_KEY);
+      safeRemove(DEMO_LOGIN_KEY);
     } catch {
       /* ignore */
     }

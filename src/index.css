@@ -394,3 +394,15 @@ body:hover,
     border-color: hsl(340 45% 70%);
   }
 }
+
+@layer base {
+  /* The sign-in page is the public face of the demo and sits inside the
+     HireJPS marketing site, so it follows that site's red brand accent
+     (hirejps.com uses --primary: 0 84% 58%) rather than the dashboard's rose.
+     Scoped to the login shell: the app behind it keeps its own palette. */
+  .login-brand {
+    --primary: 0 84% 58%;
+    --primary-foreground: 0 0% 100%;
+    --ring: 0 84% 58%;
+  }
+}
